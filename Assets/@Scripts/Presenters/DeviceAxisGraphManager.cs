@@ -218,8 +218,8 @@ public class DeviceAxisGraphManager : MonoBehaviour
 
         // 장치 x 축: Unity X 방향, 가까운 Z 바닥 모서리 위. 카메라 위치와 상관없이 왼쪽(min.x)이 0이고 오른쪽으로 커진다.
         BuildAxis(new Vector3(bounds.min.x, y0, nearZ), Vector3.right, bounds.size.x, xOut, xTitle);
-        // 장치 z 축: Unity Z 방향, 가까운 X 바닥 모서리 위. 카메라 위치와 상관없이 min.z가 0이고 +z 방향으로 커진다.
-        BuildAxis(new Vector3(nearX, y0, bounds.min.z), Vector3.forward, bounds.size.z, yOut, zTitle);
+        // 장치 z 축: Unity Z 방향, 가까운 X 바닥 모서리 위. 카메라 위치와 상관없이 max.z가 0이고 -z 방향으로 커진다.
+        BuildAxis(new Vector3(nearX, y0, bounds.max.z), Vector3.back, bounds.size.z, yOut, zTitle);
 
         // 장치 y 축: 세로 모서리 위 (바닥에서 위로)
         Vector3 zCorner = _zOnNearXEdge
