@@ -38,7 +38,6 @@ public class UI_MainSceneView : MonoBehaviour
 
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
     private UI_EditorView editorView;
-    private UI_AlarmPopupView alarmPopupView;
     private UI_ConfirmPopupView confirmPopupView;
     private JsonDataController jsonDataController;
     private UI_JsonFileListView jsonFileListView;
@@ -248,7 +247,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         bool saved = jsonDataController.Save(packFactory);
-        ShowAlarm(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
+        UI_AlarmPopupView.Notify(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
     }
 
     /// <summary>loadButton은 저장된 Json 파일 목록을 JsonFileListContainer의 ScrollView에 보여준다.</summary>
@@ -272,7 +271,7 @@ public class UI_MainSceneView : MonoBehaviour
         JsonDataController.SaveJson data = JsonDataController.Load(_path);
         if (data == null)
         {
-            ShowAlarm("Json 파일을 읽지 못했습니다.");
+            UI_AlarmPopupView.Notify("Json 파일을 읽지 못했습니다.");
             return;
         }
 
@@ -339,7 +338,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.Packs.Count}개, Module {packFactory.Modules.Count}개, 건너뜀 {skippedCount}개");
-        ShowAlarm(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
+        UI_AlarmPopupView.Notify(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
     }
 
     private void BuildModuleFromJson(PackDataModel _pack, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
@@ -376,16 +375,6 @@ public class UI_MainSceneView : MonoBehaviour
     private static int ParseCount(string _name)
     {
         return int.TryParse(_name, out int number) ? number : 0;
-    }
-
-    private void ShowAlarm(string _message)
-    {
-        if (alarmPopupView == null)
-        {
-            alarmPopupView = FindAnyObjectByType<UI_AlarmPopupView>();
-        }
-
-        alarmPopupView?.Show(_message);
     }
 
     private void BuildDropdownOptions()
@@ -556,12 +545,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        if (alarmPopupView == null)
-        {
-            alarmPopupView = FindAnyObjectByType<UI_AlarmPopupView>();
-        }
-
-        alarmPopupView?.Show(message);
+        UI_AlarmPopupView.Notify(message);
     }
 
     /// <summary>_parentPack / _parentModule는 클릭 시점에 ResolveParent로 정해진 부모다(프리폹 로드를 기다리는 사이 선택이 바뀔어도 그대로 쓴다).</summary>

@@ -25,7 +25,6 @@ public class UI_DeviceScaleView : MonoBehaviour
     private const float StepAmount = 1.0f;
 
     private MainSceneManager mainSceneManager;
-    private UI_AlarmPopupView alarmPopupView;
     #endregion
 
     #region LifeCycle
@@ -226,7 +225,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
             string message = $"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
-            ShowAlarm(message);
+            UI_AlarmPopupView.Notify(message);
 
             newSize = Vector3.Max(newSize, minSize);
             SetInput(xAxisInputField, newSize.x);
@@ -252,7 +251,7 @@ public class UI_DeviceScaleView : MonoBehaviour
             string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
             string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
-            ShowAlarm(message);
+            UI_AlarmPopupView.Notify(message);
 
             // 부모 몸체가 이미 현재 크기보다 좁아 최대 크기가 0 이하인 축은 현재 크기를 유지한다.
             newSize = new Vector3(
@@ -294,16 +293,6 @@ public class UI_DeviceScaleView : MonoBehaviour
                 current.min.y + newSize.y * 0.5f,
                 current.max.z - newSize.z * 0.5f);
         }
-    }
-
-    private void ShowAlarm(string _message)
-    {
-        if (alarmPopupView == null)
-        {
-            alarmPopupView = FindAnyObjectByType<UI_AlarmPopupView>();
-        }
-
-        alarmPopupView?.Show(_message);
     }
 
     /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
