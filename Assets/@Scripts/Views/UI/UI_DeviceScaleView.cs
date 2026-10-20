@@ -3,6 +3,7 @@ using Incheol.Utils;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class UI_DeviceScaleView : MonoBehaviour
@@ -12,10 +13,16 @@ public class UI_DeviceScaleView : MonoBehaviour
     [SerializeField] private TMP_InputField xAxisInputField;
     [SerializeField] private TMP_InputField yAxisInputField;
     [SerializeField] private TMP_InputField zAxisInputField;
-    [SerializeField] private TextMeshProUGUI currentPositionValue;
 
-    [Header("Apply")]
-    [SerializeField] private Button applyButton;
+    [Header("Selected Device Buttons")]
+    [SerializeField] private Button xAxisUpButton;
+    [SerializeField] private Button xAxisDownButton;
+    [SerializeField] private Button yAxisUpButton;
+    [SerializeField] private Button yAxisDownButton;
+    [SerializeField] private Button zAxisUpButton;
+    [SerializeField] private Button zAxisDownButton;
+
+    private const float StepAmount = 1.0f;
 
     private MainSceneManager mainSceneManager;
     #endregion
@@ -23,37 +30,45 @@ public class UI_DeviceScaleView : MonoBehaviour
     #region LifeCycle
     private void Awake()
     {
-        if (applyButton != null)
-        {
-            applyButton.onClick.AddListener(OnClickApply);
-        }
+        AddStepListener(xAxisUpButton, OnClickXUp);
+        AddStepListener(xAxisDownButton, OnClickXDown);
+        AddStepListener(yAxisUpButton, OnClickYUp);
+        AddStepListener(yAxisDownButton, OnClickYDown);
+        AddStepListener(zAxisUpButton, OnClickZUp);
+        AddStepListener(zAxisDownButton, OnClickZDown);
+
+        AddValueListener(xAxisInputField);
+        AddValueListener(yAxisInputField);
+        AddValueListener(zAxisInputField);
     }
 
     private void OnDestroy()
     {
-        if (applyButton != null)
-        {
-            applyButton.onClick.RemoveListener(OnClickApply);
-        }
+        RemoveStepListener(xAxisUpButton, OnClickXUp);
+        RemoveStepListener(xAxisDownButton, OnClickXDown);
+        RemoveStepListener(yAxisUpButton, OnClickYUp);
+        RemoveStepListener(yAxisDownButton, OnClickYDown);
+        RemoveStepListener(zAxisUpButton, OnClickZUp);
+        RemoveStepListener(zAxisDownButton, OnClickZDown);
+
+        RemoveValueListener(xAxisInputField);
+        RemoveValueListener(yAxisInputField);
+        RemoveValueListener(zAxisInputField);
     }
     #endregion
 
     #region Method
     /// <summary>
-    /// 선택된 오브젝트의 실제(월드) 크기를 "x : 0, y : 0, z : 0" 형태로 표시하고, 입력 필드에도 현재 크기를 채운다.
-    /// 오브젝트와 자식 Renderer의 bounds를 합친 크기이며 Renderer가 꺼져 있어도 계산된다. 표시는 반올림한 정수다.
+    /// 선택된 오브젝트 본인의 Scale(x, y, z)을 xAxisInputField / yAxisInputField / zAxisInputField에 채운다.
+    /// Pack / Module은 자식 Body, Cell은 본체의 월드 크기이며 자식 Module / Cell은 섞지 않는다. Renderer가 꺼져 있어도 계산된다.
+    /// 입력 필드는 알림 없이 채우므로 이 호출이 크기를 다시 바꾸지는 않는다.
     /// </summary>
     public void ShowSelected(Transform _target)
     {
-        if (!TryGetWorldSize(_target, out Vector3 size))
+        if (!TryGetOwnSize(_target, out Vector3 size))
         {
             Clear();
             return;
-        }
-
-        if (currentPositionValue != null)
-        {
-            currentPositionValue.text = $"x : {Mathf.RoundToInt(size.x)}, y : {Mathf.RoundToInt(size.y)}, z : {Mathf.RoundToInt(size.z)}";
         }
 
         SetInput(xAxisInputField, size.x);
@@ -61,25 +76,93 @@ public class UI_DeviceScaleView : MonoBehaviour
         SetInput(zAxisInputField, size.z);
     }
 
-    /// <summary>선택이 없을 때 크기 표시와 입력 필드를 비운다.</summary>
+    /// <summary>선택이 없을 때 입력 필드를 비운다.</summary>
     public void Clear()
     {
-        if (currentPositionValue != null)
-        {
-            currentPositionValue.text = string.Empty;
-        }
-
         SetInputText(xAxisInputField, string.Empty);
         SetInputText(yAxisInputField, string.Empty);
         SetInputText(zAxisInputField, string.Empty);
     }
 
+    private static void AddStepListener(Button _button, UnityAction _action)
+    {
+        if (_button != null)
+        {
+            _button.onClick.AddListener(_action);
+        }
+    }
+
+    private static void RemoveStepListener(Button _button, UnityAction _action)
+    {
+        if (_button != null)
+        {
+            _button.onClick.RemoveListener(_action);
+        }
+    }
+
+    private void AddValueListener(TMP_InputField _field)
+    {
+        if (_field != null)
+        {
+            _field.onValueChanged.AddListener(OnAxisValueChanged);
+        }
+    }
+
+    private void RemoveValueListener(TMP_InputField _field)
+    {
+        if (_field != null)
+        {
+            _field.onValueChanged.RemoveListener(OnAxisValueChanged);
+        }
+    }
+
+    private void OnClickXUp() => ChangeAxis(xAxisInputField, StepAmount);
+    private void OnClickXDown() => ChangeAxis(xAxisInputField, -StepAmount);
+    private void OnClickYUp() => ChangeAxis(yAxisInputField, StepAmount);
+    private void OnClickYDown() => ChangeAxis(yAxisInputField, -StepAmount);
+    private void OnClickZUp() => ChangeAxis(zAxisInputField, StepAmount);
+    private void OnClickZDown() => ChangeAxis(zAxisInputField, -StepAmount);
+
+    /// <summary>입력 필드에 값을 타이핑할 때마다 실시간으로 선택 항목의 크기에 반영한다. 입력 중에는 오류 로그를 남기지 않는다.</summary>
+    private void OnAxisValueChanged(string _text)
+    {
+        ApplyScale(false);
+    }
+
     /// <summary>
-    /// 입력한 x, y, z로 MainSceneManager의 selectedItem 본인의 크기만 바꾼다(자식 Module / Cell의 크기와 위치는 그대로).
+    /// _field에 입력된 값에 _delta를 더해 다시 채우고, 바뀐 값을 선택 항목의 크기에 바로 반영한다.
+    /// 비어 있거나 숫자가 아니면 건드리지 않고, 결과가 0 이하가 되면 바꾸지 않는다.
+    /// </summary>
+    private void ChangeAxis(TMP_InputField _field, float _delta)
+    {
+        if (_field == null)
+        {
+            return;
+        }
+
+        string text = _field.text.Replace("​", string.Empty).Trim();
+        if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float value))
+        {
+            return;
+        }
+
+        float next = value + _delta;
+        if (next <= 0.0f)
+        {
+            return;
+        }
+
+        SetInput(_field, next);
+        ApplyScale(true);
+    }
+
+    /// <summary>
+    /// 입력 필드의 x, y, z를 MainSceneManager의 SelectedItem 본인의 크기에 바로 반영한다(자식 Module / Cell의 크기와 위치는 그대로).
     /// 비어 있는 칸은 현재 값을 유지한다. 0 이하이거나 숫자가 아닌 값이 있으면 아무것도 바꾸지 않는다.
     /// Pack / Module은 몸체(Body)의 좌측 바닥 뒤쪽 모서리를 고정한 채 +x, +y, -z 방향으로 늘이고 줄이며, Cell은 중심을 고정한다.
+    /// _log가 false면(타이핑 중) 값이 맞지 않아도 로그를 남기지 않는다. 입력 필드는 다시 채우지 않는다(입력 중인 글자를 덮어쓰지 않기 위해).
     /// </summary>
-    private void OnClickApply()
+    private void ApplyScale(bool _log)
     {
         if (mainSceneManager == null)
         {
@@ -89,13 +172,16 @@ public class UI_DeviceScaleView : MonoBehaviour
         Transform target = mainSceneManager != null ? mainSceneManager.SelectedTarget : null;
         if (target == null)
         {
-            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>("선택된 항목이 없어 크기를 바꿀 수 없습니다.");
             return;
         }
 
         if (!TryGetSizeRenderer(target, mainSceneManager.SelectedKind, out Renderer sizeRenderer))
         {
-            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"크기를 바꿀 수 있는 몸체(Renderer)가 없습니다. 항목 : {target.name}");
+            if (_log)
+            {
+                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"크기를 바꿀 수 있는 몸체(Renderer)가 없습니다. 항목 : {target.name}");
+            }
+
             return;
         }
 
@@ -104,24 +190,41 @@ public class UI_DeviceScaleView : MonoBehaviour
             !TryParseAxis(yAxisInputField, current.size.y, out float y) ||
             !TryParseAxis(zAxisInputField, current.size.z, out float z))
         {
-            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>("크기는 0보다 큰 숫자로 입력해야 합니다.");
+            if (_log)
+            {
+                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>("크기는 0보다 큰 숫자로 입력해야 합니다.");
+            }
+
             return;
         }
 
         Vector3 newSize = new Vector3(x, y, z);
+        if ((newSize - current.size).sqrMagnitude < 1e-8f)
+        {
+            return;
+        }
+
         Transform bodyTransform = sizeRenderer.transform;
 
         // Pack / Module을 줄일 때 안의 Module / Cell이 몸체 밖으로 나가면 막는다.
         if (bodyTransform != target && !ChildrenFit(target, sizeRenderer, newSize, out Vector3 minSize))
         {
-            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+            if (_log)
+            {
+                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+            }
+
             return;
         }
 
         // Cell을 키울 때 부모 Module 몸체 밖으로 나가면 막는다.
         if (bodyTransform == target && !CellFits(target, current, newSize, out Vector3 maxSize))
         {
-            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"Module 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+            if (_log)
+            {
+                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"Module 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+            }
+
             return;
         }
 
@@ -149,8 +252,6 @@ public class UI_DeviceScaleView : MonoBehaviour
                 current.min.y + newSize.y * 0.5f,
                 current.max.z - newSize.z * 0.5f);
         }
-
-        mainSceneManager.RefreshProperties();
     }
 
     /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
@@ -286,6 +387,33 @@ public class UI_DeviceScaleView : MonoBehaviour
         {
             _field.SetTextWithoutNotify(_text);
         }
+    }
+
+    /// <summary>
+    /// 선택 항목 본인 몸체(Pack / Module은 자식 Body, Cell은 본체)의 월드 크기.
+    /// 몸체 Renderer가 없으면 자식 Renderer를 합친 크기로 대신한다.
+    /// </summary>
+    private bool TryGetOwnSize(Transform _target, out Vector3 _size)
+    {
+        _size = Vector3.zero;
+        if (_target == null)
+        {
+            return false;
+        }
+
+        if (mainSceneManager == null)
+        {
+            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
+        }
+
+        MainSceneManager.TargetKind kind = mainSceneManager != null ? mainSceneManager.SelectedKind : MainSceneManager.TargetKind.Pack;
+        if (TryGetSizeRenderer(_target, kind, out Renderer body))
+        {
+            _size = body.bounds.size;
+            return true;
+        }
+
+        return TryGetWorldSize(_target, out _size);
     }
 
     private static bool TryGetWorldSize(Transform _target, out Vector3 _size)
