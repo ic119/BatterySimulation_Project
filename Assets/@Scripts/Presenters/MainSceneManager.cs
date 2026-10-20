@@ -30,6 +30,7 @@ namespace Incheol.Presenter
         private UI_DeviceStructureView structureView;
         private UI_EditorView editorView;
         private UI_SelectedDeviceNameView nameView;
+        private UI_MainSceneView mainSceneView;
 
         private UI_TreeNodeItem selectedItem;
         private Transform selectedTarget;
@@ -75,13 +76,59 @@ namespace Incheol.Presenter
 
         private void OnDestroy()
         {
+            if (editorView != null)
+            {
+                editorView.ItemClicked -= OnItemClicked;
+                editorView.TreeChanged -= OnTreeChanged;
+            }
+
+            if (nameView != null)
+            {
+                nameView.RenameRequested -= RenameSelected;
+            }
+
+            if (mainSceneView != null)
+            {
+                mainSceneView.ObjectRemoving -= OnObjectRemoving;
+                mainSceneView.SelectionClearRequested -= OnSelectionClearRequested;
+                mainSceneView.ObjectCreated -= ShowIfInSelection;
+            }
+
             DeviceAxisGraphManager.SetSelectedOwner(null);
         }
         #endregion
 
         #region Method
+        private void OnItemClicked(UI_TreeNodeItem _item, Transform _target, TargetKind _kind)
+        {
+            SelectItem(_item, _target, _kind);
+        }
+
+        private void OnTreeChanged()
+        {
+            RefreshStructure();
+            RefreshProperties();
+        }
+
+        /// <summary>선택된 항목이 지워질 _removed 안에 있으면 선택을 푼다.</summary>
+        private void OnObjectRemoving(Transform _removed)
+        {
+            if (selectedTarget != null && selectedTarget.IsChildOf(_removed))
+            {
+                DeselectItem();
+            }
+        }
+
+        private void OnSelectionClearRequested()
+        {
+            if (selectedItem != null)
+            {
+                DeselectItem();
+            }
+        }
+
         /// <summary>
-        /// 인스턴스화한 UI_MainScene 안의 뷰를 한 번만 모아 두고, MainSceneManager를 쓰는 뷰에 자신을 넘겨준다.
+        /// 인스턴스화한 UI_MainScene 안의 뷰를 한 번만 모아 두고, 뷰가 알리는 이벤트를 받는다. 선택 정보를 읽는 뷰에는 자신을 넘겨준다.
         /// 프리팹이 만들어지기 전에는 각 필드가 null이므로 사용하는 쪽은 null이면 건너뛴다.
         /// </summary>
         private void BindViews(GameObject _root)
@@ -92,10 +139,28 @@ namespace Incheol.Presenter
             editorView = _root.GetComponentInChildren<UI_EditorView>(true);
             nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
 
+            mainSceneView = _root.GetComponentInChildren<UI_MainSceneView>(true);
+
             scaleView?.Init(this);
-            editorView?.Init(this);
-            nameView?.Init(this);
-            _root.GetComponentInChildren<UI_MainSceneView>(true)?.Init(this);
+            mainSceneView?.Init(this);
+
+            if (editorView != null)
+            {
+                editorView.ItemClicked += OnItemClicked;
+                editorView.TreeChanged += OnTreeChanged;
+            }
+
+            if (nameView != null)
+            {
+                nameView.RenameRequested += RenameSelected;
+            }
+
+            if (mainSceneView != null)
+            {
+                mainSceneView.ObjectRemoving += OnObjectRemoving;
+                mainSceneView.SelectionClearRequested += OnSelectionClearRequested;
+                mainSceneView.ObjectCreated += ShowIfInSelection;
+            }
         }
 
         /// <summary>

@@ -1,5 +1,4 @@
-﻿using Incheol.Presenter;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,8 +9,10 @@ public class UI_SelectedDeviceNameView : MonoBehaviour
     [SerializeField] private TMP_InputField changeNameInputField;
     [SerializeField] private Button applyButton;
 
-    private MainSceneManager mainSceneManager;
     #endregion
+
+    /// <summary>적용 버튼을 눌렀을 때 발생한다. 인자는 입력 필드의 이름이다.</summary>
+    public event System.Action<string> RenameRequested;
 
     #region LifeCycle
     private void Awake()
@@ -34,12 +35,6 @@ public class UI_SelectedDeviceNameView : MonoBehaviour
     #endregion
 
     #region Method
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(MainSceneManager _manager)
-    {
-        mainSceneManager = _manager;
-    }
-
     /// <summary>선택된 항목의 이름을 입력 필드에 채운다. 사용자가 입력 중이던 내용은 덮어쓴다.</summary>
     public void ShowSelected(string _name)
     {
@@ -77,7 +72,7 @@ public class UI_SelectedDeviceNameView : MonoBehaviour
             return;
         }
 
-        mainSceneManager?.RenameSelected(changeNameInputField.text);
+        RenameRequested?.Invoke(changeNameInputField.text);
     }
     #endregion
 }

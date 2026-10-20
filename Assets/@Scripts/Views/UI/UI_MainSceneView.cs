@@ -123,6 +123,15 @@ public class UI_MainSceneView : MonoBehaviour
     }
     #endregion
 
+    /// <summary>Pack / Module / Cell을 지우기 직전에 발생한다. 인자는 지워질 오브젝트이다. 선택된 항목이 그 안에 있으면 받는 쪽이 선택을 풀어야 한다.</summary>
+    public event System.Action<Transform> ObjectRemoving;
+
+    /// <summary>모두 지우고 다시 만들기 전에 발생한다. 받는 쪽은 현재 선택을 풀어 카메라와 패널을 되돌린다.</summary>
+    public event System.Action SelectionClearRequested;
+
+    /// <summary>새 Pack / Module / Cell을 만들어 숨긴 직후 발생한다. 인자는 만들어진 오브젝트이다.</summary>
+    public event System.Action<Transform> ObjectCreated;
+
     #region Method
     /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
     public void Init(MainSceneManager _manager)
@@ -212,10 +221,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        if (mainSceneManager != null && mainSceneManager.SelectedTarget != null && mainSceneManager.SelectedTarget.IsChildOf(removedTransform))
-        {
-            mainSceneManager.DeselectItem();
-        }
+        ObjectRemoving?.Invoke(removedTransform);
 
         bool removed = false;
         switch (_model)
@@ -291,10 +297,7 @@ public class UI_MainSceneView : MonoBehaviour
     private void BuildFromJson(JsonDataController.SaveJson _data, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
     {
         // 지울 오브젝트가 선택되어 있으면 먼저 선택을 풀어 카메라와 패널을 되돌린다.
-        if (mainSceneManager != null && mainSceneManager.SelectedItem != null)
-        {
-            mainSceneManager.DeselectItem();
-        }
+        SelectionClearRequested?.Invoke();
 
         editorView?.Clear();
         packFactory.Clear();
@@ -507,13 +510,13 @@ public class UI_MainSceneView : MonoBehaviour
 
     /// <summary>
     /// 새로 만든 _created는 기본적으로 숨긴다. 단, 현재 선택된 Pack / Module 아래에 생성된 것이면
-    /// 생성되는 모습이 바로 보이도록 MainSceneManager가 다시 켜준다.
+    /// 생성되는 모습이 바로 보이도록 ObjectCreated를 받는 쪽이 다시 켜준다.
     /// </summary>
     private void HideOrShowCreated(Transform _created)
     {
         MainSceneManager.SetVisible(_created, false);
 
-        mainSceneManager?.ShowIfInSelection(_created);
+        ObjectCreated?.Invoke(_created);
     }
 
     /// <summary>가장 최근 생성이 "더 이상 놓을 공간이 없어서" 실패했다면 그 안내 문구를 알람 팝업으로 잠깐 보여준다. 다른 이유의 실패면 아무것도 하지 않는다.</summary>
