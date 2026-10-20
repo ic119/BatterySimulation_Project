@@ -1,0 +1,261 @@
+using Incheol.Models.Define;
+using Incheol.Modules;
+using Incheol.Utils;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+namespace Incheol.Presenter
+{
+    /// <summary>
+    /// MainScene의 진입점. SceneLoadManager가 preload해 둔 Addressable 프리팹을 캐시에서 꺼내 인스턴스화하고,
+    /// 트리에서 선택된 항목(1개)과 그 항목이 가리키는 오브젝트의 표시 상태를 관리한다.
+    /// </summary>
+    public class MainSceneManager : MonoBehaviour
+    {
+        /// <summary>선택 대상의 종류. 종류에 따라 SetVisible이 켜는 Renderer 범위가 다르다.</summary>
+        public enum TargetKind
+        {
+            Pack,
+            Module,
+            Cell,
+        }
+
+        #region Variable
+        private OrbitCameraView cameraView;
+        private UI_PropertiesView propertiesView;
+        private UI_DeviceScaleView scaleView;
+        private UI_DeviceStructureView structureView;
+        private UI_EditorView editorView;
+
+        private UI_TreeNodeItem selectedItem;
+        private Transform selectedTarget;
+        private TargetKind selectedKind;
+        #endregion
+
+        #region Property
+        /// <summary>현재 선택된 트리 항목. 없으면 null.</summary>
+        public UI_TreeNodeItem SelectedItem => selectedItem;
+
+        /// <summary>현재 선택된 항목이 가리키는 오브젝트(Pack/Module/Cell). 없으면 null.</summary>
+        public Transform SelectedTarget => selectedTarget;
+
+        /// <summary>현재 선택된 항목의 종류(Pack/Module/Cell). 선택이 없으면 의미 없는 값이므로 SelectedItem이 null이 아닐 때만 쓴다.</summary>
+        public TargetKind SelectedKind => selectedKind;
+        #endregion
+
+        #region LifeCycle
+        private void Start()
+        {
+            cameraView = FindAnyObjectByType<OrbitCameraView>();
+
+            AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
+                AddressableAssetKey.UI_MainScene.ToString(),
+                prefab =>
+                {
+                    // 캐시된 프리팹은 Start에서 즉시 인스턴스화되는데, 이때 활성 씬이 아직 BootstrapScene이면 Bootstrap 언로드와 함께 사라진다.
+                    // 항상 이 MainSceneManager가 속한 씬(MainScene)으로 옮긴다.
+                    GameObject instance = AddressableAssetManager.Instance.InstantiatePrefab(prefab);
+                    SceneManager.MoveGameObjectToScene(instance, gameObject.scene);
+                    DebugLogManager.GenerateLogMessage<MainSceneManager>("UI_MainScene 프리팹 인스턴스화 완료");
+                },
+                () => DebugLogManager.GenerateErrorMessage<MainSceneManager>("UI_MainScene 프리팹 로드 실패"));
+        }
+        #endregion
+
+        #region Method
+        /// <summary>
+        /// _item을 선택한다. 선택은 항상 1개뿐이라 이전 선택은 해제하고 그 오브젝트는 다시 숨긴다.
+        /// 새로 선택한 오브젝트는 자식(Module의 Cell 등)까지 전부 보이게 하고 카메라가 따라간다.
+        /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 그 오브젝트는 다시 숨겨지고, 선택된 항목은 없는 상태가 된다.
+        /// </summary>
+        public void SelectItem(UI_TreeNodeItem _item, Transform _target, TargetKind _kind = TargetKind.Pack)
+        {
+            if (_item == null || _target == null)
+            {
+                return;
+            }
+
+            if (selectedItem == _item)
+            {
+                DeselectItem();
+                return;
+            }
+
+            if (selectedItem != null)
+            {
+                selectedItem.SetClicked(false);
+                SetVisible(selectedTarget, false);
+            }
+
+            selectedItem = _item;
+            selectedTarget = _target;
+            selectedKind = _kind;
+
+            selectedItem.SetClicked(true);
+            SetVisible(selectedTarget, true, _kind);
+            RefreshProperties();
+            RefreshStructure();
+
+            if (cameraView != null)
+            {
+                cameraView.Track(selectedTarget, selectedTarget.root);
+            }
+        }
+
+        /// <summary>
+        /// 새로 생성된 _created가 현재 선택된 Pack / Module 아래에 있으면 생성 즉시 보이게 하고 카메라를 다시 맞춘다.
+        /// 선택이 없거나 Cell이 선택되어 있거나 선택 범위 밖에 생성된 것이면 아무 것도 하지 않는다(숨긴 채로 둔다).
+        /// </summary>
+        public void ShowIfInSelection(Transform _created)
+        {
+            if (_created == null || selectedTarget == null || selectedKind == TargetKind.Cell)
+            {
+                return;
+            }
+
+            if (!_created.IsChildOf(selectedTarget))
+            {
+                return;
+            }
+
+            SetVisible(_created, true);
+
+            if (cameraView != null)
+            {
+                cameraView.Refocus();
+            }
+        }
+
+        /// <summary>
+        /// 선택된 항목 본인의 자식 구조(Pack이면 Module / Cell, Module이면 Cell)를 구조 패널에 보여준다. 선택이 없으면 패널을 비운다.
+        /// 선택한 항목 아래에 새 자식이 생길 때도 UI_EditorView가 호출해 갱신한다. 패널과 트리 뷰는 비동기로 생성되므로 필요할 때 찾는다.
+        /// </summary>
+        public void RefreshStructure()
+        {
+            if (structureView == null)
+            {
+                structureView = FindAnyObjectByType<UI_DeviceStructureView>();
+            }
+
+            if (structureView == null)
+            {
+                return;
+            }
+
+            if (selectedItem == null)
+            {
+                structureView.Clear();
+                return;
+            }
+
+            if (editorView == null)
+            {
+                editorView = FindAnyObjectByType<UI_EditorView>();
+            }
+
+            if (editorView == null)
+            {
+                structureView.Clear();
+                return;
+            }
+
+            structureView.Show(selectedItem.Label, editorView.GetChildStructure(selectedItem));
+        }
+
+        /// <summary>
+        /// 선택된 항목의 이름과 위치를 속성 패널에, 실제 크기를 크기 패널에 반영한다. 선택이 없으면 패널을 비운다.
+        /// 패널은 비동기로 생성되므로 필요할 때 찾는다. 선택한 항목 아래에 자식이 생겨 크기가 변할 수 있어 UI_EditorView도 생성 후 호출한다.
+        /// </summary>
+        public void RefreshProperties()
+        {
+            if (propertiesView == null)
+            {
+                propertiesView = FindAnyObjectByType<UI_PropertiesView>();
+            }
+
+            if (scaleView == null)
+            {
+                scaleView = FindAnyObjectByType<UI_DeviceScaleView>();
+            }
+
+            bool hasSelection = selectedItem != null && selectedTarget != null;
+
+            if (propertiesView != null)
+            {
+                if (hasSelection)
+                {
+                    propertiesView.ShowSelected(selectedItem.Label, selectedTarget.position);
+                }
+                else
+                {
+                    propertiesView.Clear();
+                }
+            }
+
+            if (scaleView != null)
+            {
+                if (hasSelection)
+                {
+                    scaleView.ShowSelected(selectedTarget);
+                }
+                else
+                {
+                    scaleView.Clear();
+                }
+            }
+        }
+
+        /// <summary>현재 선택을 취소한다. 항목의 강조를 끄고 그 오브젝트(와 자식)를 다시 숨긴다.</summary>
+        public void DeselectItem()
+        {
+            if (selectedItem != null)
+            {
+                selectedItem.SetClicked(false);
+            }
+
+            SetVisible(selectedTarget, false);
+            selectedItem = null;
+            selectedTarget = null;
+            RefreshProperties();
+            RefreshStructure();
+
+            // 선택이 없으면 카메라를 처음 시점으로 되돌린다.
+            if (cameraView != null)
+            {
+                cameraView.ResetView();
+            }
+        }
+
+        /// <summary>
+        /// _visible이 false면 _target과 그 자식들의 모든 Renderer를 끈다.
+        /// true일 때 Pack / Module은 자식까지 모든 Renderer를 켜고, Cell은 본인의 Renderer만 켜고 같은 루트 아래의 나머지 Renderer는 모두 끈다.
+        /// 오브젝트는 비활성화하지 않아 자식만 따로 보여줄 수 있다.
+        /// </summary>
+        public static void SetVisible(Transform _target, bool _visible, TargetKind _kind = TargetKind.Pack)
+        {
+            if (_target == null)
+            {
+                return;
+            }
+
+            if (_visible && _kind == TargetKind.Cell)
+            {
+                Renderer[] allRendererArray = _target.root.GetComponentsInChildren<Renderer>(true);
+                for (int i = 0; i < allRendererArray.Length; i++)
+                {
+                    // IsChildOf는 자기 자신도 포함하므로 Cell 본인(과 Cell 아래)만 켜진다.
+                    allRendererArray[i].enabled = allRendererArray[i].transform.IsChildOf(_target);
+                }
+
+                return;
+            }
+
+            Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < rendererArray.Length; i++)
+            {
+                rendererArray[i].enabled = _visible;
+            }
+        }
+        #endregion
+    }
+}
