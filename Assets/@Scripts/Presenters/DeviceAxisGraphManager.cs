@@ -47,6 +47,13 @@ public class DeviceAxisGraphManager : MonoBehaviour
 
     private Renderer _bodyRenderer;       // 크기 기준이 되는 몸체 Renderer
     private Transform _graphRoot;         // 선 / 글자를 담는 별도 루트(이 오브젝트의 자식이 아님)
+    // 크기가 바뀔 때마다 선 / 글자 오브젝트를 새로 만들고 지우지 않고, 한 번 만든 것을 다시 쓴다(안 쓰는 것은 꺼 둔다).
+    private readonly List<LineRenderer> _linePool = new List<LineRenderer>();
+    private readonly List<TextMeshPro> _labelPool = new List<TextMeshPro>();
+    private int _lineUsed;
+    private int _labelUsed;
+    private Material _fallbackMat;    // lineMat이 없을 때 모든 선이 함께 쓰는 재질
+
     private readonly List<Transform> _billboards = new List<Transform>();       // 카메라를 향하게 할 글자
     private bool _shown;                  // 그래프가 지금 보이는 상태인지
     #endregion
@@ -74,6 +81,9 @@ public class DeviceAxisGraphManager : MonoBehaviour
     {
         if (_graphRoot != null)
             Destroy(_graphRoot.gameObject);
+
+        if (_fallbackMat != null)
+            Destroy(_fallbackMat);
     }
 
     private void LateUpdate()
@@ -178,7 +188,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
     }
 
     // 그래프 루트를 (없으면) 만든다. 이 오브젝트 계층 밖, 같은 씬의 최상위에 둔다.
-    void EnsureRoot()
+    private void EnsureRoot()
     {
         if (_graphRoot != null)
         {
@@ -195,13 +205,13 @@ public class DeviceAxisGraphManager : MonoBehaviour
         _graphRoot = go.transform;
     }
 
-    void Rebuild(Bounds bounds)
+    private void Rebuild(Bounds bounds)
     {
         EnsureRoot();
 
-        // 이전에 만든 선 / 글자 제거
-        for (int i = _graphRoot.childCount - 1; i >= 0; i--)
-            Destroy(_graphRoot.GetChild(i).gameObject);
+        // 이전에 만든 선 / 글자는 지우지 않고 처음부터 다시 채운다.
+        _lineUsed = 0;
+        _labelUsed = 0;
         _billboards.Clear();
 
         float max = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
@@ -233,10 +243,23 @@ public class DeviceAxisGraphManager : MonoBehaviour
             : new Vector3(farX, y0, nearZ);
         Vector3 zOut = new Vector3(zCorner.x - c.x, 0f, zCorner.z - c.z).normalized;
         BuildAxis(zCorner, Vector3.up, bounds.size.y, zOut, yTitle);
+
+        // 이번에 쓰지 않은 선 / 글자는 꺼 둔다.
+        for (int i = _lineUsed; i < _linePool.Count; i++)
+        {
+            if (_linePool[i] != null)
+                _linePool[i].gameObject.SetActive(false);
+        }
+
+        for (int i = _labelUsed; i < _labelPool.Count; i++)
+        {
+            if (_labelPool[i] != null)
+                _labelPool[i].gameObject.SetActive(false);
+        }
     }
 
     // origin에서 dir 방향으로 length만큼 축 선 + 눈금 + 숫자 + 축 이름(모서리 바깥쪽)
-    void BuildAxis(Vector3 origin, Vector3 dir, float length, Vector3 outward, string title)
+    private void BuildAxis(Vector3 origin, Vector3 dir, float length, Vector3 outward, string title)
     {
         if (length <= 0f) return;
 
@@ -258,7 +281,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
         CreateLabel(title, mid + outward * (_tickLength + _labelSize * 3f));
     }
 
-    void CreateTick(Vector3 origin, Vector3 dir, float value, Vector3 outward)
+    private void CreateTick(Vector3 origin, Vector3 dir, float value, Vector3 outward)
     {
         Vector3 p = origin + dir * value;
         CreateLine("Tick " + value.ToString("0.##", CultureInfo.InvariantCulture), p, p + outward * _tickLength);
@@ -266,7 +289,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
     }
 
     // 1 / 2 / 5 × 10^n 중 가장 가까운 눈금 간격
-    static float NiceStep(float raw)
+    private static float NiceStep(float raw)
     {
         if (raw <= 0f) return 1f;
         float pow = Mathf.Pow(10f, Mathf.Floor(Mathf.Log10(raw)));
@@ -275,34 +298,69 @@ public class DeviceAxisGraphManager : MonoBehaviour
         return nice * pow;
     }
 
-    // 월드 좌표 a, b를 잇는 선
-    void CreateLine(string name, Vector3 a, Vector3 b)
+    // 월드 좌표 a, b를 잇는 선. 풀에서 꺼내 쓰고 모자라면 새로 만든다.
+    private void CreateLine(string name, Vector3 a, Vector3 b)
     {
-        var go = new GameObject(name);
-        go.transform.SetParent(_graphRoot, false);
-        var lr = go.AddComponent<LineRenderer>();
-        lr.useWorldSpace = true;
-        lr.positionCount = 2;
+        LineRenderer lr = _lineUsed < _linePool.Count ? _linePool[_lineUsed] : null;
+        if (lr == null)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(_graphRoot, false);
+            lr = go.AddComponent<LineRenderer>();
+            lr.useWorldSpace = true;
+            lr.positionCount = 2;
+            if (_lineUsed < _linePool.Count)
+                _linePool[_lineUsed] = lr;
+            else
+                _linePool.Add(lr);
+        }
+
+        _lineUsed++;
+        lr.gameObject.name = name;
+        lr.gameObject.SetActive(true);
         lr.SetPosition(0, a);
         lr.SetPosition(1, b);
         lr.startWidth = lr.endWidth = _lineWidth;
-        lr.material = lineMat != null ? lineMat : new Material(Shader.Find("Sprites/Default"));
+        lr.sharedMaterial = GetLineMaterial();
         lr.startColor = lr.endColor = axisColor;
     }
 
-    // 월드 좌표에 놓는 글자. 크기는 월드 기준(_labelSize)이고 항상 카메라를 향한다. 그래프 루트는 스케일 1이다.
-    void CreateLabel(string text, Vector3 worldPos)
+    private Material GetLineMaterial()
     {
-        var go = new GameObject("Label_" + text);
-        go.transform.SetParent(_graphRoot, false);
-        go.transform.position = worldPos;
-        go.transform.localScale = Vector3.one * (_labelSize * 10f);
-        var tmp = go.AddComponent<TextMeshPro>();
+        if (lineMat != null)
+            return lineMat;
+
+        if (_fallbackMat == null)
+            _fallbackMat = new Material(Shader.Find("Sprites/Default"));
+        return _fallbackMat;
+    }
+
+    // 월드 좌표에 놓는 글자. 크기는 월드 기준(_labelSize)이고 항상 카메라를 향한다. 그래프 루트는 스케일 1이다. 풀에서 꺼내 쓴다.
+    private void CreateLabel(string text, Vector3 worldPos)
+    {
+        TextMeshPro tmp = _labelUsed < _labelPool.Count ? _labelPool[_labelUsed] : null;
+        if (tmp == null)
+        {
+            var go = new GameObject(text);
+            go.transform.SetParent(_graphRoot, false);
+            tmp = go.AddComponent<TextMeshPro>();
+            tmp.fontSize = 1;
+            tmp.alignment = TextAlignmentOptions.Center;
+            if (_labelUsed < _labelPool.Count)
+                _labelPool[_labelUsed] = tmp;
+            else
+                _labelPool.Add(tmp);
+        }
+
+        _labelUsed++;
+        Transform t = tmp.transform;
+        t.gameObject.name = "Label_" + text;
+        t.gameObject.SetActive(true);
+        t.position = worldPos;
+        t.localScale = Vector3.one * (_labelSize * 10f);
         tmp.text = text;
-        tmp.fontSize = 1;
-        tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = labelColor;
-        _billboards.Add(go.transform);
+        _billboards.Add(t);
     }
     #endregion
 }
