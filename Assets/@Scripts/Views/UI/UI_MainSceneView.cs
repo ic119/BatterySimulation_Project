@@ -39,6 +39,7 @@ public class UI_MainSceneView : MonoBehaviour
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
     private UI_EditorView editorView;
     private UI_AlarmPopupView alarmPopupView;
+    private UI_ConfirmPopupView confirmPopupView;
     private JsonDataController jsonDataController;
     private UI_JsonFileListView jsonFileListView;
     private MainSceneManager mainSceneManager;
@@ -150,6 +151,39 @@ public class UI_MainSceneView : MonoBehaviour
     /// 번호 카운터는 줄이지 않는다(이름이 겹치지 않도록).
     /// </summary>
     private void OnDeleteRequested(object _model)
+    {
+        string description;
+        switch (_model)
+        {
+            case PackDataModel pack:
+                description = $"Pack {pack.packName}과(와) 그 안의 모든 Module / Cell을";
+                break;
+            case ModuleDataModel module:
+                description = $"Module {module.moduleName}과(와) 그 안의 모든 Cell을";
+                break;
+            case CellDataModel cell:
+                description = $"Cell {cell.cellName}을(를)";
+                break;
+            default:
+                return;
+        }
+
+        // 확인 팝업이 없으면 묻지 않고 지우는 일은 하지 않는다.
+        if (confirmPopupView == null)
+        {
+            confirmPopupView = FindAnyObjectByType<UI_ConfirmPopupView>();
+        }
+
+        if (confirmPopupView == null)
+        {
+            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("UI_ConfirmPopupView를 찾지 못해 삭제하지 않았습니다.");
+            return;
+        }
+
+        confirmPopupView.Show($"{description} 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.", () => DeleteModel(_model));
+    }
+
+    private void DeleteModel(object _model)
     {
         Transform removedTransform = null;
         switch (_model)
