@@ -12,8 +12,6 @@ public class UI_AlarmPopupView : MonoBehaviour
     [Header("AlarmPopup Duration")]
     [SerializeField, Range(2.0f, 3.0f), Tooltip("알람이 켜져 있는 시간(초). 2~3초 사이.")] private float showSeconds = 2.5f;
 
-    private static UI_AlarmPopupView instance;
-
     private Coroutine hideCoroutine;
     #endregion
 
@@ -32,25 +30,7 @@ public class UI_AlarmPopupView : MonoBehaviour
 
     #region Method
     /// <summary>
-    /// 씬의 UI_AlarmPopupView를 찾아(한 번 찾으면 기억) _message를 보여준다. 없으면 아무것도 하지 않는다.
-    /// 각 뷰가 알람 팝업을 따로 찾지 않고 이 한 곳으로 알린다.
-    /// </summary>
-    public static void Notify(string _message)
-    {
-        if (instance == null)
-        {
-            instance = FindAnyObjectByType<UI_AlarmPopupView>();
-        }
-
-        if (instance != null)
-        {
-            instance.Show(_message);
-        }
-    }
-
-    /// <summary>
-    /// _message를 alarmContent에 표시하고 alarmPopup을 켠 뒤 showSeconds(2~3초) 후 다시 끈다.
-    /// 표시 중에 다시 호출하면 내용을 바꾸고 시간을 처음부터 다시 센다.
+    /// _message를 alarmContent에 표시하고 alarmPopup을 켠 뒤 showSeconds(2~3초) 후 비활성화
     /// </summary>
     public void Show(string _message)
     {

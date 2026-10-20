@@ -22,6 +22,9 @@ public class UI_DeviceScaleView : MonoBehaviour
     [SerializeField] private Button zAxisUpButton;
     [SerializeField] private Button zAxisDownButton;
 
+    [Header("Alarm")]
+    [SerializeField] private UI_AlarmPopupView alarmPopupView;
+
     private const float StepAmount = 1.0f;
 
     private MainSceneManager mainSceneManager;
@@ -225,7 +228,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
             string message = $"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
-            UI_AlarmPopupView.Notify(message);
+            alarmPopupView?.Show(message);
 
             newSize = Vector3.Max(newSize, minSize);
             SetInput(xAxisInputField, newSize.x);
@@ -251,7 +254,7 @@ public class UI_DeviceScaleView : MonoBehaviour
             string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
             string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
-            UI_AlarmPopupView.Notify(message);
+            alarmPopupView?.Show(message);
 
             // 부모 몸체가 이미 현재 크기보다 좁아 최대 크기가 0 이하인 축은 현재 크기를 유지한다.
             newSize = new Vector3(

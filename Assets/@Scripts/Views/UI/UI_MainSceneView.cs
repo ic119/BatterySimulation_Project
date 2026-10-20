@@ -26,6 +26,9 @@ public class UI_MainSceneView : MonoBehaviour
     [SerializeField] private Button loadButton;
     [SerializeField] private TMP_Dropdown newDropdown;
 
+    [Header("Alarm")]
+    [SerializeField] private UI_AlarmPopupView alarmPopupView;
+
     [Header("Module Layout")]
     [SerializeField, Min(0.0f), Tooltip("Module 사이(가로/깊이)의 여백. Module은 칸 가운데에 놓여 Pack 벽과도 여백의 절반만큼 떨어진다.")] private float modulePadding = 0.0f;
 
@@ -247,7 +250,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         bool saved = jsonDataController.Save(packFactory);
-        UI_AlarmPopupView.Notify(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
+        alarmPopupView?.Show(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
     }
 
     /// <summary>loadButton은 저장된 Json 파일 목록을 JsonFileListContainer의 ScrollView에 보여준다.</summary>
@@ -271,7 +274,7 @@ public class UI_MainSceneView : MonoBehaviour
         JsonDataController.SaveJson data = JsonDataController.Load(_path);
         if (data == null)
         {
-            UI_AlarmPopupView.Notify("Json 파일을 읽지 못했습니다.");
+            alarmPopupView?.Show("Json 파일을 읽지 못했습니다.");
             return;
         }
 
@@ -338,7 +341,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.Packs.Count}개, Module {packFactory.Modules.Count}개, 건너뜀 {skippedCount}개");
-        UI_AlarmPopupView.Notify(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
+        alarmPopupView?.Show(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
     }
 
     private void BuildModuleFromJson(PackDataModel _pack, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
@@ -545,7 +548,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        UI_AlarmPopupView.Notify(message);
+        alarmPopupView?.Show(message);
     }
 
     /// <summary>_parentPack / _parentModule는 클릭 시점에 ResolveParent로 정해진 부모다(프리폹 로드를 기다리는 사이 선택이 바뀔어도 그대로 쓴다).</summary>

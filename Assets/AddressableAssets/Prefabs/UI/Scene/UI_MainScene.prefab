@@ -2359,6 +2359,7 @@ MonoBehaviour:
   saveButton: {fileID: 1131057890784333524}
   loadButton: {fileID: 1961113963255629288}
   newDropdown: {fileID: 4779922211578458296}
+  alarmPopupView: {fileID: 7118347146896494806}
   modulePadding: 0
   cellPadding: 0
 --- !u!114 &4901821463160712549
@@ -2412,6 +2413,7 @@ MonoBehaviour:
   yAxisDownButton: {fileID: 761493597993217180}
   zAxisUpButton: {fileID: 8226948666019885489}
   zAxisDownButton: {fileID: 4301889606663642519}
+  alarmPopupView: {fileID: 7118347146896494806}
 --- !u!114 &1670416352793268688
 MonoBehaviour:
   m_ObjectHideFlags: 0
