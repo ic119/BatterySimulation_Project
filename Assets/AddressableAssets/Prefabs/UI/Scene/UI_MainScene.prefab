@@ -2377,6 +2377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_EditorView
   scrollRect: {fileID: 834178323071941158}
+  rowHeight: 28
 --- !u!114 &4263673440526414757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2430,6 +2431,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI_DeviceStructureView
   contentRect: {fileID: 3613846544091658079}
   fontSize: 24
+  lineHeight: 30
   textColor: {r: 0.23899364, g: 0.23899364, b: 0.23899364, a: 0.76862746}
   selfTextColor: {r: 0, g: 0, b: 0, a: 1}
   indentWidth: 18
