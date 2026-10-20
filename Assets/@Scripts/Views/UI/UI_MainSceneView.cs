@@ -291,8 +291,7 @@ public class UI_MainSceneView : MonoBehaviour
 
     /// <summary>
     /// 지금 있는 것을 모두 지우고 _data의 Pack / Module / Cell을 newButton으로 만들 때와 같은 방식으로 다시 만든다.
-    /// 저장된 이름, 자식 구조, 크기를 쓰고, 위치는 저장값 대신 PackFactory의 자동 배치(첫 빈 칸 + Padding)가 정한다.
-    /// 부모가 가득 차 놓을 곳이 없는 항목은 직접 만들 때처럼 만들어지지 않는다. 만든 것은 숨겨 두고 트리에만 추가한다.
+    /// 만드는 일은 PackJsonBuilder가 하고, 이 뷰는 만들어진 것을 숨겨 두고 트리에 추가하며 번호를 이어 붙인다.
     /// </summary>
     private void BuildFromJson(JsonDataController.SaveJson _data, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
     {
@@ -301,73 +300,37 @@ public class UI_MainSceneView : MonoBehaviour
 
         editorView?.Clear();
         packFactory.Clear();
-        packCount = 0;
-        moduleCount = 0;
-        cellCount = 0;
-        skippedCount = 0;
 
         // newButton으로 만들 때와 같은 여백 설정을 쓴다.
         packFactory.ModulePadding = modulePadding;
         packFactory.CellPadding = cellPadding;
 
-        for (int i = 0; i < _data.packs.Count; i++)
-        {
-            JsonDataController.PackJson packJson = _data.packs[i];
-            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size);
-            Transform packTransform = packFactory.GetPackTransform(pack);
-            HideOrShowCreated(packTransform);
-            editorView?.AddPack(pack, packTransform);
-            packCount = Mathf.Max(packCount, ParseCount(packJson.name));
-
-            for (int j = 0; j < packJson.modules.Count; j++)
+        PackJsonBuilder builder = new PackJsonBuilder(
+            packFactory,
+            (pack, packTransform) =>
             {
-                BuildModuleFromJson(pack, packJson.modules[j], _modulePrefab, _cellPrefab);
-            }
-        }
+                HideOrShowCreated(packTransform);
+                editorView?.AddPack(pack, packTransform);
+            },
+            (module, parentPack) =>
+            {
+                HideOrShowCreated(module.modulePosition);
+                editorView?.AddModule(module, parentPack);
+            },
+            cell =>
+            {
+                HideOrShowCreated(cell.cellPosition);
+                editorView?.AddCell(cell);
+            });
 
-        for (int i = 0; i < _data.standaloneModules.Count; i++)
-        {
-            BuildModuleFromJson(null, _data.standaloneModules[i], _modulePrefab, _cellPrefab);
-        }
+        PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
+        packCount = result.packCount;
+        moduleCount = result.moduleCount;
+        cellCount = result.cellCount;
+        skippedCount = result.skippedCount;
 
         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.Packs.Count}개, Module {packFactory.Modules.Count}개, 건너뜀 {skippedCount}개");
         alarmPopupView?.Show(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
-    }
-
-    private void BuildModuleFromJson(PackDataModel _pack, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
-    {
-        ModuleDataModel module = packFactory.CreateModule(_pack, _moduleJson.name, _modulePrefab, _moduleJson.size);
-        if (module == null)
-        {
-            // 이 Module이 못 만들어지면 그 안의 Cell도 만들 곳이 없다.
-            skippedCount += 1 + _moduleJson.cells.Count;
-            return;
-        }
-
-        HideOrShowCreated(module.modulePosition);
-        editorView?.AddModule(module, _pack);
-        moduleCount = Mathf.Max(moduleCount, ParseCount(_moduleJson.name));
-
-        for (int i = 0; i < _moduleJson.cells.Count; i++)
-        {
-            JsonDataController.CellJson cellJson = _moduleJson.cells[i];
-            CellDataModel cell = packFactory.CreateCell(module, cellJson.name, _cellPrefab, cellJson.size);
-            if (cell == null)
-            {
-                skippedCount++;
-                continue;
-            }
-
-            HideOrShowCreated(cell.cellPosition);
-            editorView?.AddCell(cell);
-            cellCount = Mathf.Max(cellCount, ParseCount(cellJson.name));
-        }
-    }
-
-    /// <summary>이름이 "3"처럼 번호 문자열이면 그 번호, 아니면 0. 불러온 뒤 새로 만드는 항목의 번호가 겹치지 않게 이어 붙이는 데 쓴다.</summary>
-    private static int ParseCount(string _name)
-    {
-        return int.TryParse(_name, out int number) ? number : 0;
     }
 
     private void BuildDropdownOptions()
