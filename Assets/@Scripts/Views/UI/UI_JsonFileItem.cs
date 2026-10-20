@@ -1,4 +1,5 @@
-using System.Collections;
+using Incheol.Utils;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -27,7 +28,7 @@ public class UI_JsonFileItem : MonoBehaviour
     [SerializeField] private Color confirmColor = new Color(1.0f, 0.2f, 0.2f, 1.0f);
 
     private UnityAction onDelete;
-    private Coroutine confirmCoroutine;
+    private CancellationTokenSource confirmCts;
     #endregion
 
     #region LifeCycle
@@ -41,6 +42,8 @@ public class UI_JsonFileItem : MonoBehaviour
 
     private void OnDestroy()
     {
+        CancelConfirm();
+
         if (deleteButton != null)
         {
             deleteButton.onClick.RemoveListener(OnClickDelete);
@@ -83,34 +86,45 @@ public class UI_JsonFileItem : MonoBehaviour
         }
 
         // 첫 번째 누름: 확인 상태로 바꾸고 시간 안에 한 번 더 누르길 기다린다.
-        if (confirmCoroutine == null)
+        if (confirmCts == null)
         {
             SetDeleteLabel(ConfirmText, confirmColor);
-            confirmCoroutine = StartCoroutine(CancelConfirmAfterDelay());
+            confirmCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+            _ = CancelConfirmAfterDelayAsync(confirmCts.Token);
             return;
         }
 
         // 두 번째 누름: 삭제한다.
-        StopCoroutine(confirmCoroutine);
-        confirmCoroutine = null;
+        CancelConfirm();
         onDelete.Invoke();
     }
 
-    private IEnumerator CancelConfirmAfterDelay()
+    private async Awaitable CancelConfirmAfterDelayAsync(CancellationToken _token)
     {
-        yield return new WaitForSecondsRealtime(confirmSeconds);
-        confirmCoroutine = null;
+        bool elapsed = await AwaitableTimer.WaitRealtimeAsync(confirmSeconds, _token);
+        if (!elapsed)
+        {
+            return;
+        }
+
+        confirmCts.Dispose();
+        confirmCts = null;
         ResetDelete();
+    }
+
+    private void CancelConfirm()
+    {
+        if (confirmCts != null)
+        {
+            confirmCts.Cancel();
+            confirmCts.Dispose();
+            confirmCts = null;
+        }
     }
 
     private void ResetDelete()
     {
-        if (confirmCoroutine != null)
-        {
-            StopCoroutine(confirmCoroutine);
-            confirmCoroutine = null;
-        }
-
+        CancelConfirm();
         SetDeleteLabel(DeleteText, deleteColor);
     }
 

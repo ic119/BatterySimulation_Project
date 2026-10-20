@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Incheol.Utils;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 
@@ -12,7 +13,7 @@ public class UI_AlarmPopupView : MonoBehaviour
     [Header("AlarmPopup Duration")]
     [SerializeField, Range(2.0f, 3.0f), Tooltip("알람이 켜져 있는 시간(초). 2~3초 사이.")] private float showSeconds = 2.5f;
 
-    private Coroutine hideCoroutine;
+    private CancellationTokenSource hideCts;
     #endregion
 
     #region LifeCycle
@@ -25,6 +26,11 @@ public class UI_AlarmPopupView : MonoBehaviour
     private void OnDisable()
     {
         Init();
+    }
+
+    private void OnDestroy()
+    {
+        CancelHide();
     }
     #endregion
 
@@ -44,23 +50,33 @@ public class UI_AlarmPopupView : MonoBehaviour
             alarmPopup.SetActive(true);
         }
 
-        if (hideCoroutine != null)
-        {
-            StopCoroutine(hideCoroutine);
-        }
-
-        // 이 뷰 자체가 꺼져 있으면 코루틴을 돌릴 수 없으므로 바로 끄지 않고 켜진 채 둔다.
-        if (isActiveAndEnabled)
-        {
-            hideCoroutine = StartCoroutine(HideAfterDelay());
-        }
+        // 표시 중에 다시 부르면 이전 타이머를 취소하고 시간을 처음부터 다시 센다.
+        CancelHide();
+        hideCts = CancellationTokenSource.CreateLinkedTokenSource(destroyCancellationToken);
+        _ = HideAfterDelayAsync(hideCts.Token);
     }
 
-    private IEnumerator HideAfterDelay()
+    private async Awaitable HideAfterDelayAsync(CancellationToken _token)
     {
-        yield return new WaitForSecondsRealtime(Mathf.Clamp(showSeconds, 2.0f, 3.0f));
-        hideCoroutine = null;
+        bool elapsed = await AwaitableTimer.WaitRealtimeAsync(Mathf.Clamp(showSeconds, 2.0f, 3.0f), _token);
+        if (!elapsed)
+        {
+            return;
+        }
+
+        hideCts.Dispose();
+        hideCts = null;
         Hide();
+    }
+
+    private void CancelHide()
+    {
+        if (hideCts != null)
+        {
+            hideCts.Cancel();
+            hideCts.Dispose();
+            hideCts = null;
+        }
     }
 
     private void Hide()
