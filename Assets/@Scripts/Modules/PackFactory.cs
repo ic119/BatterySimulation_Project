@@ -255,213 +255,6 @@ public class PackFactory
         return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
     }
 
-    /// <summary>
-    /// Module 내부 공간(월드 AABB). 현재 ModulePrefab은 속이 찬 상자라 벽 두께 없이 Module 자신의 Renderer 영역 전체를 내부로 본다.
-    /// 자식(Cell)의 Renderer는 포함하지 않는다. Renderer가 없으면 false.
-    /// </summary>
-    public static bool TryGetModuleInnerBounds(ModuleDataModel _module, out Bounds _bounds)
-    {
-        _bounds = default;
-        if (_module == null || _module.modulePosition == null)
-        {
-            return false;
-        }
-
-        // ModulePrefab은 루트(pivot)에 Renderer가 없고 자식 Body에 있다. Cell도 자식이므로 Cell 아래의 Renderer는 제외한다.
-        bool found = false;
-        Renderer[] rendererArray = _module.modulePosition.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < rendererArray.Length; i++)
-        {
-            if (IsUnderAnyCell(rendererArray[i].transform, _module))
-            {
-                continue;
-            }
-
-            if (!found)
-            {
-                _bounds = rendererArray[i].bounds;
-                found = true;
-            }
-            else
-            {
-                _bounds.Encapsulate(rendererArray[i].bounds);
-            }
-        }
-
-        return found;
-    }
-
-    private static bool IsUnderAnyCell(Transform _transform, ModuleDataModel _module)
-    {
-        for (int i = 0; i < _module.cellsList.Count; i++)
-        {
-            Transform cellTransform = _module.cellsList[i].cellPosition;
-            if (cellTransform != null && _transform.IsChildOf(cellTransform))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Pack 몸체 Renderer(ModulePrefab과 같은 구조면 자식 Body). 자식 Module(과 그 아래 Cell)의 Renderer는 제외한다. 없으면 false.
-    /// </summary>
-    private static bool TryGetPackBody(PackDataModel _pack, Transform _packTransform, out Renderer _body)
-    {
-        _body = null;
-        if (_pack == null || _packTransform == null)
-        {
-            return false;
-        }
-
-        Renderer[] rendererArray = _packTransform.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < rendererArray.Length; i++)
-        {
-            if (!IsUnderAnyModule(rendererArray[i].transform, _pack))
-            {
-                _body = rendererArray[i];
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>Pack에 이미 놓인 Module들이 차지한 영역(자식 Cell 포함 월드 Bounds) 목록.</summary>
-    private static List<Bounds> GetOccupiedBounds(PackDataModel _pack)
-    {
-        List<Bounds> occupiedList = new List<Bounds>();
-        for (int i = 0; i < _pack.modulesList.Count; i++)
-        {
-            Transform moduleTransform = _pack.modulesList[i].modulePosition;
-            if (moduleTransform == null)
-            {
-                continue;
-            }
-
-            Renderer[] rendererArray = moduleTransform.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
-            {
-                continue;
-            }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int j = 1; j < rendererArray.Length; j++)
-            {
-                bounds.Encapsulate(rendererArray[j].bounds);
-            }
-
-            occupiedList.Add(bounds);
-        }
-
-        return occupiedList;
-    }
-
-    /// <summary>Module에 이미 놓인 Cell들이 차지한 영역(월드 Bounds) 목록.</summary>
-    private static List<Bounds> GetOccupiedBounds(ModuleDataModel _module)
-    {
-        List<Bounds> occupiedList = new List<Bounds>();
-        for (int i = 0; i < _module.cellsList.Count; i++)
-        {
-            Transform cellTransform = _module.cellsList[i].cellPosition;
-            if (cellTransform == null)
-            {
-                continue;
-            }
-
-            Renderer[] rendererArray = cellTransform.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
-            {
-                continue;
-            }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int j = 1; j < rendererArray.Length; j++)
-            {
-                bounds.Encapsulate(rendererArray[j].bounds);
-            }
-
-            occupiedList.Add(bounds);
-        }
-
-        return occupiedList;
-    }
-
-    /// <summary>
-    /// TryGetSlotCenter와 같은 채우기 순서로 칸을 훑으며 _occupied와 겹치지 않는 첫 칸의 중심을 구한다. 맞닿는 면은 겹침으로 보지 않는다.
-    /// 빈 칸이 없으면 false이고 _capacity에는 총 수용 개수가 담긴다.
-    /// </summary>
-    private static bool TryFindFreeSlot(Bounds _inner, Vector3 _itemSize, float _padding, List<Bounds> _occupied, out Vector3 _center, out int _capacity)
-    {
-        _center = default;
-        _capacity = 0;
-
-        const float Tolerance = 0.001f;
-        int index = 0;
-        while (TryGetSlotCenter(_inner, _itemSize, _padding, index, out Vector3 candidateCenter, out _capacity))
-        {
-            Bounds candidate = new Bounds(candidateCenter, _itemSize);
-            bool overlapped = false;
-            for (int i = 0; i < _occupied.Count && !overlapped; i++)
-            {
-                Bounds other = _occupied[i];
-                overlapped =
-                    candidate.min.x < other.max.x - Tolerance && candidate.max.x > other.min.x + Tolerance &&
-                    candidate.min.y < other.max.y - Tolerance && candidate.max.y > other.min.y + Tolerance &&
-                    candidate.min.z < other.max.z - Tolerance && candidate.max.z > other.min.z + Tolerance;
-            }
-
-            if (!overlapped)
-            {
-                _center = candidateCenter;
-                return true;
-            }
-
-            index++;
-        }
-
-        return false;
-    }
-
-    private static bool IsUnderAnyModule(Transform _transform, PackDataModel _pack)
-    {
-        for (int i = 0; i < _pack.modulesList.Count; i++)
-        {
-            Transform moduleTransform = _pack.modulesList[i].modulePosition;
-            if (moduleTransform != null && _transform.IsChildOf(moduleTransform))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Cell의 Renderer 영역 전체가 부모 Module 내부 공간에 들어가는지 검사한다. 검사할 수 없으면(Renderer 없음) true로 본다.
-    /// _overflow에는 내부 공간을 벗어난 정도(월드 단위, 축별)가 담긴다.
-    /// </summary>
-    public static bool IsCellInsideModule(CellDataModel _cell, out Vector3 _overflow)
-    {
-        _overflow = Vector3.zero;
-        Renderer cellRenderer = _cell != null && _cell.cellPosition != null ? _cell.cellPosition.GetComponent<Renderer>() : null;
-        if (cellRenderer == null || !TryGetModuleInnerBounds(_cell.parentModule, out Bounds inner))
-        {
-            return true;
-        }
-
-        Bounds cell = cellRenderer.bounds;
-        _overflow = new Vector3(
-            Mathf.Max(0.0f, inner.min.x - cell.min.x, cell.max.x - inner.max.x),
-            Mathf.Max(0.0f, inner.min.y - cell.min.y, cell.max.y - inner.max.y),
-            Mathf.Max(0.0f, inner.min.z - cell.min.z, cell.max.z - inner.max.z));
-
-        const float Tolerance = 0.001f;
-        return _overflow.x <= Tolerance && _overflow.y <= Tolerance && _overflow.z <= Tolerance;
-    }
-
     /// <summary>새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.</summary>
     public PackDataModel CreatePack(string _packName, GameObject _prefab = null, Vector3 _size = default)
     {
@@ -503,7 +296,7 @@ public class PackFactory
             }
 
             // Module이 붙기 전에 Pack 몸체를 찾아 둔다(자식 Module이 섞여 들어가지 않게).
-            TryGetPackBody(_pack, parent, out packBody);
+            PackLayout.TryGetPackBody(_pack, parent, out packBody);
         }
 
         GameObject moduleObject = Spawn(_prefab, $"Module_{_moduleName}");
@@ -519,7 +312,7 @@ public class PackFactory
             {
                 // Pack 크기는 그대로 두고, Cell과 같은 규칙으로 Pack 내부 공간의 칸에 놓는다.
                 // Pack 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Module과 겹치지 않는 첫 빈 칸을 찾는다.
-                if (!TryFindFreeSlot(packBody.bounds, moduleRenderer.bounds.size, modulePadding, GetOccupiedBounds(_pack), out Vector3 slotCenter, out int capacity))
+                if (!PackLayout.TryFindFreeSlot(packBody.bounds, moduleRenderer.bounds.size, modulePadding, PackLayout.GetOccupiedBounds(_pack), out Vector3 slotCenter, out int capacity))
                 {
                     DebugLogManager.GenerateErrorMessage<PackFactory>($"Pack에 Module을 놓을 공간이 없습니다. Module : {_moduleName}, Pack : {_pack.packName}, 용량 : {capacity}개, 현재 : {_pack.modulesList.Count}개");
                     LastFullMessage = $"Pack {_pack.packName}에 더 이상 Module을 추가할 수 없습니다.";
@@ -579,7 +372,7 @@ public class PackFactory
         }
 
         // Cell이 붙기 전에 내부 공간을 구해 둔다(자식 Cell이 섞여 들어가지 않게).
-        bool hasInner = TryGetModuleInnerBounds(_module, out Bounds inner);
+        bool hasInner = PackLayout.TryGetModuleInnerBounds(_module, out Bounds inner);
 
         GameObject cellObject = Spawn(_prefab, $"Cell_{_cellName}");
         AttachKeepingOwnScale(cellObject.transform, _module.modulePosition);
@@ -591,7 +384,7 @@ public class PackFactory
         if (hasInner && cellRenderer != null)
         {
             // Module 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Cell과 겹치지 않는 첫 빈 칸을 찾는다.
-            if (!TryFindFreeSlot(inner, cellRenderer.bounds.size, cellPadding, GetOccupiedBounds(_module), out Vector3 slotCenter, out int capacity))
+            if (!PackLayout.TryFindFreeSlot(inner, cellRenderer.bounds.size, cellPadding, PackLayout.GetOccupiedBounds(_module), out Vector3 slotCenter, out int capacity))
             {
                 DebugLogManager.GenerateErrorMessage<PackFactory>($"Module에 Cell을 놓을 공간이 없습니다. Cell : {_cellName}, Module : {_module.moduleName}, 용량 : {capacity}개, 현재 : {_module.cellsList.Count}개");
                 LastFullMessage = $"Module {_module.moduleName}에 더 이상 Cell을 추가할 수 없습니다.";
@@ -619,51 +412,11 @@ public class PackFactory
 
         _module.cellsList.Add(cell);
 
-        if (!IsCellInsideModule(cell, out Vector3 overflow))
+        if (!PackLayout.IsCellInsideModule(cell, out Vector3 overflow))
         {
             DebugLogManager.GenerateErrorMessage<PackFactory>($"Cell이 Module 내부 공간을 벗어났습니다. Cell : {_cellName}, Module : {_module.moduleName}, 초과량(x,y,z) : {overflow}");
         }
 
         return cell;
-    }
-
-    /// <summary>
-    /// _index번째 Cell이 놓일 칸의 중심(월드)을 구한다. 부모(Module) 내부 공간을 항목 크기 + 여백(x, z만) 단위 칸으로 나눠 채운다.
-    /// 채우는 순서: 뒤쪽(+z) 끝에서 -z 방향으로 한 줄을 채운 뒤 +x 방향 다음 줄, 바닥이 다 찬 뒤 위 층.
-    /// 높이(y)는 항목이 부모와 비슷한 높이라 여백을 두지 않는다. 칸이 부족하면 false이고 _capacity에는 총 수용 개수가 담긴다.
-    /// </summary>
-    private static bool TryGetSlotCenter(Bounds _inner, Vector3 _itemSize, float _padding, int _index, out Vector3 _center, out int _capacity)
-    {
-        _center = default;
-        _capacity = 0;
-
-        float slotX = _itemSize.x + _padding;
-        float slotY = _itemSize.y;
-        float slotZ = _itemSize.z + _padding;
-        if (slotX <= 0.0f || slotY <= 0.0f || slotZ <= 0.0f)
-        {
-            return false;
-        }
-
-        const float Tolerance = 0.0001f;
-        int countX = Mathf.FloorToInt(_inner.size.x / slotX + Tolerance);
-        int countY = Mathf.FloorToInt(_inner.size.y / slotY + Tolerance);
-        int countZ = Mathf.FloorToInt(_inner.size.z / slotZ + Tolerance);
-
-        _capacity = Mathf.Max(0, countX) * Mathf.Max(0, countY) * Mathf.Max(0, countZ);
-        if (_index >= _capacity)
-        {
-            return false;
-        }
-
-        int indexZ = _index % countZ;
-        int indexX = (_index / countZ) % countX;
-        int indexY = _index / (countZ * countX);
-
-        _center = new Vector3(
-            _inner.min.x + slotX * (indexX + 0.5f),
-            _inner.min.y + slotY * (indexY + 0.5f),
-            _inner.max.z - slotZ * (indexZ + 0.5f));
-        return true;
     }
 }
