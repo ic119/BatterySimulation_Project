@@ -180,12 +180,18 @@ public class DeviceAxisGraphManager : MonoBehaviour
     // 그래프 루트를 (없으면) 만든다. 이 오브젝트 계층 밖, 같은 씬의 최상위에 둔다.
     void EnsureRoot()
     {
-        if (_graphRoot != null) return;
+        if (_graphRoot != null)
+        {
+            return;
+        }
 
         string ownerName = transform.parent != null ? transform.parent.name : name;
         var go = new GameObject("AxisGraph_" + ownerName);
+
         if (gameObject.scene.IsValid())
+        {
             SceneManager.MoveGameObjectToScene(go, gameObject.scene);
+        }
         _graphRoot = go.transform;
     }
 
@@ -207,7 +213,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
         Vector3 e = bounds.extents;
         float y0 = bounds.min.y;
 
-        // 눈금 값은 카메라에서 먼 꼭지점(0)에서 가까운 꼭지점 방향으로 늘어난다.
+        // 눈금 값은 카메라에서 먼 꼭지점(0)에서 가까운 꼭지점 방향 증가
         float farX = c.x - _signX * e.x;
         float farZ = c.z - _signZ * e.z;
         float nearX = c.x + _signX * e.x;
