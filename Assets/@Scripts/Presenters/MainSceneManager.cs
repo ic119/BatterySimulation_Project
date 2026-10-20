@@ -1,4 +1,4 @@
-using Incheol.Models.Define;
+﻿using Incheol.Models.Define;
 using Incheol.Modules;
 using Incheol.Utils;
 using UnityEngine;
@@ -12,7 +12,10 @@ namespace Incheol.Presenter
     /// </summary>
     public class MainSceneManager : MonoBehaviour
     {
-        /// <summary>선택 대상의 종류. 종류에 따라 SetVisible이 켜는 Renderer 범위가 다르다.</summary>
+        /// <summary>
+        /// 선택 대상의 종류
+        /// 종류에 따라 SetVisible이 켜는 Renderer 범위 상이
+        /// </summary>
         public enum TargetKind
         {
             Pack,
@@ -34,14 +37,21 @@ namespace Incheol.Presenter
         #endregion
 
         #region Property
-        /// <summary>현재 선택된 트리 항목. 없으면 null.</summary>
+        /// <summary>
+        /// 현재 선택된 트리 항목 (없을 경우 null)
+        /// </summary>
         public UI_TreeNodeItem SelectedItem => selectedItem;
 
-        /// <summary>현재 선택된 항목이 가리키는 오브젝트(Pack/Module/Cell). 없으면 null.</summary>
+        /// <summary>
+        /// 현재 선택된 항목이 가리키는 오브젝트(Pack/Module/Cell) (없을 경우 null)
+        /// </summary>
         public Transform SelectedTarget => selectedTarget;
 
-        /// <summary>현재 선택된 항목의 종류(Pack/Module/Cell). 선택이 없으면 의미 없는 값이므로 SelectedItem이 null이 아닐 때만 쓴다.</summary>
-        public TargetKind SelectedKind => selectedKind;
+        /// <summary>
+        /// 현재 선택된 항목의 종류(Pack/Module/Cell)
+        /// 선택이 없으면 의미 없는 값이므로 SelectedItem이 null이 아닐 경우에만 사용
+        /// </summary>
+        public TargetKind SelectedKind => selectedKind; 
         #endregion
 
         #region LifeCycle
@@ -57,6 +67,7 @@ namespace Incheol.Presenter
                     // 항상 이 MainSceneManager가 속한 씬(MainScene)으로 옮긴다.
                     GameObject instance = AddressableAssetManager.Instance.InstantiatePrefab(prefab);
                     SceneManager.MoveGameObjectToScene(instance, gameObject.scene);
+                    BindViews(instance);
                     DebugLogManager.GenerateLogMessage<MainSceneManager>("UI_MainScene 프리팹 인스턴스화 완료");
                 },
                 () => DebugLogManager.GenerateErrorMessage<MainSceneManager>("UI_MainScene 프리팹 로드 실패"));
@@ -70,9 +81,27 @@ namespace Incheol.Presenter
 
         #region Method
         /// <summary>
-        /// _item을 선택한다. 선택은 항상 1개뿐이라 이전 선택은 해제하고 그 오브젝트는 다시 숨긴다.
-        /// 새로 선택한 오브젝트는 자식(Module의 Cell 등)까지 전부 보이게 하고 카메라가 따라간다.
-        /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 그 오브젝트는 다시 숨겨지고, 선택된 항목은 없는 상태가 된다.
+        /// 인스턴스화한 UI_MainScene 안의 뷰를 한 번만 모아 두고, MainSceneManager를 쓰는 뷰에 자신을 넘겨준다.
+        /// 프리팹이 만들어지기 전에는 각 필드가 null이므로 사용하는 쪽은 null이면 건너뛴다.
+        /// </summary>
+        private void BindViews(GameObject _root)
+        {
+            propertiesView = _root.GetComponentInChildren<UI_PropertiesView>(true);
+            scaleView = _root.GetComponentInChildren<UI_DeviceScaleView>(true);
+            structureView = _root.GetComponentInChildren<UI_DeviceStructureView>(true);
+            editorView = _root.GetComponentInChildren<UI_EditorView>(true);
+            nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
+
+            scaleView?.Init(this);
+            editorView?.Init(this);
+            nameView?.Init(this);
+            _root.GetComponentInChildren<UI_MainSceneView>(true)?.Init(this);
+        }
+
+        /// <summary>
+        /// _item을 선택 (항상 1개뿐이라 이전 선택은 해제하고 그 오브젝트는 비활성화)
+        /// 새로 선택한 오브젝트일 경우, 자식(Module의 Cell 등)까지 전부 활성화 후 카메라 추적 실행
+        /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 해당 오브젝트 비활성화, 선택된 항목은 없는 상태 처리 (null)
         /// </summary>
         public void SelectItem(UI_TreeNodeItem _item, Transform _target, TargetKind _kind = TargetKind.Pack)
         {
@@ -157,11 +186,6 @@ namespace Incheol.Presenter
         {
             if (structureView == null)
             {
-                structureView = FindAnyObjectByType<UI_DeviceStructureView>();
-            }
-
-            if (structureView == null)
-            {
                 return;
             }
 
@@ -169,11 +193,6 @@ namespace Incheol.Presenter
             {
                 structureView.Clear();
                 return;
-            }
-
-            if (editorView == null)
-            {
-                editorView = FindAnyObjectByType<UI_EditorView>();
             }
 
             if (editorView == null)
@@ -187,20 +206,10 @@ namespace Incheol.Presenter
 
         /// <summary>
         /// 선택된 항목의 이름과 위치를 속성 패널에, 실제 크기를 크기 패널에 반영한다. 선택이 없으면 패널을 비운다.
-        /// 패널은 비동기로 생성되므로 필요할 때 찾는다. 선택한 항목 아래에 자식이 생겨 크기가 변할 수 있어 UI_EditorView도 생성 후 호출한다.
+        /// 선택한 항목 아래에 자식이 생겨 크기가 변할 수 있어 UI_EditorView도 생성 후 호출한다.
         /// </summary>
         public void RefreshProperties()
         {
-            if (propertiesView == null)
-            {
-                propertiesView = FindAnyObjectByType<UI_PropertiesView>();
-            }
-
-            if (scaleView == null)
-            {
-                scaleView = FindAnyObjectByType<UI_DeviceScaleView>();
-            }
-
             bool hasSelection = selectedItem != null && selectedTarget != null;
 
             if (propertiesView != null)
@@ -236,11 +245,6 @@ namespace Incheol.Presenter
         {
             if (nameView == null)
             {
-                nameView = FindAnyObjectByType<UI_SelectedDeviceNameView>();
-            }
-
-            if (nameView == null)
-            {
                 return;
             }
 
@@ -262,11 +266,6 @@ namespace Incheol.Presenter
             if (selectedItem == null)
             {
                 return;
-            }
-
-            if (editorView == null)
-            {
-                editorView = FindAnyObjectByType<UI_EditorView>();
             }
 
             if (editorView != null && editorView.Rename(selectedItem, _newName))

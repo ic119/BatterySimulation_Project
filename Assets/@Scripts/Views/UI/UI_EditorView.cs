@@ -40,6 +40,12 @@ public class UI_EditorView : MonoBehaviour
     public event System.Action<object> DeleteRequested;
 
     #region Method
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(MainSceneManager _manager)
+    {
+        mainSceneManager = _manager;
+    }
+
     /// <summary>
     /// _item 줄이 가리키는 Pack / Module / Cell의 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
     /// 모델 이름과 씬 오브젝트 이름에는 앞에 종류 접두어가 있으면 그것을 뺀 값을 쓴다(저장 후 불러올 때 접두어가 다시 붙기 때문).
@@ -145,11 +151,6 @@ public class UI_EditorView : MonoBehaviour
         }
 
         RefreshTree();
-
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
 
         mainSceneManager?.RefreshStructure();
         mainSceneManager?.RefreshProperties();
@@ -296,11 +297,6 @@ public class UI_EditorView : MonoBehaviour
         RefreshTree();
 
         // 선택된 항목 아래에 새 자식이 생겼을 수 있으므로 자식 구조 표시를 갱신한다.
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
-
         mainSceneManager?.RefreshStructure();
         mainSceneManager?.RefreshProperties();
     }
@@ -333,11 +329,6 @@ public class UI_EditorView : MonoBehaviour
     /// <summary>항목(줄)을 누르면 MainSceneManager에 선택을 알린다. 선택된 오브젝트만 씬에 보이게 된다.</summary>
     private void OnClickItem(TreeNode _node)
     {
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
-
         mainSceneManager?.SelectItem(_node.item, _node.target, _node.kind);
     }
 

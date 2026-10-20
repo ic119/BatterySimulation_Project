@@ -61,6 +61,12 @@ public class UI_DeviceScaleView : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(MainSceneManager _manager)
+    {
+        mainSceneManager = _manager;
+    }
+
     /// <summary>
     /// 선택된 오브젝트 본인의 Scale(x, y, z)을 xAxisInputField / yAxisInputField / zAxisInputField에 채운다.
     /// Pack / Module은 자식 Body, Cell은 본체의 월드 크기이며 자식 Module / Cell은 섞지 않는다. Renderer가 꺼져 있어도 계산된다.
@@ -175,11 +181,6 @@ public class UI_DeviceScaleView : MonoBehaviour
     /// </summary>
     private void ApplyScale(bool _log)
     {
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
-
         Transform target = mainSceneManager != null ? mainSceneManager.SelectedTarget : null;
         if (target == null)
         {
@@ -443,11 +444,6 @@ public class UI_DeviceScaleView : MonoBehaviour
         if (_target == null)
         {
             return false;
-        }
-
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
         }
 
         MainSceneManager.TargetKind kind = mainSceneManager != null ? mainSceneManager.SelectedKind : MainSceneManager.TargetKind.Pack;

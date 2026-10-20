@@ -26,8 +26,10 @@ public class UI_MainSceneView : MonoBehaviour
     [SerializeField] private Button loadButton;
     [SerializeField] private TMP_Dropdown newDropdown;
 
-    [Header("Alarm")]
+    [Header("Popup / List")]
     [SerializeField] private UI_AlarmPopupView alarmPopupView;
+    [SerializeField] private UI_ConfirmPopupView confirmPopupView;
+    [SerializeField] private UI_JsonFileListView jsonFileListView;
 
     [Header("Module Layout")]
     [SerializeField, Min(0.0f), Tooltip("Module 사이(가로/깊이)의 여백. Module은 칸 가운데에 놓여 Pack 벽과도 여백의 절반만큼 떨어진다.")] private float modulePadding = 0.0f;
@@ -41,9 +43,7 @@ public class UI_MainSceneView : MonoBehaviour
 
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
     private UI_EditorView editorView;
-    private UI_ConfirmPopupView confirmPopupView;
     private JsonDataController jsonDataController;
-    private UI_JsonFileListView jsonFileListView;
     private MainSceneManager mainSceneManager;
 
     private int packCount;
@@ -59,6 +59,11 @@ public class UI_MainSceneView : MonoBehaviour
         if (editorView != null)
         {
             editorView.DeleteRequested += OnDeleteRequested;
+        }
+
+        if (jsonFileListView != null)
+        {
+            jsonFileListView.FileClicked += OnJsonFileClicked;
         }
 
         if (newButton != null)
@@ -119,6 +124,12 @@ public class UI_MainSceneView : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(MainSceneManager _manager)
+    {
+        mainSceneManager = _manager;
+    }
+
     /// <summary>
     /// EventSystem은 BootstrapScene에만 있어 MainScene 단독 실행/Bootstrap 언로드 시 UI 입력이 전달되지 않는다.
     /// 활성 EventSystem이 없으면 Input System용 모듈과 함께 만들어 MainScene 쪽에 둔다.
@@ -173,11 +184,6 @@ public class UI_MainSceneView : MonoBehaviour
         // 확인 팝업이 없으면 묻지 않고 지우는 일은 하지 않는다.
         if (confirmPopupView == null)
         {
-            confirmPopupView = FindAnyObjectByType<UI_ConfirmPopupView>();
-        }
-
-        if (confirmPopupView == null)
-        {
             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("UI_ConfirmPopupView를 찾지 못해 삭제하지 않았습니다.");
             return;
         }
@@ -204,11 +210,6 @@ public class UI_MainSceneView : MonoBehaviour
         if (removedTransform == null)
         {
             return;
-        }
-
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
         }
 
         if (mainSceneManager != null && mainSceneManager.SelectedTarget != null && mainSceneManager.SelectedTarget.IsChildOf(removedTransform))
@@ -256,15 +257,6 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>loadButton은 저장된 Json 파일 목록을 JsonFileListContainer의 ScrollView에 보여준다.</summary>
     private void OnClickLoadButton()
     {
-        if (jsonFileListView == null)
-        {
-            jsonFileListView = FindAnyObjectByType<UI_JsonFileListView>(FindObjectsInactive.Include);
-            if (jsonFileListView != null)
-            {
-                jsonFileListView.FileClicked += OnJsonFileClicked;
-            }
-        }
-
         jsonFileListView?.Show();
     }
 
@@ -298,11 +290,6 @@ public class UI_MainSceneView : MonoBehaviour
     /// </summary>
     private void BuildFromJson(JsonDataController.SaveJson _data, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
     {
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
-
         // 지울 오브젝트가 선택되어 있으면 먼저 선택을 풀어 카메라와 패널을 되돌린다.
         if (mainSceneManager != null && mainSceneManager.SelectedItem != null)
         {
@@ -431,11 +418,6 @@ public class UI_MainSceneView : MonoBehaviour
         _parentPack = packFactory.LastPack;
         _parentModule = packFactory.LastModule;
 
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
-
         if (mainSceneManager == null || mainSceneManager.SelectedItem == null || mainSceneManager.SelectedTarget == null)
         {
             return true;
@@ -530,11 +512,6 @@ public class UI_MainSceneView : MonoBehaviour
     private void HideOrShowCreated(Transform _created)
     {
         MainSceneManager.SetVisible(_created, false);
-
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
-        }
 
         mainSceneManager?.ShowIfInSelection(_created);
     }

@@ -34,6 +34,12 @@ public class UI_SelectedDeviceNameView : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(MainSceneManager _manager)
+    {
+        mainSceneManager = _manager;
+    }
+
     /// <summary>선택된 항목의 이름을 입력 필드에 채운다. 사용자가 입력 중이던 내용은 덮어쓴다.</summary>
     public void ShowSelected(string _name)
     {
@@ -69,11 +75,6 @@ public class UI_SelectedDeviceNameView : MonoBehaviour
         if (changeNameInputField == null)
         {
             return;
-        }
-
-        if (mainSceneManager == null)
-        {
-            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
         }
 
         mainSceneManager?.RenameSelected(changeNameInputField.text);
