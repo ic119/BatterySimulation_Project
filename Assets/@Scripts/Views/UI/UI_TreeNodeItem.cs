@@ -63,6 +63,12 @@ public class UI_TreeNodeItem : MonoBehaviour
         SetClicked(false);
     }
 
+    /// <summary>줄에 표시되는 이름을 바꾼다(이름 변경 시 즉시 반영).</summary>
+    public void SetLabel(string _label)
+    {
+        label.text = _label;
+    }
+
     /// <summary>자식이 없으면 화살표를 숨기고, 있으면 펼침(아래) / 접힘(오른쪽) 모양으로 보여준다.</summary>
     public void SetArrow(bool _hasChild, bool _expanded)
     {

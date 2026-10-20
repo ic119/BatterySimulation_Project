@@ -26,6 +26,7 @@ namespace Incheol.Presenter
         private UI_DeviceScaleView scaleView;
         private UI_DeviceStructureView structureView;
         private UI_EditorView editorView;
+        private UI_SelectedDeviceNameView nameView;
 
         private UI_TreeNodeItem selectedItem;
         private Transform selectedTarget;
@@ -100,6 +101,7 @@ namespace Incheol.Presenter
             SetVisible(selectedTarget, true, _kind);
             RefreshGraph();
             RefreshProperties();
+            RefreshName();
             RefreshStructure();
 
             if (cameraView != null)
@@ -226,6 +228,55 @@ namespace Incheol.Presenter
             }
         }
 
+        /// <summary>
+        /// SelectedItem이 null이면 이름 변경 입력을 비우고 막고, null이 아니면 그 항목의 이름을 changeNameInputField에 채운다.
+        /// 입력 중인 글자를 덮어쓰지 않도록 선택이 바뀔 때와 이름을 바꾼 뒤에만 호출한다.
+        /// </summary>
+        private void RefreshName()
+        {
+            if (nameView == null)
+            {
+                nameView = FindAnyObjectByType<UI_SelectedDeviceNameView>();
+            }
+
+            if (nameView == null)
+            {
+                return;
+            }
+
+            if (selectedItem == null)
+            {
+                nameView.Clear();
+                return;
+            }
+
+            nameView.ShowSelected(selectedItem.Label);
+        }
+
+        /// <summary>
+        /// 선택된 항목의 이름을 _newName으로 바꾼다. 모델 / 씬 오브젝트 / 트리 줄이 즉시 바뀌고 속성 패널 이름도 갱신된다.
+        /// 선택이 없거나 이름이 비어 있으면 바꾸지 않고 입력 필드를 현재 이름으로 되돌린다.
+        /// </summary>
+        public void RenameSelected(string _newName)
+        {
+            if (selectedItem == null)
+            {
+                return;
+            }
+
+            if (editorView == null)
+            {
+                editorView = FindAnyObjectByType<UI_EditorView>();
+            }
+
+            if (editorView != null && editorView.Rename(selectedItem, _newName))
+            {
+                RefreshProperties();
+            }
+
+            RefreshName();
+        }
+
         /// <summary>현재 선택을 취소한다. 항목의 강조를 끄고 그 오브젝트(와 자식)를 다시 숨긴다.</summary>
         public void DeselectItem()
         {
@@ -239,6 +290,7 @@ namespace Incheol.Presenter
             selectedTarget = null;
             RefreshGraph();
             RefreshProperties();
+            RefreshName();
             RefreshStructure();
 
             // 선택이 없으면 카메라를 처음 시점으로 되돌린다.

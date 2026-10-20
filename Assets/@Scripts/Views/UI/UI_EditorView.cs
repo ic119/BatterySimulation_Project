@@ -41,6 +41,87 @@ public class UI_EditorView : MonoBehaviour
 
     #region Method
     /// <summary>
+    /// _item 줄이 가리키는 Pack / Module / Cell의 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
+    /// 모델 이름과 씬 오브젝트 이름에는 앞에 종류 접두어가 있으면 그것을 뺀 값을 쓴다(저장 후 불러올 때 접두어가 다시 붙기 때문).
+    /// 앞뒤 공백을 뺀 이름이 비어 있거나 트리에 없는 줄이면 바꾸지 않고 false를 반환한다.
+    /// </summary>
+    public bool Rename(UI_TreeNodeItem _item, string _newName)
+    {
+        string newName = _newName != null ? _newName.Trim() : string.Empty;
+        if (newName.Length == 0 || !TryFindNode(_item, out object model, out TreeNode node))
+        {
+            return false;
+        }
+
+        string prefix;
+        switch (model)
+        {
+            case PackDataModel _:
+                prefix = "Pack";
+                break;
+            case ModuleDataModel _:
+                prefix = "Module";
+                break;
+            case CellDataModel _:
+                prefix = "Cell";
+                break;
+            default:
+                return false;
+        }
+
+        string modelName = newName;
+        string prefixWithSpace = prefix + " ";
+        if (newName.StartsWith(prefixWithSpace) && newName.Substring(prefixWithSpace.Length).Trim().Length > 0)
+        {
+            modelName = newName.Substring(prefixWithSpace.Length).Trim();
+        }
+
+        switch (model)
+        {
+            case PackDataModel pack:
+                pack.packName = modelName;
+                break;
+            case ModuleDataModel module:
+                module.moduleName = modelName;
+                break;
+            case CellDataModel cell:
+                cell.cellName = modelName;
+                break;
+        }
+
+        if (node.target != null)
+        {
+            node.target.name = $"{prefix}_{modelName}";
+        }
+
+        node.item.SetLabel(newName);
+        node.item.gameObject.name = $"TreeItem_{newName}";
+        return true;
+    }
+
+    private bool TryFindNode(UI_TreeNodeItem _item, out object _model, out TreeNode _node)
+    {
+        _model = null;
+        _node = null;
+        if (_item == null)
+        {
+            return false;
+        }
+
+        foreach (KeyValuePair<object, TreeNode> pair in nodeDictionary)
+        {
+            if (pair.Value.item == _item)
+            {
+                _model = pair.Key;
+                _node = pair.Value;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// _model(Pack / Module / Cell 모델)의 줄과 그 아래 모든 자식 줄을 트리에서 지운다. 씬 오브젝트와 모델은 건드리지 않는다.
     /// 트리에 없는 모델이면 아무 것도 하지 않는다.
     /// </summary>
