@@ -21,6 +21,9 @@ public class UI_TreeNodeItem : MonoBehaviour
     [SerializeField] private Button itemButton;
     [SerializeField, Tooltip("선택된 줄에만 켜지는 강조 이미지")] private Image clickedImage;
 
+    [Header("Delete Variable")]
+    [SerializeField, Tooltip("이 줄의 Pack / Module / Cell을 삭제하는 버튼. 줄 클릭(itemButton)과 따로 눌린다.")] private Button deleteButton;
+
     [SerializeField] private float indentWidth = 18.0f;
     #endregion
 
@@ -30,8 +33,8 @@ public class UI_TreeNodeItem : MonoBehaviour
     #endregion
 
     #region Method
-    /// <summary>이름과 깊이(들여쓰기)를 정하고 화살표 / 줄 클릭 콜백을 연결한다.</summary>
-    public void Setup(string _label, int _depth, UnityAction _onClickArrow, UnityAction _onClickItem)
+    /// <summary>이름과 깊이(들여쓰기)를 정하고 화살표 / 줄 클릭 / 삭제 버튼 콜백을 연결한다.</summary>
+    public void Setup(string _label, int _depth, UnityAction _onClickArrow, UnityAction _onClickItem, UnityAction _onClickDelete = null)
     {
         label.text = _label;
         indent.preferredWidth = _depth * indentWidth;
@@ -46,6 +49,15 @@ public class UI_TreeNodeItem : MonoBehaviour
         if (_onClickItem != null)
         {
             itemButton.onClick.AddListener(_onClickItem);
+        }
+
+        if (deleteButton != null)
+        {
+            deleteButton.onClick.RemoveAllListeners();
+            if (_onClickDelete != null)
+            {
+                deleteButton.onClick.AddListener(_onClickDelete);
+            }
         }
 
         SetClicked(false);

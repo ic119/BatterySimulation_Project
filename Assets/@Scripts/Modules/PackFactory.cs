@@ -79,6 +79,69 @@ public class PackFactory
         LastFullMessage = string.Empty;
     }
 
+    /// <summary>Pack을 그 안의 Module / Cell과 함께 지운다(데이터 모델과 씬 오브젝트 모두). 이 팩토리가 만든 Pack이 아니면 false.</summary>
+    public bool RemovePack(PackDataModel _pack)
+    {
+        if (_pack == null || !packs.Remove(_pack))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _pack.modulesList.Count; i++)
+        {
+            allModules.Remove(_pack.modulesList[i]);
+        }
+
+        if (packTransforms.TryGetValue(_pack, out Transform packTransform))
+        {
+            packTransforms.Remove(_pack);
+            DestroyDetached(packTransform);
+        }
+
+        LastFullMessage = string.Empty;
+        return true;
+    }
+
+    /// <summary>Module을 그 안의 Cell과 함께 지운다. 속한 Pack이 있으면 그 목록에서도 뺀다. 이 팩토리가 만든 Module이 아니면 false.</summary>
+    public bool RemoveModule(ModuleDataModel _module)
+    {
+        if (_module == null || !allModules.Remove(_module))
+        {
+            return false;
+        }
+
+        _module.parentPack?.modulesList.Remove(_module);
+        DestroyDetached(_module.modulePosition);
+        LastFullMessage = string.Empty;
+        return true;
+    }
+
+    /// <summary>Cell을 지운다. 속한 Module의 목록에서도 뺀다. 이미 지워진 Cell이면 false.</summary>
+    public bool RemoveCell(CellDataModel _cell)
+    {
+        if (_cell == null || _cell.parentModule == null || !_cell.parentModule.cellsList.Remove(_cell))
+        {
+            return false;
+        }
+
+        DestroyDetached(_cell.cellPosition);
+        LastFullMessage = string.Empty;
+        return true;
+    }
+
+    /// <summary>Destroy는 프레임 끝에야 반영되므로, 같은 프레임의 Bounds 계산에 섞이지 않게 먼저 떼어 내고 꺼 둔다.</summary>
+    private static void DestroyDetached(Transform _target)
+    {
+        if (_target == null)
+        {
+            return;
+        }
+
+        _target.SetParent(null);
+        _target.gameObject.SetActive(false);
+        Object.Destroy(_target.gameObject);
+    }
+
     /// <summary>Pack의 씬 Transform. PackDataModel에는 Transform 필드가 없어 따로 들고 있는 것을 꺼낸다. 없으면 null.</summary>
     public Transform GetPackTransform(PackDataModel _pack)
     {

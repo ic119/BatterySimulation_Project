@@ -36,7 +36,74 @@ public class UI_EditorView : MonoBehaviour
     private readonly Dictionary<object, TreeNode> nodeDictionary = new Dictionary<object, TreeNode>();
     #endregion
 
+    /// <summary>줄의 삭제 버튼이 눌렸을 때 발생한다. 인자는 그 줄의 모델(PackDataModel / ModuleDataModel / CellDataModel)이다.</summary>
+    public event System.Action<object> DeleteRequested;
+
     #region Method
+    /// <summary>
+    /// _model(Pack / Module / Cell 모델)의 줄과 그 아래 모든 자식 줄을 트리에서 지운다. 씬 오브젝트와 모델은 건드리지 않는다.
+    /// 트리에 없는 모델이면 아무 것도 하지 않는다.
+    /// </summary>
+    public void RemoveNode(object _model)
+    {
+        if (_model == null || !nodeDictionary.TryGetValue(_model, out TreeNode node))
+        {
+            return;
+        }
+
+        RemoveSubtree(node);
+
+        if (node.parent != null)
+        {
+            node.parent.childList.Remove(node);
+            UpdateArrow(node.parent);
+        }
+        else
+        {
+            rootNodeList.Remove(node);
+        }
+
+        RefreshTree();
+
+        if (mainSceneManager == null)
+        {
+            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
+        }
+
+        mainSceneManager?.RefreshStructure();
+        mainSceneManager?.RefreshProperties();
+    }
+
+    /// <summary>_node와 그 자손의 줄 오브젝트를 파괴하고 딕셔너리에서 뺀다.</summary>
+    private void RemoveSubtree(TreeNode _node)
+    {
+        for (int i = 0; i < _node.childList.Count; i++)
+        {
+            RemoveSubtree(_node.childList[i]);
+        }
+
+        if (_node.item != null)
+        {
+            _node.item.gameObject.SetActive(false);
+            Destroy(_node.item.gameObject);
+        }
+
+        object key = null;
+        foreach (KeyValuePair<object, TreeNode> pair in nodeDictionary)
+        {
+            if (pair.Value == _node)
+            {
+                key = pair.Key;
+                break;
+            }
+        }
+
+        if (key != null)
+        {
+            nodeDictionary.Remove(key);
+        }
+    }
+
     /// <summary>트리의 모든 항목을 지운다(저장된 파일을 불러오기 전에 쓴다).</summary>
     public void Clear()
     {
@@ -129,7 +196,7 @@ public class UI_EditorView : MonoBehaviour
             kind = _kind,
         };
 
-        node.item.Setup(_label, node.depth, () => OnClickArrow(node), () => OnClickItem(node));
+        node.item.Setup(_label, node.depth, () => OnClickArrow(node), () => OnClickItem(node), () => DeleteRequested?.Invoke(_key));
         nodeDictionary[_key] = node;
 
         if (parent != null)

@@ -53,6 +53,10 @@ public class UI_MainSceneView : MonoBehaviour
     private void Awake()
     {
         editorView = GetComponent<UI_EditorView>();
+        if (editorView != null)
+        {
+            editorView.DeleteRequested += OnDeleteRequested;
+        }
 
         if (newButton != null)
         {
@@ -84,6 +88,11 @@ public class UI_MainSceneView : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (editorView != null)
+        {
+            editorView.DeleteRequested -= OnDeleteRequested;
+        }
+
         if (newButton != null)
         {
             newButton.onClick.RemoveListener(OnClickNewButton);
@@ -133,6 +142,63 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         CreateObject(type);
+    }
+
+    /// <summary>
+    /// 트리 줄의 삭제 버튼이 눌리면 해당 Pack / Module / Cell을 (자식까지) 씬, 데이터 모델, 트리에서 지운다.
+    /// 지우는 대상이나 그 하위가 선택되어 있으면 먼저 선택을 풀어 카메라 / 패널 / 축 그래프가 파괴된 오브젝트를 가리키지 않게 한다.
+    /// 번호 카운터는 줄이지 않는다(이름이 겹치지 않도록).
+    /// </summary>
+    private void OnDeleteRequested(object _model)
+    {
+        Transform removedTransform = null;
+        switch (_model)
+        {
+            case PackDataModel pack:
+                removedTransform = packFactory.GetPackTransform(pack);
+                break;
+            case ModuleDataModel module:
+                removedTransform = module.modulePosition;
+                break;
+            case CellDataModel cell:
+                removedTransform = cell.cellPosition;
+                break;
+        }
+
+        if (removedTransform == null)
+        {
+            return;
+        }
+
+        if (mainSceneManager == null)
+        {
+            mainSceneManager = FindAnyObjectByType<MainSceneManager>();
+        }
+
+        if (mainSceneManager != null && mainSceneManager.SelectedTarget != null && mainSceneManager.SelectedTarget.IsChildOf(removedTransform))
+        {
+            mainSceneManager.DeselectItem();
+        }
+
+        bool removed = false;
+        switch (_model)
+        {
+            case PackDataModel pack:
+                removed = packFactory.RemovePack(pack);
+                break;
+            case ModuleDataModel module:
+                removed = packFactory.RemoveModule(module);
+                break;
+            case CellDataModel cell:
+                removed = packFactory.RemoveCell(cell);
+                break;
+        }
+
+        if (removed)
+        {
+            editorView?.RemoveNode(_model);
+            DebugLogManager.GenerateLogMessage<UI_MainSceneView>("삭제 완료");
+        }
     }
 
     /// <summary>saveButton은 지금까지 생성된 Pack / Module / Cell을 Json 파일로 저장하고 결과를 알람 팝업으로 알려준다.</summary>
