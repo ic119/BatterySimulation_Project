@@ -243,15 +243,30 @@ public class UI_DeviceScaleView : MonoBehaviour
         MainSceneManager.TargetKind kind = mainSceneManager.SelectedKind;
         if (kind != MainSceneManager.TargetKind.Pack && !FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
-            if (_log)
+            // 최소 크기 위반과 같이, 타이핑 중에는 아무것도 바꾸지 않고 입력을 끝낼 때 / 버튼을 누를 때 최대 크기로 되돌린다.
+            if (!_log)
             {
-                string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
-                string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
-                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
-                ShowAlarm(message);
+                return;
             }
 
-            return;
+            string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
+            string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
+            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
+            ShowAlarm(message);
+
+            // 부모 몸체가 이미 현재 크기보다 좁아 최대 크기가 0 이하인 축은 현재 크기를 유지한다.
+            newSize = new Vector3(
+                maxSize.x > 0.0f ? Mathf.Min(newSize.x, maxSize.x) : current.size.x,
+                maxSize.y > 0.0f ? Mathf.Min(newSize.y, maxSize.y) : current.size.y,
+                maxSize.z > 0.0f ? Mathf.Min(newSize.z, maxSize.z) : current.size.z);
+            SetInput(xAxisInputField, newSize.x);
+            SetInput(yAxisInputField, newSize.y);
+            SetInput(zAxisInputField, newSize.z);
+
+            if ((newSize - current.size).sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
         }
 
         if (bodyTransform == target)
