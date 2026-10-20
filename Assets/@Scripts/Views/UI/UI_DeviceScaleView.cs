@@ -25,6 +25,7 @@ public class UI_DeviceScaleView : MonoBehaviour
     private const float StepAmount = 1.0f;
 
     private MainSceneManager mainSceneManager;
+    private UI_AlarmPopupView alarmPopupView;
     #endregion
 
     #region LifeCycle
@@ -105,6 +106,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         if (_field != null)
         {
             _field.onValueChanged.AddListener(OnAxisValueChanged);
+            _field.onEndEdit.AddListener(OnAxisEndEdit);
         }
     }
 
@@ -113,6 +115,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         if (_field != null)
         {
             _field.onValueChanged.RemoveListener(OnAxisValueChanged);
+            _field.onEndEdit.RemoveListener(OnAxisEndEdit);
         }
     }
 
@@ -127,6 +130,12 @@ public class UI_DeviceScaleView : MonoBehaviour
     private void OnAxisValueChanged(string _text)
     {
         ApplyScale(false);
+    }
+
+    /// <summary>입력을 마치면(Enter / 포커스 이동) 한 번 더 반영하며, 내부 항목 때문에 줄일 수 없는 값은 최소 크기로 되돌리고 알람을 띄운다.</summary>
+    private void OnAxisEndEdit(string _text)
+    {
+        ApplyScale(true);
     }
 
     /// <summary>
@@ -206,23 +215,40 @@ public class UI_DeviceScaleView : MonoBehaviour
 
         Transform bodyTransform = sizeRenderer.transform;
 
-        // Pack / Module을 줄일 때 안의 Module / Cell이 몸체 밖으로 나가면 막는다.
+        // Pack / Module을 줄일 때 안의 Module / Cell이 몸체 밖으로 나가면 최소 크기까지만 줄이고 알람으로 알린다.
+        // 타이핑 중(_log가 false)에는 글자를 덮어쓰지 않도록 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 최소 크기로 되돌린다.
         if (bodyTransform != target && !ChildrenFit(target, sizeRenderer, newSize, out Vector3 minSize))
         {
-            if (_log)
+            if (!_log)
             {
-                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+                return;
             }
 
-            return;
+            string message = $"내부 항목이 벗어나 크기를 줄일 수 없습니다. 최소 크기(x,y,z) : {minSize.x:0.##}, {minSize.y:0.##}, {minSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
+            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
+            ShowAlarm(message);
+
+            newSize = Vector3.Max(newSize, minSize);
+            SetInput(xAxisInputField, newSize.x);
+            SetInput(yAxisInputField, newSize.y);
+            SetInput(zAxisInputField, newSize.z);
+
+            if ((newSize - current.size).sqrMagnitude < 1e-8f)
+            {
+                return;
+            }
         }
 
-        // Cell을 키울 때 부모 Module 몸체 밖으로 나가면 막는다.
-        if (bodyTransform == target && !CellFits(target, current, newSize, out Vector3 maxSize))
+        // Cell / Module을 키울 때 부모 Module / Pack 몸체 밖으로 나가면 막는다.
+        MainSceneManager.TargetKind kind = mainSceneManager.SelectedKind;
+        if (kind != MainSceneManager.TargetKind.Pack && !FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
             if (_log)
             {
-                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>($"Module 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}");
+                string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
+                string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
+                DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
+                ShowAlarm(message);
             }
 
             return;
@@ -230,14 +256,15 @@ public class UI_DeviceScaleView : MonoBehaviour
 
         if (bodyTransform == target)
         {
-            // Cell처럼 본인이 곧 몸체면 중심을 유지한 채 현재 스케일을 비율만큼 바꾼다.
-            Vector3 center = current.center;
+            // Cell처럼 본인이 곧 몸체면 현재 스케일을 비율만큼 바꾸고, Pack / Module과 같이 좌측 바닥 뒤쪽 모서리를 고정한다.
+            Vector3 anchor = new Vector3(current.min.x, current.min.y, current.max.z);
             Vector3 scale = bodyTransform.localScale;
             bodyTransform.localScale = new Vector3(
                 Scale(scale.x, current.size.x, newSize.x),
                 Scale(scale.y, current.size.y, newSize.y),
                 Scale(scale.z, current.size.z, newSize.z));
-            bodyTransform.position += center - sizeRenderer.bounds.center;
+            Bounds resized = sizeRenderer.bounds;
+            bodyTransform.position += anchor - new Vector3(resized.min.x, resized.min.y, resized.max.z);
         }
         else
         {
@@ -252,6 +279,16 @@ public class UI_DeviceScaleView : MonoBehaviour
                 current.min.y + newSize.y * 0.5f,
                 current.max.z - newSize.z * 0.5f);
         }
+    }
+
+    private void ShowAlarm(string _message)
+    {
+        if (alarmPopupView == null)
+        {
+            alarmPopupView = FindAnyObjectByType<UI_AlarmPopupView>();
+        }
+
+        alarmPopupView?.Show(_message);
     }
 
     /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
@@ -344,23 +381,23 @@ public class UI_DeviceScaleView : MonoBehaviour
     }
 
     /// <summary>
-    /// Cell을 _newSize로 바꿨을 때(중심 고정) 부모 Module 몸체 안에 남는지 검사한다. 부모 몸체를 찾을 수 없으면 검사하지 않고 true.
-    /// 벗어나면 false이고 _maxSize에는 현재 중심에서 키울 수 있는 최대 크기가 담긴다.
+    /// _child(Cell은 Module 안, Module은 Pack 안)를 _newSize로 바꿨을 때(좌측 바닥 뒤쪽 모서리 고정, +x / +y / -z로 변함) 부모 몸체 안에 남는지 검사한다.
+    /// _current는 _child 몸체의 현재 bounds. 부모 몸체를 찾을 수 없으면 검사하지 않고 true.
+    /// 벗어나면 false이고 _maxSize에는 그 모서리에서 키울 수 있는 최대 크기가 담긴다.
     /// </summary>
-    private static bool CellFits(Transform _cell, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
+    private static bool FitsInParent(Transform _child, MainSceneManager.TargetKind _kind, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
     {
         _maxSize = _newSize;
-        if (_cell.parent == null || !TryGetSizeRenderer(_cell.parent, MainSceneManager.TargetKind.Module, out Renderer moduleBody))
+        if (_child.parent == null || !TryGetSizeRenderer(_child.parent, _kind == MainSceneManager.TargetKind.Cell ? MainSceneManager.TargetKind.Module : MainSceneManager.TargetKind.Pack, out Renderer parentBody))
         {
             return true;
         }
 
-        Bounds inner = moduleBody.bounds;
-        Vector3 center = _current.center;
+        Bounds inner = parentBody.bounds;
         _maxSize = new Vector3(
-            2.0f * Mathf.Min(center.x - inner.min.x, inner.max.x - center.x),
-            2.0f * Mathf.Min(center.y - inner.min.y, inner.max.y - center.y),
-            2.0f * Mathf.Min(center.z - inner.min.z, inner.max.z - center.z));
+            inner.max.x - _current.min.x,
+            inner.max.y - _current.min.y,
+            _current.max.z - inner.min.z);
 
         const float Tolerance = 0.001f;
         return _newSize.x <= _maxSize.x + Tolerance && _newSize.y <= _maxSize.y + Tolerance && _newSize.z <= _maxSize.z + Tolerance;

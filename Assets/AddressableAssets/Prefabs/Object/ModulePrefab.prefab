@@ -125,8 +125,8 @@ MonoBehaviour:
   labelColor: {r: 0, g: 0, b: 0, a: 1}
   lineMat: {fileID: 2100000, guid: 527c113108b732941bbe1fc04ef3ae5d, type: 2}
   xTitle: 'x: Forward direction'
-  yTitle: 'y: Lateral direction'
-  zTitle: 'z: Vertical direction'
+  yTitle: 'y: Vertical direction'
+  zTitle: 'z: Lateral direction'
 --- !u!1 &4773402175674567385
 GameObject:
   m_ObjectHideFlags: 0

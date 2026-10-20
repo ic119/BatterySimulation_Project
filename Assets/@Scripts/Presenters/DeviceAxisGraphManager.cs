@@ -1,23 +1,17 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// 대상(Pack / Module의 Body, Cell 본체)의 바운딩 박스 모서리를 따라 MATLAB 3D 축 같은 눈금 그래프를 그린다.
-/// x / y 축은 카메라에서 가까운 바닥 모서리, z 축은 화면 왼쪽 세로 모서리에 놓이고, 눈금 값은 카메라에서 먼 꼭지점(0)에서 시작한다.
-///
-/// 그래프는 MainSceneManager가 정한 선택 항목(SelectedOwner)의 것만 보인다. 선택되지 않은 항목은 그래프를 만들지도 않는다.
-/// 선택될 때마다 그 시점의 카메라 기준으로 모서리를 새로 고르고, 선택된 동안에는 카메라가 돌아도 다시 그리지 않는다(몸체 크기·위치가 바뀔 때만 다시 그린다).
-///
-/// 그래프의 선 / 글자는 이 오브젝트(Pack / Module / Cell 계층)의 자식이 아니라 별도 루트에 만든다.
-/// Pack / Module / Cell 계층을 GetComponentsInChildren&lt;Renderer&gt;()로 훑는 크기·배치 계산에 그래프 Renderer가 섞이지 않게 하기 위해서다.
 /// </summary>
 public class DeviceAxisGraphManager : MonoBehaviour
 {
     #region Variable
-    /// <summary>그래프를 보여줄 항목(Pack / Module / Cell 루트). null이면 모든 그래프를 숨긴다. MainSceneManager가 설정한다.</summary>
+    /// <summary>
+    /// 그래프를 보여줄 항목(Pack / Module / Cell 루트) 
+    /// null일 경우 모든 그래프 비활성화(MainSceneManager 설정 담당)
+    /// </summary>
     public static Transform SelectedOwner { get; private set; }
 
     [Header("Target")]
@@ -38,23 +32,23 @@ public class DeviceAxisGraphManager : MonoBehaviour
 
     [Header("Axis Title")]
     public string xTitle = "x: Forward direction";
-    public string yTitle = "y: Lateral direction";
-    public string zTitle = "z: Vertical direction";
+    public string yTitle = "y: Vertical direction";
+    public string zTitle = "z: Lateral direction";
 
-    float _lineWidth;
-    float _tickLength;
-    float _labelSize;
+    private float _lineWidth;
+    private float _tickLength;
+    private float _labelSize;
 
-    float _signX;          // 카메라 쪽(가까운 쪽) 모서리가 대상 중심에서 월드 X 어느 쪽인지(+1 / -1)
-    float _signZ;          // 카메라 쪽 모서리가 월드 Z 어느 쪽인지(+1 / -1)
-    bool _zOnNearXEdge;    // z 축을 (가까운 X, 먼 Z) 세로 모서리에 두는지, 반대편에 두는지
-    Bounds _lastBounds;
-    bool _built;           // 현재 선택 구간에서 모서리를 골라 그래프를 만들었는지
+    private float _signX;          // 카메라 쪽(가까운 쪽) 모서리가 대상 중심에서 월드 X 어느 쪽인지(+1 / -1)
+    private float _signZ;          // 카메라 쪽 모서리가 월드 Z 어느 쪽인지(+1 / -1)
+    private bool _zOnNearXEdge;    // z 축을 (가까운 X, 먼 Z) 세로 모서리에 두는지, 반대편에 두는지
+    private Bounds _lastBounds;
+    private bool _built;           // 현재 선택 구간에서 모서리를 골라 그래프를 만들었는지
 
-    Renderer _bodyRenderer;       // 크기 기준이 되는 몸체 Renderer
-    Transform _graphRoot;         // 선 / 글자를 담는 별도 루트(이 오브젝트의 자식이 아님)
-    readonly List<Transform> _billboards = new List<Transform>();       // 카메라를 향하게 할 글자
-    bool _shown;                  // 그래프가 지금 보이는 상태인지
+    private Renderer _bodyRenderer;       // 크기 기준이 되는 몸체 Renderer
+    private Transform _graphRoot;         // 선 / 글자를 담는 별도 루트(이 오브젝트의 자식이 아님)
+    private readonly List<Transform> _billboards = new List<Transform>();       // 카메라를 향하게 할 글자
+    private bool _shown;                  // 그래프가 지금 보이는 상태인지
     #endregion
 
     #region Static
@@ -109,33 +103,32 @@ public class DeviceAxisGraphManager : MonoBehaviour
 
     #region Method
     // 이 그래프가 달린 항목(부모 = Pack / Module / Cell 루트)이 선택되어 있는지.
-    bool IsSelected()
+    private bool IsSelected()
     {
         return SelectedOwner != null && transform.parent != null && SelectedOwner == transform.parent;
     }
 
-    Camera GetCamera()
+    private Camera GetCamera()
     {
         return viewCamera != null ? viewCamera : Camera.main;
     }
 
-    void SetShown(bool shown)
+    private void SetShown(bool shown)
     {
         _shown = shown;
         if (_graphRoot != null)
             _graphRoot.gameObject.SetActive(shown);
     }
 
-    void SetupCanvas()
+    private void SetupCanvas()
     {
         var canvas = GetComponent<Canvas>();
         if (canvas != null && canvas.renderMode != RenderMode.WorldSpace)
             canvas.renderMode = RenderMode.WorldSpace;
     }
 
-    // 몸체 Renderer를 찾는다: centerTarget > 부모의 자식 Body > 부모 본인(Cell).
-    // 그래프가 계층 밖에 있으므로 몸체 하나의 bounds만 읽으면 되고, 매 프레임 호출해도 할당이 없다.
-    void ResolveBody()
+    // 몸체 Renderer 탐색 (centerTarget > 부모의 자식 Body > 부모 본인(Cell))
+    private void ResolveBody()
     {
         if (_bodyRenderer != null) return;
 
@@ -151,8 +144,8 @@ public class DeviceAxisGraphManager : MonoBehaviour
             _bodyRenderer = r;
     }
 
-    // 선택 직후(_built == false) 또는 몸체 크기·위치가 바뀐 경우에만 그래프를 만든다.
-    void Refresh()
+    // 선택 직후(_built == false) 또는 몸체 크기·위치가 바뀐 경우에만 그래프 생성
+    private void Refresh()
     {
         ResolveBody();
         if (_bodyRenderer == null)
@@ -174,9 +167,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
             _zOnNearXEdge = cam == null || cam.WorldToViewportPoint(cornerA).x <= cam.WorldToViewportPoint(cornerB).x;
         }
 
-        bool changed = !_built
-            || (bounds.size - _lastBounds.size).sqrMagnitude > 1e-6f
-            || (bounds.center - _lastBounds.center).sqrMagnitude > 1e-6f;
+        bool changed = !_built || (bounds.size - _lastBounds.size).sqrMagnitude > 1e-6f || (bounds.center - _lastBounds.center).sqrMagnitude > 1e-6f;
         if (!changed)
             return;
 
@@ -225,17 +216,17 @@ public class DeviceAxisGraphManager : MonoBehaviour
         Vector3 xOut = Vector3.forward * _signZ; // 가까운 Z 모서리의 바깥쪽
         Vector3 yOut = Vector3.right * _signX;   // 가까운 X 모서리의 바깥쪽
 
-        // 장치 x 축: Unity X 방향, 가까운 Z 바닥 모서리 위
-        BuildAxis(new Vector3(farX, y0, nearZ), Vector3.right * _signX, bounds.size.x, xOut, xTitle);
-        // 장치 y 축: Unity Z 방향, 가까운 X 바닥 모서리 위
-        BuildAxis(new Vector3(nearX, y0, farZ), Vector3.forward * _signZ, bounds.size.z, yOut, yTitle);
+        // 장치 x 축: Unity X 방향, 가까운 Z 바닥 모서리 위. 카메라 위치와 상관없이 왼쪽(min.x)이 0이고 오른쪽으로 커진다.
+        BuildAxis(new Vector3(bounds.min.x, y0, nearZ), Vector3.right, bounds.size.x, xOut, xTitle);
+        // 장치 z 축: Unity Z 방향, 가까운 X 바닥 모서리 위. 카메라 위치와 상관없이 min.z가 0이고 +z 방향으로 커진다.
+        BuildAxis(new Vector3(nearX, y0, bounds.min.z), Vector3.forward, bounds.size.z, yOut, zTitle);
 
-        // 장치 z 축: 세로 모서리 위 (바닥에서 위로)
+        // 장치 y 축: 세로 모서리 위 (바닥에서 위로)
         Vector3 zCorner = _zOnNearXEdge
             ? new Vector3(nearX, y0, farZ)
             : new Vector3(farX, y0, nearZ);
         Vector3 zOut = new Vector3(zCorner.x - c.x, 0f, zCorner.z - c.z).normalized;
-        BuildAxis(zCorner, Vector3.up, bounds.size.y, zOut, zTitle);
+        BuildAxis(zCorner, Vector3.up, bounds.size.y, zOut, yTitle);
     }
 
     // origin에서 dir 방향으로 length만큼 축 선 + 눈금 + 숫자 + 축 이름(모서리 바깥쪽)
