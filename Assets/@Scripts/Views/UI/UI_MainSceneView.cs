@@ -384,7 +384,7 @@ public class UI_MainSceneView : MonoBehaviour
         _parentPack = packFactory.LastPack;
         _parentModule = packFactory.LastModule;
 
-        if (mainSceneManager == null || mainSceneManager.SelectedItem == null || mainSceneManager.SelectedTarget == null)
+        if (mainSceneManager == null || mainSceneManager.SelectedModel == null || mainSceneManager.SelectedTarget == null)
         {
             return true;
         }

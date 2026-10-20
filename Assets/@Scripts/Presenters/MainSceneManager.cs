@@ -32,16 +32,16 @@ namespace Incheol.Presenter
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
 
-        private UI_TreeNodeItem selectedItem;
+        private object selectedModel;
         private Transform selectedTarget;
         private TargetKind selectedKind;
         #endregion
 
         #region Property
         /// <summary>
-        /// 현재 선택된 트리 항목 (없을 경우 null)
+        /// 현재 선택된 트리 항목의 모델(PackDataModel / ModuleDataModel / CellDataModel) (없을 경우 null)
         /// </summary>
-        public UI_TreeNodeItem SelectedItem => selectedItem;
+        public object SelectedModel => selectedModel;
 
         /// <summary>
         /// 현재 선택된 항목이 가리키는 오브젝트(Pack/Module/Cell) (없을 경우 null)
@@ -50,7 +50,7 @@ namespace Incheol.Presenter
 
         /// <summary>
         /// 현재 선택된 항목의 종류(Pack/Module/Cell)
-        /// 선택이 없으면 의미 없는 값이므로 SelectedItem이 null이 아닐 경우에만 사용
+        /// 선택이 없으면 의미 없는 값이므로 SelectedModel이 null이 아닐 경우에만 사용
         /// </summary>
         public TargetKind SelectedKind => selectedKind; 
         #endregion
@@ -99,9 +99,9 @@ namespace Incheol.Presenter
         #endregion
 
         #region Method
-        private void OnItemClicked(UI_TreeNodeItem _item, Transform _target, TargetKind _kind)
+        private void OnItemClicked(object _model, Transform _target, TargetKind _kind)
         {
-            SelectItem(_item, _target, _kind);
+            SelectItem(_model, _target, _kind);
         }
 
         private void OnTreeChanged()
@@ -121,7 +121,7 @@ namespace Incheol.Presenter
 
         private void OnSelectionClearRequested()
         {
-            if (selectedItem != null)
+            if (selectedModel != null)
             {
                 DeselectItem();
             }
@@ -168,30 +168,29 @@ namespace Incheol.Presenter
         /// 새로 선택한 오브젝트일 경우, 자식(Module의 Cell 등)까지 전부 활성화 후 카메라 추적 실행
         /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 해당 오브젝트 비활성화, 선택된 항목은 없는 상태 처리 (null)
         /// </summary>
-        public void SelectItem(UI_TreeNodeItem _item, Transform _target, TargetKind _kind = TargetKind.Pack)
+        public void SelectItem(object _model, Transform _target, TargetKind _kind = TargetKind.Pack)
         {
-            if (_item == null || _target == null)
+            if (_model == null || _target == null)
             {
                 return;
             }
 
-            if (selectedItem == _item)
+            if (selectedModel == _model)
             {
                 DeselectItem();
                 return;
             }
 
-            if (selectedItem != null)
+            if (selectedModel != null)
             {
-                selectedItem.SetClicked(false);
                 SetVisible(selectedTarget, false);
             }
 
-            selectedItem = _item;
+            selectedModel = _model;
             selectedTarget = _target;
             selectedKind = _kind;
 
-            selectedItem.SetClicked(true);
+            editorView?.SetSelected(selectedModel);
             SetVisible(selectedTarget, true, _kind);
             RefreshGraph();
             RefreshProperties();
@@ -229,18 +228,24 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// SelectedItem이 null이면 모든 축 그래프를 숨기고, null이 아니면 그 항목(SelectedTarget)의 그래프만 보이게 한다.
+        /// SelectedModel이 null이면 모든 축 그래프를 숨기고, null이 아니면 그 항목(SelectedTarget)의 그래프만 보이게 한다.
         /// 그래프는 DeviceAxisGraphManager가 선택된 항목에서만 만들고 그린다.
         /// </summary>
         private void RefreshGraph()
         {
-            if (SelectedItem == null)
+            if (SelectedModel == null)
             {
                 DeviceAxisGraphManager.SetSelectedOwner(null);
                 return;
             }
 
             DeviceAxisGraphManager.SetSelectedOwner(SelectedTarget);
+        }
+
+        /// <summary>선택된 항목에 트리가 표시하는 이름. 선택이 없거나 트리 뷰가 없으면 빈 문자열.</summary>
+        private string GetSelectedLabel()
+        {
+            return editorView != null ? editorView.GetLabel(selectedModel) : string.Empty;
         }
 
         /// <summary>
@@ -254,7 +259,7 @@ namespace Incheol.Presenter
                 return;
             }
 
-            if (selectedItem == null)
+            if (selectedModel == null)
             {
                 structureView.Clear();
                 return;
@@ -266,7 +271,7 @@ namespace Incheol.Presenter
                 return;
             }
 
-            structureView.Show(selectedItem.Label, editorView.GetChildStructure(selectedItem));
+            structureView.Show(editorView.GetLabel(selectedModel), editorView.GetChildStructure(selectedModel));
         }
 
         /// <summary>
@@ -275,13 +280,13 @@ namespace Incheol.Presenter
         /// </summary>
         public void RefreshProperties()
         {
-            bool hasSelection = selectedItem != null && selectedTarget != null;
+            bool hasSelection = selectedModel != null && selectedTarget != null;
 
             if (propertiesView != null)
             {
                 if (hasSelection)
                 {
-                    propertiesView.ShowSelected(selectedItem.Label, selectedTarget.position);
+                    propertiesView.ShowSelected(GetSelectedLabel(), selectedTarget.position);
                 }
                 else
                 {
@@ -303,7 +308,7 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// SelectedItem이 null이면 이름 변경 입력을 비우고 막고, null이 아니면 그 항목의 이름을 changeNameInputField에 채운다.
+        /// SelectedModel이 null이면 이름 변경 입력을 비우고 막고, null이 아니면 그 항목의 이름을 changeNameInputField에 채운다.
         /// 입력 중인 글자를 덮어쓰지 않도록 선택이 바뀔 때와 이름을 바꾼 뒤에만 호출한다.
         /// </summary>
         private void RefreshName()
@@ -313,13 +318,13 @@ namespace Incheol.Presenter
                 return;
             }
 
-            if (selectedItem == null)
+            if (selectedModel == null)
             {
                 nameView.Clear();
                 return;
             }
 
-            nameView.ShowSelected(selectedItem.Label);
+            nameView.ShowSelected(GetSelectedLabel());
         }
 
         /// <summary>
@@ -328,12 +333,12 @@ namespace Incheol.Presenter
         /// </summary>
         public void RenameSelected(string _newName)
         {
-            if (selectedItem == null)
+            if (selectedModel == null)
             {
                 return;
             }
 
-            if (editorView != null && editorView.Rename(selectedItem, _newName))
+            if (editorView != null && editorView.Rename(selectedModel, _newName))
             {
                 RefreshProperties();
             }
@@ -344,13 +349,9 @@ namespace Incheol.Presenter
         /// <summary>현재 선택을 취소한다. 항목의 강조를 끄고 그 오브젝트(와 자식)를 다시 숨긴다.</summary>
         public void DeselectItem()
         {
-            if (selectedItem != null)
-            {
-                selectedItem.SetClicked(false);
-            }
-
             SetVisible(selectedTarget, false);
-            selectedItem = null;
+            selectedModel = null;
+            editorView?.SetSelected(null);
             selectedTarget = null;
             RefreshGraph();
             RefreshProperties();

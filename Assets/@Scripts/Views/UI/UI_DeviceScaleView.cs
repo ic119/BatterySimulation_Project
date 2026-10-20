@@ -175,7 +175,7 @@ public class UI_DeviceScaleView : MonoBehaviour
     }
 
     /// <summary>
-    /// 입력 필드의 x, y, z를 MainSceneManager의 SelectedItem 본인의 크기에 바로 반영한다(자식 Module / Cell의 크기와 위치는 그대로).
+    /// 입력 필드의 x, y, z를 MainSceneManager의 선택 항목 본인의 크기에 바로 반영한다(자식 Module / Cell의 크기와 위치는 그대로).
     /// 비어 있는 칸은 현재 값을 유지한다. 0 이하이거나 숫자가 아닌 값이 있으면 아무것도 바꾸지 않는다.
     /// Pack / Module은 몸체(Body)의 좌측 바닥 뒤쪽 모서리를 고정한 채 +x, +y, -z 방향으로 늘이고 줄이며, Cell은 중심을 고정한다.
     /// _log가 false면(타이핑 중) 값이 맞지 않아도 로그를 남기지 않는다. 입력 필드는 다시 채우지 않는다(입력 중인 글자를 덮어쓰지 않기 위해).

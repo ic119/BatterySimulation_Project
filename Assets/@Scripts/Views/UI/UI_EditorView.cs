@@ -8,16 +8,21 @@ using UnityEngine;
 /// <summary>
 /// 생성된 Pack / Module / Cell을 scrollRect(ScrollRect의 Content) 아래에 트리 구조로 보여준다.
 /// 각 항목은 Addressable 프리팹(UI_TreeNodeItem)이며, 자식이 있는 항목은 화살표 버튼으로 자식들을 펼치거나(▼) 접는다(▶).
+/// 항목마다 줄 오브젝트를 만들지 않고 VirtualScrollList로 화면에 보이는 줄만 만들어 스크롤할 때 돌려 쓴다.
+/// 트리 구조(TreeNode)는 모델 단위로 따로 들고 있으므로, 줄 오브젝트는 보이는 항목의 내용을 잠깐 빌려 보여줄 뿐이다.
 /// </summary>
 public class UI_EditorView : MonoBehaviour
 {
     private class TreeNode
     {
+        /// <summary>이 노드가 가리키는 Pack / Module / Cell 모델. 항목을 구분하는 키로도 쓴다.</summary>
+        public object model;
+
+        public string label;
         public int depth;
         public TreeNode parent;
         public readonly List<TreeNode> childList = new List<TreeNode>();
         public bool expanded;
-        public UI_TreeNodeItem item;
 
         /// <summary>이 항목이 가리키는 씬 오브젝트(Pack/Module/Cell). 선택하면 이것이 보이게 된다.</summary>
         public Transform target;
@@ -28,10 +33,19 @@ public class UI_EditorView : MonoBehaviour
 
     #region Variable
     [Header("Editor View Variable")]
-    [SerializeField] private RectTransform scrollRect;
+    [SerializeField, Tooltip("ScrollRect의 Content")] private RectTransform scrollRect;
+    [SerializeField, Min(1.0f), Tooltip("트리 한 줄의 높이. UI_TreeNodeItem 프리팹의 높이와 같아야 한다.")] private float rowHeight = 28.0f;
 
     private readonly List<TreeNode> rootNodeList = new List<TreeNode>();
     private readonly Dictionary<object, TreeNode> nodeDictionary = new Dictionary<object, TreeNode>();
+
+    // 접힌 부모 아래를 뺀, 지금 트리에 보여야 하는 노드를 위에서 아래 순서로 담는다. 목록의 n번째 항목이 이 목록의 n번째 노드다.
+    private readonly List<TreeNode> visibleNodeList = new List<TreeNode>();
+
+    private VirtualScrollList<UI_TreeNodeItem> list;
+    private GameObject treeItemPrefab;
+    private bool loadingPrefab;
+    private TreeNode selectedNode;
     #endregion
 
     /// <summary>줄의 삭제 버튼이 눌렸을 때 발생한다. 인자는 그 줄의 모델(PackDataModel / ModuleDataModel / CellDataModel)이다.</summary>
@@ -40,25 +54,53 @@ public class UI_EditorView : MonoBehaviour
     /// <summary>줄이 추가되거나 지워져 트리 구조가 바뀌었을 때 발생한다. 선택된 항목의 자식 구조와 크기 표시를 새로 그리게 한다.</summary>
     public event System.Action TreeChanged;
 
-    /// <summary>항목(줄)을 눌렀을 때 발생한다. 인자는 그 줄, 줄이 가리키는 씬 오브젝트, 종류이다.</summary>
-    public event System.Action<UI_TreeNodeItem, Transform, MainSceneManager.TargetKind> ItemClicked;
+    /// <summary>항목(줄)을 눌렀을 때 발생한다. 인자는 그 항목의 모델, 항목이 가리키는 씬 오브젝트, 종류이다.</summary>
+    public event System.Action<object, Transform, MainSceneManager.TargetKind> ItemClicked;
+
+    #region LifeCycle
+    private void Awake()
+    {
+        if (scrollRect != null)
+        {
+            list = new VirtualScrollList<UI_TreeNodeItem>(scrollRect, rowHeight, CreateRow, BindRow);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        list?.Dispose();
+    }
+    #endregion
 
     #region Method
+    /// <summary>_model 항목에 표시되는 이름(예: "Pack 1"). 트리에 없으면 빈 문자열.</summary>
+    public string GetLabel(object _model)
+    {
+        return _model != null && nodeDictionary.TryGetValue(_model, out TreeNode node) ? node.label : string.Empty;
+    }
+
+    /// <summary>_model 항목을 선택된 모습(강조)으로 보여준다. null이면 강조를 모두 끈다. 화면 밖의 항목도 보이게 되면 강조된 채로 나타난다.</summary>
+    public void SetSelected(object _model)
+    {
+        selectedNode = _model != null && nodeDictionary.TryGetValue(_model, out TreeNode node) ? node : null;
+        list?.Refresh();
+    }
+
     /// <summary>
-    /// _item 줄이 가리키는 Pack / Module / Cell의 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
+    /// _model 항목의 Pack / Module / Cell 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
     /// 모델 이름과 씬 오브젝트 이름에는 앞에 종류 접두어가 있으면 그것을 뺀 값을 쓴다(저장 후 불러올 때 접두어가 다시 붙기 때문).
-    /// 앞뒤 공백을 뺀 이름이 비어 있거나 트리에 없는 줄이면 바꾸지 않고 false를 반환한다.
+    /// 앞뒤 공백을 뺀 이름이 비어 있거나 트리에 없는 항목이면 바꾸지 않고 false를 반환한다.
     /// </summary>
-    public bool Rename(UI_TreeNodeItem _item, string _newName)
+    public bool Rename(object _model, string _newName)
     {
         string newName = _newName != null ? _newName.Trim() : string.Empty;
-        if (newName.Length == 0 || !TryFindNode(_item, out object model, out TreeNode node))
+        if (newName.Length == 0 || _model == null || !nodeDictionary.TryGetValue(_model, out TreeNode node))
         {
             return false;
         }
 
         string prefix;
-        switch (model)
+        switch (_model)
         {
             case PackDataModel _:
                 prefix = "Pack";
@@ -80,7 +122,7 @@ public class UI_EditorView : MonoBehaviour
             modelName = newName.Substring(prefixWithSpace.Length).Trim();
         }
 
-        switch (model)
+        switch (_model)
         {
             case PackDataModel pack:
                 pack.packName = modelName;
@@ -98,31 +140,9 @@ public class UI_EditorView : MonoBehaviour
             node.target.name = $"{prefix}_{modelName}";
         }
 
-        node.item.SetLabel(newName);
-        node.item.gameObject.name = $"TreeItem_{newName}";
+        node.label = newName;
+        list?.Refresh();
         return true;
-    }
-
-    private bool TryFindNode(UI_TreeNodeItem _item, out object _model, out TreeNode _node)
-    {
-        _model = null;
-        _node = null;
-        if (_item == null)
-        {
-            return false;
-        }
-
-        foreach (KeyValuePair<object, TreeNode> pair in nodeDictionary)
-        {
-            if (pair.Value.item == _item)
-            {
-                _model = pair.Key;
-                _node = pair.Value;
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>
@@ -141,7 +161,6 @@ public class UI_EditorView : MonoBehaviour
         if (node.parent != null)
         {
             node.parent.childList.Remove(node);
-            UpdateArrow(node.parent);
         }
         else
         {
@@ -153,7 +172,7 @@ public class UI_EditorView : MonoBehaviour
         TreeChanged?.Invoke();
     }
 
-    /// <summary>_node와 그 자손의 줄 오브젝트를 파괴하고 딕셔너리에서 뺀다.</summary>
+    /// <summary>_node와 그 자손을 딕셔너리에서 뺀다. 선택된 노드가 포함되어 있으면 선택도 푼다.</summary>
     private void RemoveSubtree(TreeNode _node)
     {
         for (int i = 0; i < _node.childList.Count; i++)
@@ -161,41 +180,21 @@ public class UI_EditorView : MonoBehaviour
             RemoveSubtree(_node.childList[i]);
         }
 
-        if (_node.item != null)
+        if (selectedNode == _node)
         {
-            _node.item.gameObject.SetActive(false);
-            Destroy(_node.item.gameObject);
+            selectedNode = null;
         }
 
-        object key = null;
-        foreach (KeyValuePair<object, TreeNode> pair in nodeDictionary)
-        {
-            if (pair.Value == _node)
-            {
-                key = pair.Key;
-                break;
-            }
-        }
-
-        if (key != null)
-        {
-            nodeDictionary.Remove(key);
-        }
+        nodeDictionary.Remove(_node.model);
     }
 
     /// <summary>트리의 모든 항목을 지운다(저장된 파일을 불러오기 전에 쓴다).</summary>
     public void Clear()
     {
-        foreach (TreeNode node in nodeDictionary.Values)
-        {
-            if (node.item != null)
-            {
-                Destroy(node.item.gameObject);
-            }
-        }
-
         nodeDictionary.Clear();
         rootNodeList.Clear();
+        selectedNode = null;
+        RefreshTree();
     }
 
     /// <summary>Pack을 최상위 항목으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
@@ -206,7 +205,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        RequestNode(_pack, $"Pack {_pack.packName}", null, _target, MainSceneManager.TargetKind.Pack);
+        AddNode(_pack, $"Pack {_pack.packName}", null, _target, MainSceneManager.TargetKind.Pack);
     }
 
     /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 최상위 항목이 된다.</summary>
@@ -217,7 +216,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        RequestNode(_module, $"Module {_module.moduleName}", _parentPack, _module.modulePosition, MainSceneManager.TargetKind.Module);
+        AddNode(_module, $"Module {_module.moduleName}", _parentPack, _module.modulePosition, MainSceneManager.TargetKind.Module);
     }
 
     /// <summary>Cell을 추가한다. 부모는 cell.parentModule이다.</summary>
@@ -228,31 +227,13 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        RequestNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition, MainSceneManager.TargetKind.Cell);
+        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition, MainSceneManager.TargetKind.Cell);
     }
 
-    /// <summary>
-    /// 항목 프리팹을 Addressable로 불러와 노드를 만든다. 첫 로드 중에 들어온 요청도 요청 순서대로 처리되므로
-    /// 부모는 항상 자식보다 먼저 만들어진다. 부모는 콜백 시점에 찾는다.
-    /// </summary>
-    private void RequestNode(object _key, string _label, object _parentKey, Transform _target, MainSceneManager.TargetKind _kind)
+    private void AddNode(object _key, string _label, object _parentKey, Transform _target, MainSceneManager.TargetKind _kind)
     {
-        if (scrollRect == null)
-        {
-            return;
-        }
-
-        string key = AddressableAssetKey.UI_TreeNodeItem.ToString();
-        AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-            key,
-            prefab => CreateNode(prefab, _key, _label, _parentKey, _target, _kind),
-            () => DebugLogManager.GenerateErrorMessage<UI_EditorView>($"{key} 로드 실패"));
-    }
-
-    private void CreateNode(GameObject _prefab, object _key, string _label, object _parentKey, Transform _target, MainSceneManager.TargetKind _kind)
-    {
-        // 로드를 기다리는 사이 뷰가 파괴되었거나 이미 추가된 항목이면 무시한다.
-        if (this == null || scrollRect == null || nodeDictionary.ContainsKey(_key))
+        // 이미 추가된 항목이면 무시한다.
+        if (nodeDictionary.ContainsKey(_key))
         {
             return;
         }
@@ -263,19 +244,16 @@ public class UI_EditorView : MonoBehaviour
             nodeDictionary.TryGetValue(_parentKey, out parent);
         }
 
-        GameObject itemObject = AddressableAssetManager.Instance.InstantiatePrefab(_prefab, scrollRect);
-        itemObject.name = $"TreeItem_{_label}";
-
         TreeNode node = new TreeNode
         {
+            model = _key,
+            label = _label,
             depth = parent != null ? parent.depth + 1 : 0,
             parent = parent,
-            item = itemObject.GetComponent<UI_TreeNodeItem>(),
             target = _target,
             kind = _kind,
         };
 
-        node.item.Setup(_label, node.depth, () => OnClickArrow(node), () => OnClickItem(node), () => DeleteRequested?.Invoke(_key));
         nodeDictionary[_key] = node;
 
         if (parent != null)
@@ -283,31 +261,25 @@ public class UI_EditorView : MonoBehaviour
             parent.childList.Add(node);
             // 새 자식이 바로 보이도록 부모를 펼친다.
             parent.expanded = true;
-            UpdateArrow(parent);
         }
         else
         {
             rootNodeList.Add(node);
         }
 
-        UpdateArrow(node);
         RefreshTree();
 
         // 선택된 항목 아래에 새 자식이 생겼을 수 있으므로 자식 구조 표시를 갱신한다.
         TreeChanged?.Invoke();
     }
 
-    /// <summary>_item 본인을 빼는 자식 구조를 트리 순서대로 (이름, 깊이) 목록으로 돌려준다. 깊이 0이 _item의 직접 자식이다. 트리에 없는 항목이면 빈 목록.</summary>
-    public List<(string label, int depth)> GetChildStructure(UI_TreeNodeItem _item)
+    /// <summary>_model 본인을 빼는 자식 구조를 트리 순서대로 (이름, 깊이) 목록으로 돌려준다. 깊이 0이 _model의 직접 자식이다. 트리에 없는 항목이면 빈 목록.</summary>
+    public List<(string label, int depth)> GetChildStructure(object _model)
     {
         List<(string label, int depth)> lineList = new List<(string label, int depth)>();
-        foreach (TreeNode node in nodeDictionary.Values)
+        if (_model != null && nodeDictionary.TryGetValue(_model, out TreeNode node))
         {
-            if (node.item == _item)
-            {
-                AppendChildren(node, 0, lineList);
-                break;
-            }
+            AppendChildren(node, 0, lineList);
         }
 
         return lineList;
@@ -317,7 +289,7 @@ public class UI_EditorView : MonoBehaviour
     {
         for (int i = 0; i < _node.childList.Count; i++)
         {
-            _lineList.Add((_node.childList[i].item.Label, _depth));
+            _lineList.Add((_node.childList[i].label, _depth));
             AppendChildren(_node.childList[i], _depth + 1, _lineList);
         }
     }
@@ -325,7 +297,7 @@ public class UI_EditorView : MonoBehaviour
     /// <summary>항목(줄)을 누르면 선택을 알린다. 선택된 오브젝트만 씬에 보이게 되는 것은 받는 쪽이 정한다.</summary>
     private void OnClickItem(TreeNode _node)
     {
-        ItemClicked?.Invoke(_node.item, _node.target, _node.kind);
+        ItemClicked?.Invoke(_node.model, _node.target, _node.kind);
     }
 
     private void OnClickArrow(TreeNode _node)
@@ -336,35 +308,88 @@ public class UI_EditorView : MonoBehaviour
         }
 
         _node.expanded = !_node.expanded;
-        UpdateArrow(_node);
         RefreshTree();
     }
 
-    private void UpdateArrow(TreeNode _node)
-    {
-        _node.item.SetArrow(_node.childList.Count > 0, _node.expanded);
-    }
-
-    /// <summary>트리 순서대로 행을 정렬하고, 접힌 부모 아래의 행은 숨긴다.</summary>
+    /// <summary>접힌 부모 아래를 뺀 보이는 노드 목록을 트리 순서대로 다시 만들고 목록(스크롤)에 반영한다.</summary>
     private void RefreshTree()
     {
-        int siblingIndex = 0;
+        visibleNodeList.Clear();
         for (int i = 0; i < rootNodeList.Count; i++)
         {
-            ApplyNode(rootNodeList[i], true, ref siblingIndex);
+            CollectVisible(rootNodeList[i]);
+        }
+
+        EnsurePrefab();
+        list?.SetCount(visibleNodeList.Count);
+    }
+
+    private void CollectVisible(TreeNode _node)
+    {
+        visibleNodeList.Add(_node);
+        if (!_node.expanded)
+        {
+            return;
+        }
+
+        for (int i = 0; i < _node.childList.Count; i++)
+        {
+            CollectVisible(_node.childList[i]);
         }
     }
 
-    private void ApplyNode(TreeNode _node, bool _visible, ref int _siblingIndex)
+    /// <summary>줄 프리팹을 아직 불러오지 않았으면 Addressable로 불러온다. 다 불러오면 목록이 줄 오브젝트를 만들어 채운다.</summary>
+    private void EnsurePrefab()
     {
-        _node.item.gameObject.SetActive(_visible);
-        _node.item.transform.SetSiblingIndex(_siblingIndex++);
-
-        bool childVisible = _visible && _node.expanded;
-        for (int i = 0; i < _node.childList.Count; i++)
+        if (treeItemPrefab != null || loadingPrefab || scrollRect == null)
         {
-            ApplyNode(_node.childList[i], childVisible, ref _siblingIndex);
+            return;
         }
+
+        loadingPrefab = true;
+        string key = AddressableAssetKey.UI_TreeNodeItem.ToString();
+        AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
+            key,
+            prefab =>
+            {
+                loadingPrefab = false;
+
+                // 불러오는 사이 뷰가 파괴되었으면 무시한다.
+                if (this == null)
+                {
+                    return;
+                }
+
+                treeItemPrefab = prefab;
+                list?.Refresh();
+            },
+            () =>
+            {
+                loadingPrefab = false;
+                DebugLogManager.GenerateErrorMessage<UI_EditorView>($"{key} 로드 실패");
+            });
+    }
+
+    /// <summary>VirtualScrollList가 부르는 줄 오브젝트 생성. 프리팹을 아직 못 불러왔으면 null.</summary>
+    private UI_TreeNodeItem CreateRow()
+    {
+        if (treeItemPrefab == null)
+        {
+            return null;
+        }
+
+        GameObject itemObject = AddressableAssetManager.Instance.InstantiatePrefab(treeItemPrefab, scrollRect);
+        itemObject.name = "TreeItem";
+        return itemObject.GetComponent<UI_TreeNodeItem>();
+    }
+
+    /// <summary>VirtualScrollList가 부르는 줄 채우기. 줄 오브젝트는 다른 항목에 쓰였던 것이므로 이름, 들여쓰기, 화살표, 선택 강조, 클릭을 모두 새로 정한다.</summary>
+    private void BindRow(UI_TreeNodeItem _item, int _index)
+    {
+        TreeNode node = visibleNodeList[_index];
+        _item.Setup(node.label, node.depth, () => OnClickArrow(node), () => OnClickItem(node), () => DeleteRequested?.Invoke(node.model));
+        _item.SetArrow(node.childList.Count > 0, node.expanded);
+        _item.SetClicked(node == selectedNode);
     }
     #endregion
 }
