@@ -2,19 +2,28 @@ using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 대상(Body)의 바운딩 박스 모서리를 따라 MATLAB 3D 축 같은 눈금 그래프를 그린다.
+/// 대상(Pack / Module의 Body, Cell 본체)의 바운딩 박스 모서리를 따라 MATLAB 3D 축 같은 눈금 그래프를 그린다.
 /// x / y 축은 카메라에서 가까운 바닥 모서리, z 축은 화면 왼쪽 세로 모서리에 놓이고, 눈금 값은 카메라에서 먼 꼭지점(0)에서 시작한다.
-/// 모서리는 처음 그릴 때 카메라 기준으로 한 번만 고르고, 카메라가 돌아도 다시 그리지 않는다.
+///
+/// 그래프는 MainSceneManager가 정한 선택 항목(SelectedOwner)의 것만 보인다. 선택되지 않은 항목은 그래프를 만들지도 않는다.
+/// 선택될 때마다 그 시점의 카메라 기준으로 모서리를 새로 고르고, 선택된 동안에는 카메라가 돌아도 다시 그리지 않는다(몸체 크기·위치가 바뀔 때만 다시 그린다).
+///
+/// 그래프의 선 / 글자는 이 오브젝트(Pack / Module / Cell 계층)의 자식이 아니라 별도 루트에 만든다.
+/// Pack / Module / Cell 계층을 GetComponentsInChildren&lt;Renderer&gt;()로 훑는 크기·배치 계산에 그래프 Renderer가 섞이지 않게 하기 위해서다.
 /// </summary>
 public class DeviceAxisGraphManager : MonoBehaviour
 {
     #region Variable
+    /// <summary>그래프를 보여줄 항목(Pack / Module / Cell 루트). null이면 모든 그래프를 숨긴다. MainSceneManager가 설정한다.</summary>
+    public static Transform SelectedOwner { get; private set; }
+
     [Header("Target")]
-    [Tooltip("그래프를 두를 대상(parentObject). 비워두면 부모(PackPrefab)의 자식 Body를 사용")]
+    [Tooltip("그래프를 두를 몸체. 비워두면 부모의 자식 Body, 없으면 부모 본인의 Renderer(Cell)를 사용")]
     public Transform centerTarget;
-    [Tooltip("처음 모서리를 고를 때와 글자 방향의 기준 카메라. 비워두면 Camera.main")]
+    [Tooltip("모서리를 고를 때와 글자 방향의 기준 카메라. 비워두면 Camera.main")]
     public Camera viewCamera;
 
     [Header("Style (대상의 가장 긴 변 대비 비율)")]
@@ -40,33 +49,55 @@ public class DeviceAxisGraphManager : MonoBehaviour
     float _signZ;          // 카메라 쪽 모서리가 월드 Z 어느 쪽인지(+1 / -1)
     bool _zOnNearXEdge;    // z 축을 (가까운 X, 먼 Z) 세로 모서리에 두는지, 반대편에 두는지
     Bounds _lastBounds;
-    bool _built;
+    bool _built;           // 현재 선택 구간에서 모서리를 골라 그래프를 만들었는지
 
-    Renderer _bodyRenderer;                                             // On/Off 기준이 되는 대상의 Renderer
-    readonly List<Renderer> _graphRenderers = new List<Renderer>();     // 이 그래프가 만든 선 / 글자 Renderer
+    Renderer _bodyRenderer;       // 크기 기준이 되는 몸체 Renderer
+    Transform _graphRoot;         // 선 / 글자를 담는 별도 루트(이 오브젝트의 자식이 아님)
     readonly List<Transform> _billboards = new List<Transform>();       // 카메라를 향하게 할 글자
-    bool _lastVisible;
+    bool _shown;                  // 그래프가 지금 보이는 상태인지
+    #endregion
+
+    #region Static
+    /// <summary>_owner 항목의 그래프만 보이게 한다. null이면 모두 숨긴다.</summary>
+    public static void SetSelectedOwner(Transform _owner)
+    {
+        SelectedOwner = _owner;
+    }
     #endregion
 
     #region LifeCycle
     private void Start()
     {
         SetupCanvas();
-        Refresh(true);
+    }
 
-        if (centerTarget != null)
-            centerTarget.TryGetComponent(out _bodyRenderer);
-        ApplyVisible(_bodyRenderer == null || _bodyRenderer.enabled);
+    private void OnDisable()
+    {
+        SetShown(false);
+    }
+
+    private void OnDestroy()
+    {
+        if (_graphRoot != null)
+            Destroy(_graphRoot.gameObject);
     }
 
     private void LateUpdate()
     {
-        // 대상 크기가 바뀐 경우에만 그래프를 다시 만든다.
-        Refresh(false);
+        // 선택된 항목의 그래프만 보인다. 선택되지 않았으면 만들지도 않는다.
+        bool selected = IsSelected();
+        if (!selected)
+        {
+            SetShown(false);
+            return;
+        }
 
-        // MainSceneManager.SetVisible 등이 대상 Renderer를 켜고 끌 때 그래프도 함께 따라간다.
-        if (_bodyRenderer != null && _bodyRenderer.enabled != _lastVisible)
-            ApplyVisible(_bodyRenderer.enabled);
+        // 선택되는 순간 그 시점의 카메라 기준으로 모서리를 새로 고르고 그린다.
+        if (!_shown)
+            _built = false;
+
+        Refresh();
+        SetShown(true);
 
         // 글자는 항상 카메라를 향하게 한다.
         Camera cam = GetCamera();
@@ -77,16 +108,22 @@ public class DeviceAxisGraphManager : MonoBehaviour
     #endregion
 
     #region Method
+    // 이 그래프가 달린 항목(부모 = Pack / Module / Cell 루트)이 선택되어 있는지.
+    bool IsSelected()
+    {
+        return SelectedOwner != null && transform.parent != null && SelectedOwner == transform.parent;
+    }
+
     Camera GetCamera()
     {
         return viewCamera != null ? viewCamera : Camera.main;
     }
 
-    void ApplyVisible(bool visible)
+    void SetShown(bool shown)
     {
-        _lastVisible = visible;
-        for (int i = 0; i < _graphRenderers.Count; i++)
-            _graphRenderers[i].enabled = visible;
+        _shown = shown;
+        if (_graphRoot != null)
+            _graphRoot.gameObject.SetActive(shown);
     }
 
     void SetupCanvas()
@@ -96,16 +133,34 @@ public class DeviceAxisGraphManager : MonoBehaviour
             canvas.renderMode = RenderMode.WorldSpace;
     }
 
-    // 처음(force) 또는 대상 크기·위치가 바뀐 경우에만 그래프를 만든다.
-    void Refresh(bool force)
+    // 몸체 Renderer를 찾는다: centerTarget > 부모의 자식 Body > 부모 본인(Cell).
+    // 그래프가 계층 밖에 있으므로 몸체 하나의 bounds만 읽으면 되고, 매 프레임 호출해도 할당이 없다.
+    void ResolveBody()
     {
-        if (centerTarget == null && transform.parent != null)
-            centerTarget = transform.parent.Find("Body");
+        if (_bodyRenderer != null) return;
 
-        if (!TryGetTargetBounds(out Bounds bounds))
+        Transform target = centerTarget;
+        if (target == null && transform.parent != null)
+        {
+            target = transform.parent.Find("Body");
+            if (target == null)
+                target = transform.parent;
+        }
+
+        if (target != null && target.TryGetComponent(out Renderer r))
+            _bodyRenderer = r;
+    }
+
+    // 선택 직후(_built == false) 또는 몸체 크기·위치가 바뀐 경우에만 그래프를 만든다.
+    void Refresh()
+    {
+        ResolveBody();
+        if (_bodyRenderer == null)
             return;
 
-        // 모서리는 처음 그릴 때 카메라 기준으로 한 번만 고르고, 이후 카메라가 돌아도 바꾸지 않는다.
+        Bounds bounds = _bodyRenderer.bounds;
+
+        // 모서리는 선택될 때 카메라 기준으로 한 번만 고르고, 선택된 동안 카메라가 돌아도 바꾸지 않는다.
         if (!_built)
         {
             Camera cam = GetCamera();
@@ -119,50 +174,37 @@ public class DeviceAxisGraphManager : MonoBehaviour
             _zOnNearXEdge = cam == null || cam.WorldToViewportPoint(cornerA).x <= cam.WorldToViewportPoint(cornerB).x;
         }
 
-        // 대상 크기 / 위치가 바뀐 경우에만 다시 만든다.
         bool changed = !_built
             || (bounds.size - _lastBounds.size).sqrMagnitude > 1e-6f
             || (bounds.center - _lastBounds.center).sqrMagnitude > 1e-6f;
-        if (!force && !changed)
+        if (!changed)
             return;
 
         _lastBounds = bounds;
         _built = true;
 
         Rebuild(bounds);
-        ApplyVisible(_bodyRenderer == null || _bodyRenderer.enabled);
     }
 
-    bool TryGetTargetBounds(out Bounds bounds)
+    // 그래프 루트를 (없으면) 만든다. 이 오브젝트 계층 밖, 같은 씬의 최상위에 둔다.
+    void EnsureRoot()
     {
-        bounds = default;
-        if (centerTarget != null)
-        {
-            bounds = new Bounds(centerTarget.position, Vector3.zero);
-            foreach (var r in centerTarget.GetComponentsInChildren<Renderer>())
-                bounds.Encapsulate(r.bounds);
-            return true;
-        }
+        if (_graphRoot != null) return;
 
-        if (transform.parent == null) return false;
-
-        bool found = false;
-        foreach (var r in transform.parent.GetComponentsInChildren<Renderer>())
-        {
-            // 이 그래프 자신이 만든 선/글자는 제외
-            if (r.transform.IsChildOf(transform)) continue;
-            if (!found) { bounds = r.bounds; found = true; }
-            else bounds.Encapsulate(r.bounds);
-        }
-        return found;
+        string ownerName = transform.parent != null ? transform.parent.name : name;
+        var go = new GameObject("AxisGraph_" + ownerName);
+        if (gameObject.scene.IsValid())
+            SceneManager.MoveGameObjectToScene(go, gameObject.scene);
+        _graphRoot = go.transform;
     }
 
     void Rebuild(Bounds bounds)
     {
+        EnsureRoot();
+
         // 이전에 만든 선 / 글자 제거
-        for (int i = transform.childCount - 1; i >= 0; i--)
-            Destroy(transform.GetChild(i).gameObject);
-        _graphRenderers.Clear();
+        for (int i = _graphRoot.childCount - 1; i >= 0; i--)
+            Destroy(_graphRoot.GetChild(i).gameObject);
         _billboards.Clear();
 
         float max = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
@@ -211,7 +253,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
             lastValue = v;
         }
 
-        // 마지막 눈금이 끝에서 너무 멀면 끝(= 대상의 실제 길이)에도 눈금을 찍어 길이를 읽을 수 있게 한다.
+        // 마지막 눈금이 끝에서 너무 멀면 끝(= 몸체의 실제 길이)에도 눈금을 찍어 길이를 읽을 수 있게 한다.
         if (length - lastValue > step * 0.3f)
             CreateTick(origin, dir, length, outward);
 
@@ -240,7 +282,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
     void CreateLine(string name, Vector3 a, Vector3 b)
     {
         var go = new GameObject(name);
-        go.transform.SetParent(transform, false);
+        go.transform.SetParent(_graphRoot, false);
         var lr = go.AddComponent<LineRenderer>();
         lr.useWorldSpace = true;
         lr.positionCount = 2;
@@ -249,23 +291,20 @@ public class DeviceAxisGraphManager : MonoBehaviour
         lr.startWidth = lr.endWidth = _lineWidth;
         lr.material = lineMat != null ? lineMat : new Material(Shader.Find("Sprites/Default"));
         lr.startColor = lr.endColor = axisColor;
-        _graphRenderers.Add(lr);
     }
 
-    // 월드 좌표에 놓는 글자. 크기는 월드 기준(_labelSize)이고 항상 카메라를 향한다.
+    // 월드 좌표에 놓는 글자. 크기는 월드 기준(_labelSize)이고 항상 카메라를 향한다. 그래프 루트는 스케일 1이다.
     void CreateLabel(string text, Vector3 worldPos)
     {
         var go = new GameObject("Label_" + text);
-        go.transform.SetParent(transform, false);
+        go.transform.SetParent(_graphRoot, false);
         go.transform.position = worldPos;
-        float scale = Mathf.Max(1e-6f, transform.lossyScale.x);
-        go.transform.localScale = Vector3.one * (_labelSize * 10f / scale);
+        go.transform.localScale = Vector3.one * (_labelSize * 10f);
         var tmp = go.AddComponent<TextMeshPro>();
         tmp.text = text;
         tmp.fontSize = 1;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = labelColor;
-        _graphRenderers.Add(tmp.GetComponent<Renderer>());
         _billboards.Add(go.transform);
     }
     #endregion

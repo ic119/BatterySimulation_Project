@@ -60,6 +60,11 @@ namespace Incheol.Presenter
                 },
                 () => DebugLogManager.GenerateErrorMessage<MainSceneManager>("UI_MainScene 프리팹 로드 실패"));
         }
+
+        private void OnDestroy()
+        {
+            DeviceAxisGraphManager.SetSelectedOwner(null);
+        }
         #endregion
 
         #region Method
@@ -93,6 +98,7 @@ namespace Incheol.Presenter
 
             selectedItem.SetClicked(true);
             SetVisible(selectedTarget, true, _kind);
+            RefreshGraph();
             RefreshProperties();
             RefreshStructure();
 
@@ -124,6 +130,21 @@ namespace Incheol.Presenter
             {
                 cameraView.Refocus();
             }
+        }
+
+        /// <summary>
+        /// SelectedItem이 null이면 모든 축 그래프를 숨기고, null이 아니면 그 항목(SelectedTarget)의 그래프만 보이게 한다.
+        /// 그래프는 DeviceAxisGraphManager가 선택된 항목에서만 만들고 그린다.
+        /// </summary>
+        private void RefreshGraph()
+        {
+            if (SelectedItem == null)
+            {
+                DeviceAxisGraphManager.SetSelectedOwner(null);
+                return;
+            }
+
+            DeviceAxisGraphManager.SetSelectedOwner(SelectedTarget);
         }
 
         /// <summary>
@@ -216,6 +237,7 @@ namespace Incheol.Presenter
             SetVisible(selectedTarget, false);
             selectedItem = null;
             selectedTarget = null;
+            RefreshGraph();
             RefreshProperties();
             RefreshStructure();
 
