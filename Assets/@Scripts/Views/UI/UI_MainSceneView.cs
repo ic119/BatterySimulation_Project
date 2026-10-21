@@ -31,6 +31,7 @@ public class UI_MainSceneView : MonoBehaviour
     [SerializeField, Tooltip("SimulationTab의 알림 팝업. 같은 내용을 함께 띄운다.")] private UI_AlarmPopupView simulationAlarmPopupView;
     [SerializeField, Tooltip("SimulationTab의 DeviceStructureContainer 트리. EditorTab 트리와 같은 항목을 함께 보여준다.")] private UI_EditorView simulationTreeView;
     [SerializeField] private UI_ConfirmPopupView confirmPopupView;
+    [SerializeField, Tooltip("SimulationTab의 삭제 확인 팝업.")] private UI_ConfirmPopupView simulationConfirmPopupView;
     [SerializeField] private UI_JsonFileListView jsonFileListView;
 
     [Header("Pack Layout")]
@@ -65,6 +66,11 @@ public class UI_MainSceneView : MonoBehaviour
         if (editorView != null)
         {
             editorView.DeleteRequested += OnDeleteRequested;
+        }
+
+        if (simulationTreeView != null)
+        {
+            simulationTreeView.DeleteRequested += OnSimulationDeleteRequested;
         }
 
         if (jsonFileListView != null)
@@ -107,6 +113,11 @@ public class UI_MainSceneView : MonoBehaviour
             editorView.DeleteRequested -= OnDeleteRequested;
         }
 
+        if (simulationTreeView != null)
+        {
+            simulationTreeView.DeleteRequested -= OnSimulationDeleteRequested;
+        }
+
         if (newButton != null)
         {
             newButton.onClick.RemoveListener(OnClickNewButton);
@@ -129,6 +140,12 @@ public class UI_MainSceneView : MonoBehaviour
     }
     #endregion
 
+    /// <summary>EditorTab의 트리 뷰(이 루트에 붙어 있다).</summary>
+    public UI_EditorView EditorTreeView => editorView;
+
+    /// <summary>SimulationTab의 트리 뷰. 없으면 null.</summary>
+    public UI_EditorView SimulationTreeView => simulationTreeView;
+
     /// <summary>Pack / Module / Cell을 지우기 직전에 발생한다. 인자는 지워질 오브젝트이다. 선택된 항목이 그 안에 있으면 받는 쪽이 선택을 풀어야 한다.</summary>
     public event System.Action<Transform> ObjectRemoving;
 
@@ -140,12 +157,6 @@ public class UI_MainSceneView : MonoBehaviour
 
     #region Method
     // 트리는 EditorTab의 UI_EditorView가 기준이고, SimulationTab의 트리(simulationTreeView)에는 같은 변경을 그대로 따라 한다.
-    /// <summary>EditorTab의 트리 뷰(이 루트에 붙어 있다).</summary>
-    public UI_EditorView EditorTreeView => editorView;
-
-    /// <summary>SimulationTab의 트리 뷰. 없으면 null.</summary>
-    public UI_EditorView SimulationTreeView => simulationTreeView;
-
     private void AddContainerNode(ContainerDataModel _container)
     {
         editorView?.AddContainer(_container);
@@ -230,6 +241,17 @@ public class UI_MainSceneView : MonoBehaviour
     /// </summary>
     private void OnDeleteRequested(object _model)
     {
+        RequestDelete(_model, confirmPopupView);
+    }
+
+    /// <summary>SimulationTab 트리의 삭제 버튼. 확인 팝업은 SimulationTab의 것을 쓴다(꺼진 탭의 팝업은 보이지 않으므로).</summary>
+    private void OnSimulationDeleteRequested(object _model)
+    {
+        RequestDelete(_model, simulationConfirmPopupView);
+    }
+
+    private void RequestDelete(object _model, UI_ConfirmPopupView _confirmPopup)
+    {
         string description;
         switch (_model)
         {
@@ -250,13 +272,13 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         // 확인 팝업이 없으면 묻지 않고 지우는 일은 하지 않는다.
-        if (confirmPopupView == null)
+        if (_confirmPopup == null)
         {
             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("UI_ConfirmPopupView를 찾지 못해 삭제하지 않았습니다.");
             return;
         }
 
-        confirmPopupView.Show($"{description} 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.", () => DeleteModel(_model));
+        _confirmPopup.Show($"{description} 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.", () => DeleteModel(_model));
     }
 
     private void DeleteModel(object _model)

@@ -3245,6 +3245,7 @@ MonoBehaviour:
   simulationAlarmPopupView: {fileID: 9196572526282773163}
   simulationTreeView: {fileID: 6338998167040901011}
   confirmPopupView: {fileID: 2095701246614251306}
+  simulationConfirmPopupView: {fileID: 17792642078659434}
   jsonFileListView: {fileID: 7690577549963674945}
   packPadding: 0
   modulePadding: 0
@@ -11378,6 +11379,7 @@ GameObject:
   m_Component:
   - component: {fileID: 560238021605339306}
   - component: {fileID: 2787579195556040239}
+  - component: {fileID: 17792642078659434}
   m_Layer: 0
   m_Name: SimulationTab
   m_TagString: Untagged
@@ -11422,6 +11424,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI_SimulationTabView
   loadButton: {fileID: 3839968804448124383}
   jsonFileListView: {fileID: 7062146932998770076}
+--- !u!114 &17792642078659434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4424165178178558059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 265cdd87515f7154aa0410f08eb32218, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UI_ConfirmPopupView
+  confirmPopup: {fileID: 7819226193088929668}
+  confirmContent: {fileID: 5641284845080959722}
+  confirmButton: {fileID: 1493918752270751261}
+  cancelButton: {fileID: 1416767525872522109}
 --- !u!1 &4451446418849123839
 GameObject:
   m_ObjectHideFlags: 0
