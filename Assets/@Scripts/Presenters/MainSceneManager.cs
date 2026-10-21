@@ -21,6 +21,7 @@ namespace Incheol.Presenter
             Pack,
             Module,
             Cell,
+            Container,
         }
 
         #region Variable
@@ -312,6 +313,9 @@ namespace Incheol.Presenter
         {
             bool hasSelection = selectedModel != null && selectedTarget != null;
 
+            // Container는 빈 오브젝트라 몸체 크기와 자식 간격이 없으므로 크기 / 간격 패널은 비워 둔다.
+            bool hasBody = hasSelection && selectedKind != TargetKind.Container;
+
             if (propertiesView != null)
             {
                 if (hasSelection)
@@ -326,7 +330,7 @@ namespace Incheol.Presenter
 
             if (scaleView != null)
             {
-                if (hasSelection)
+                if (hasBody)
                 {
                     scaleView.ShowSelected(selectedTarget);
                 }
@@ -338,7 +342,7 @@ namespace Incheol.Presenter
 
             if (spacingView != null)
             {
-                if (hasSelection)
+                if (hasBody)
                 {
                     spacingView.ShowSelected(selectedTarget);
                 }

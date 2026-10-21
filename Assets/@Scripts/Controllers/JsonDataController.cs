@@ -34,11 +34,24 @@ public class JsonDataController : MonoBehaviour
     }
 
     [Serializable]
-    public class SaveJson
+    public class ContainerJson
     {
+        public string name;
         public List<PackJson> packs = new List<PackJson>();
 
-        /// <summary>어느 Pack에도 속하지 않고 단독으로 만든 Module.</summary>
+        /// <summary>어느 Pack에도 속하지 않고 이 Container에 단독으로 만든 Module.</summary>
+        public List<ModuleJson> standaloneModules = new List<ModuleJson>();
+    }
+
+    [Serializable]
+    public class SaveJson
+    {
+        public List<ContainerJson> containers = new List<ContainerJson>();
+
+        /// <summary>Container가 없던 예전 파일의 Pack. 새로 저장할 때는 쓰지 않고, 불러올 때만 읽어 Pack마다 새 Container에 담는다.</summary>
+        public List<PackJson> packs = new List<PackJson>();
+
+        /// <summary>Container가 없던 예전 파일의 단독 Module. 불러올 때만 읽는다.</summary>
         public List<ModuleJson> standaloneModules = new List<ModuleJson>();
     }
     #endregion
@@ -119,7 +132,7 @@ public class JsonDataController : MonoBehaviour
     public bool Save(PackFactory _factory)
     {
         SaveJson data = Build(_factory);
-        if (data.packs.Count == 0 && data.standaloneModules.Count == 0)
+        if (data.containers.Count == 0)
         {
             DebugLogManager.GenerateErrorMessage<JsonDataController>("저장할 Pack / Module이 없습니다.");
             return false;
@@ -148,39 +161,42 @@ public class JsonDataController : MonoBehaviour
             return data;
         }
 
-        IReadOnlyList<PackDataModel> packList = _factory.Packs;
-        IReadOnlyList<ModuleDataModel> moduleList = _factory.Modules;
-
-        for (int i = 0; i < packList.Count; i++)
+        IReadOnlyList<ContainerDataModel> containerList = _factory.Containers;
+        for (int c = 0; c < containerList.Count; c++)
         {
-            PackDataModel pack = packList[i];
-            PackJson packJson = new PackJson { name = pack.packName };
+            ContainerDataModel container = containerList[c];
+            ContainerJson containerJson = new ContainerJson { name = container.containerName };
 
-            // PackDataModel에는 Transform이 없으므로 팩토리가 따로 들고 있는 Pack 오브젝트를 꺼낸다.
-            Transform packTransform = _factory.GetPackTransform(pack);
-            if (packTransform != null)
+            for (int i = 0; i < container.packsList.Count; i++)
             {
-                packJson.position = packTransform.position;
-                packJson.size = GetBodyBounds(packTransform).size;
-            }
+                PackDataModel pack = container.packsList[i];
+                PackJson packJson = new PackJson { name = pack.packName };
 
-            if (pack.modulesList != null)
-            {
-                for (int j = 0; j < pack.modulesList.Count; j++)
+                // PackDataModel에는 Transform이 없으므로 팩토리가 따로 들고 있는 Pack 오브젝트를 꺼낸다.
+                Transform packTransform = _factory.GetPackTransform(pack);
+                if (packTransform != null)
                 {
-                    packJson.modules.Add(BuildModule(pack.modulesList[j]));
+                    packJson.position = packTransform.position;
+                    packJson.size = GetBodyBounds(packTransform).size;
                 }
+
+                if (pack.modulesList != null)
+                {
+                    for (int j = 0; j < pack.modulesList.Count; j++)
+                    {
+                        packJson.modules.Add(BuildModule(pack.modulesList[j]));
+                    }
+                }
+
+                containerJson.packs.Add(packJson);
             }
 
-            data.packs.Add(packJson);
-        }
-
-        for (int i = 0; i < moduleList.Count; i++)
-        {
-            if (moduleList[i].parentPack == null)
+            for (int i = 0; i < container.modulesList.Count; i++)
             {
-                data.standaloneModules.Add(BuildModule(moduleList[i]));
+                containerJson.standaloneModules.Add(BuildModule(container.modulesList[i]));
             }
+
+            data.containers.Add(containerJson);
         }
 
         return data;

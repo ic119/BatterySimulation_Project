@@ -17,12 +17,22 @@ public class PackFactory
     private readonly List<PackDataModel> packs = new List<PackDataModel>();
     private readonly List<ModuleDataModel> allModules = new List<ModuleDataModel>();
     private readonly Dictionary<PackDataModel, Transform> packTransforms = new Dictionary<PackDataModel, Transform>();
+    private readonly List<ContainerDataModel> containerList = new List<ContainerDataModel>();
     private Transform root;
+    private float packPadding;
     private float modulePadding;
     private float cellPadding;
 
     public IReadOnlyList<PackDataModel> Packs => packs;
     public IReadOnlyList<ModuleDataModel> Modules => allModules;
+    public IReadOnlyList<ContainerDataModel> Containers => containerList;
+
+    /// <summary>같은 Container 안에서 Pack 사이의 가로(x) 여백. 0 미만은 0으로 본다.</summary>
+    public float PackPadding
+    {
+        get => packPadding;
+        set => packPadding = Mathf.Max(0.0f, value);
+    }
 
     /// <summary>Module 한 칸의 가로(x)/깊이(z) 여백. 칸 크기 = Module 크기 + 여백이고 Module은 칸 가운데에 놓이므로 Pack 벽과도 여백/2만큼 떨어진다. 0 미만은 0으로 본다.</summary>
     public float ModulePadding
@@ -76,6 +86,7 @@ public class PackFactory
         packs.Clear();
         allModules.Clear();
         packTransforms.Clear();
+        containerList.Clear();
         LastFullMessage = string.Empty;
     }
 
@@ -98,6 +109,8 @@ public class PackFactory
             DestroyDetached(packTransform);
         }
 
+        _pack.parentContainer?.packsList.Remove(_pack);
+
         LastFullMessage = string.Empty;
         return true;
     }
@@ -111,6 +124,7 @@ public class PackFactory
         }
 
         _module.parentPack?.modulesList.Remove(_module);
+        _module.parentContainer?.modulesList.Remove(_module);
         DestroyDetached(_module.modulePosition);
         LastFullMessage = string.Empty;
         return true;
@@ -140,6 +154,69 @@ public class PackFactory
         _target.SetParent(null);
         _target.gameObject.SetActive(false);
         Object.Destroy(_target.gameObject);
+    }
+
+    /// <summary>Root 아래에 Pack과 단독 Module을 담을 빈 Container를 만든다. 사용자가 직접 만들지 않고 Pack / 단독 Module을 만들 때 쓴다.</summary>
+    public ContainerDataModel CreateContainer(string _containerName)
+    {
+        GameObject containerObject = new GameObject($"Container_{_containerName}");
+        containerObject.transform.SetParent(Root, false);
+        containerObject.transform.position = Vector3.zero;
+
+        ContainerDataModel container = new ContainerDataModel
+        {
+            containerName = _containerName,
+            packsList = new List<PackDataModel>(),
+            modulesList = new List<ModuleDataModel>(),
+            containerPosition = containerObject.transform,
+        };
+
+        containerList.Add(container);
+        return container;
+    }
+
+    /// <summary>Container를 그 안의 Pack / 단독 Module / Cell과 함께 지운다. 이 팩토리가 만든 Container가 아니면 false.</summary>
+    public bool RemoveContainer(ContainerDataModel _container)
+    {
+        if (_container == null || !containerList.Contains(_container))
+        {
+            return false;
+        }
+
+        // 지우는 동안 목록이 바뀌므로 복사해서 돈다.
+        foreach (PackDataModel pack in new List<PackDataModel>(_container.packsList))
+        {
+            RemovePack(pack);
+        }
+
+        foreach (ModuleDataModel module in new List<ModuleDataModel>(_container.modulesList))
+        {
+            RemoveModule(module);
+        }
+
+        containerList.Remove(_container);
+        DestroyDetached(_container.containerPosition);
+        LastFullMessage = string.Empty;
+        return true;
+    }
+
+    /// <summary>씬 Transform으로 Container를 찾는다. 이 팩토리가 만든 Container가 아니면 null.</summary>
+    public ContainerDataModel FindContainer(Transform _containerTransform)
+    {
+        if (_containerTransform == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < containerList.Count; i++)
+        {
+            if (containerList[i].containerPosition == _containerTransform)
+            {
+                return containerList[i];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Pack의 씬 Transform. PackDataModel에는 Transform 필드가 없어 따로 들고 있는 것을 꺼낸다. 없으면 null.</summary>
@@ -250,25 +327,56 @@ public class PackFactory
         }
     }
 
+    /// <summary>
+    /// _item(Container 바로 아래의 Pack / 단독 Module)을 같은 Container에 이미 놓인 항목과 겹치지 않는 첫 자리로 옮긴다(Module / Cell을 놓을 때와 같은 겹침 검사).
+    /// 첫 항목이거나 Renderer가 없어 크기를 잴 수 없으면 옮기지 않는다.
+    /// </summary>
+    private static void PlaceInContainer(Transform _item, Transform _container, float _padding)
+    {
+        Renderer[] rendererArray = _item.GetComponentsInChildren<Renderer>(true);
+        if (rendererArray.Length == 0)
+        {
+            return;
+        }
+
+        Bounds own = rendererArray[0].bounds;
+        for (int i = 1; i < rendererArray.Length; i++)
+        {
+            own.Encapsulate(rendererArray[i].bounds);
+        }
+
+        List<Bounds> occupied = PackLayout.GetOccupiedBounds(_container, _item);
+        if (occupied.Count > 0 && PackLayout.TryFindFreeOffset(own, _padding, occupied, out Vector3 offset))
+        {
+            _item.position += offset;
+        }
+    }
+
     private static float DivideSafe(float _value, float _divisor)
     {
         return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
     }
 
     /// <summary>새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.</summary>
-    public PackDataModel CreatePack(string _packName, GameObject _prefab = null, Vector3 _size = default)
+    public PackDataModel CreatePack(string _packName, GameObject _prefab = null, Vector3 _size = default, ContainerDataModel _container = null)
     {
+        // Container를 주지 않으면 이 Pack만 담는 새 Container를 만든다.
+        ContainerDataModel container = _container != null ? _container : CreateContainer(_packName);
         PackDataModel pack = new PackDataModel
         {
             packName = _packName,
             modulesList = new List<ModuleDataModel>(),
+            parentContainer = container,
         };
+        container.packsList.Add(pack);
 
         // PackDataModel에는 Transform 필드가 없으므로 Module이 매달릴 부모 GameObject를 따로 들고 있는다.
         GameObject packObject = Spawn(_prefab, $"Pack_{_packName}");
-        AttachKeepingOwnScale(packObject.transform, Root);
+        AttachKeepingOwnScale(packObject.transform, container.containerPosition);
         packObject.transform.position = Vector3.zero;
         ResizeBody(packObject.transform, _size);
+
+        PlaceInContainer(packObject.transform, container.containerPosition, packPadding);
 
         packs.Add(pack);
         packTransforms[pack] = packObject.transform;
@@ -281,10 +389,10 @@ public class PackFactory
     /// Pack 없이 만든 Module은 항상 (0,0,0)에 생성된다. Pack 안의 Module은 Pack의 자식이며 Pack 내부 공간을 격자로 나눈 칸에 놓인다(Cell과 같은 규칙, Pack 크기는 변하지 않는다).
     /// 주어진 Pack이 이 팩토리에서 만든 것이 아니거나 Pack 내부에 놓을 칸이 없으면 생성하지 않고 null을 반환한다.
     /// </summary>
-    public ModuleDataModel CreateModule(PackDataModel _pack, string _moduleName, GameObject _prefab = null, Vector3 _size = default)
+    public ModuleDataModel CreateModule(PackDataModel _pack, string _moduleName, GameObject _prefab = null, Vector3 _size = default, ContainerDataModel _container = null)
     {
         LastFullMessage = string.Empty;
-        Transform parent = Root;
+        Transform parent = null;
         Renderer packBody = null;
 
         if (_pack != null)
@@ -300,7 +408,14 @@ public class PackFactory
         }
 
         GameObject moduleObject = Spawn(_prefab, $"Module_{_moduleName}");
-        AttachKeepingOwnScale(moduleObject.transform, parent);
+        // Pack 없이 만든 Module은 Container에 담긴다(주지 않으면 이 Module만 담는 새 Container).
+        ContainerDataModel standaloneContainer = null;
+        if (_pack == null)
+        {
+            standaloneContainer = _container != null ? _container : CreateContainer(_moduleName);
+        }
+
+        AttachKeepingOwnScale(moduleObject.transform, parent != null ? parent : standaloneContainer.containerPosition);
 
         // 크기가 주어지면 칸을 찾기 전에 먼저 그 크기로 맞춘다(저장된 파일을 불러올 때).
         ResizeBody(moduleObject.transform, _size);
@@ -334,6 +449,7 @@ public class PackFactory
         else
         {
             moduleObject.transform.position = Vector3.zero;
+            PlaceInContainer(moduleObject.transform, standaloneContainer.containerPosition, modulePadding);
         }
 
         ModuleDataModel module = new ModuleDataModel
@@ -342,9 +458,11 @@ public class PackFactory
             cellsList = new List<CellDataModel>(),
             modulePosition = moduleObject.transform,
             parentPack = _pack,
+            parentContainer = standaloneContainer,
         };
 
         _pack?.modulesList.Add(module);
+        standaloneContainer?.modulesList.Add(module);
         allModules.Add(module);
 
         return module;

@@ -112,6 +112,82 @@ public static class PackLayout
         return occupiedList;
     }
 
+    /// <summary>
+    /// Container 아래에 이미 놓인 항목(Pack, 단독 Module)이 차지한 영역(자식 Module / Cell 포함 월드 Bounds) 목록.
+    /// 새로 만드는 중인 _exclude는 건너뛴다.
+    /// </summary>
+    public static List<Bounds> GetOccupiedBounds(Transform _container, Transform _exclude)
+    {
+        List<Bounds> occupiedList = new List<Bounds>();
+        for (int i = 0; i < _container.childCount; i++)
+        {
+            Transform child = _container.GetChild(i);
+            if (child == _exclude)
+            {
+                continue;
+            }
+
+            Renderer[] rendererArray = child.GetComponentsInChildren<Renderer>(true);
+            if (rendererArray.Length == 0)
+            {
+                continue;
+            }
+
+            Bounds bounds = rendererArray[0].bounds;
+            for (int j = 1; j < rendererArray.Length; j++)
+            {
+                bounds.Encapsulate(rendererArray[j].bounds);
+            }
+
+            occupiedList.Add(bounds);
+        }
+
+        return occupiedList;
+    }
+
+    /// <summary>
+    /// _own(현재 놓인 자리의 Bounds)을 +x 방향으로 (가로 크기 + _padding)씩 옮겨 가며 _occupied와 겹치지 않는 첫 자리까지의 이동량을 구한다.
+    /// 첫 자리(이동량 0)가 비어 있으면 0이다. 맞닿는 면은 겹침으로 보지 않는다. 자리를 찾지 못하면 false.
+    /// </summary>
+    public static bool TryFindFreeOffset(Bounds _own, float _padding, List<Bounds> _occupied, out Vector3 _offset)
+    {
+        _offset = Vector3.zero;
+        float pitch = _own.size.x + _padding;
+        if (pitch <= 0.0f)
+        {
+            return false;
+        }
+
+        const int MaxStep = 1000;
+        for (int step = 0; step < MaxStep; step++)
+        {
+            Vector3 offset = new Vector3(pitch * step, 0.0f, 0.0f);
+            Bounds candidate = new Bounds(_own.center + offset, _own.size);
+
+            bool overlapped = false;
+            for (int i = 0; i < _occupied.Count && !overlapped; i++)
+            {
+                overlapped = Overlaps(candidate, _occupied[i]);
+            }
+
+            if (!overlapped)
+            {
+                _offset = offset;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Overlaps(Bounds _a, Bounds _b)
+    {
+        const float Tolerance = 0.001f;
+        return _a.min.x < _b.max.x - Tolerance && _a.max.x > _b.min.x + Tolerance &&
+               _a.min.y < _b.max.y - Tolerance && _a.max.y > _b.min.y + Tolerance &&
+               _a.min.z < _b.max.z - Tolerance && _a.max.z > _b.min.z + Tolerance;
+    }
+
     /// <summary>Module에 이미 놓인 Cell들이 차지한 영역(월드 Bounds) 목록.</summary>
     public static List<Bounds> GetOccupiedBounds(ModuleDataModel _module)
     {

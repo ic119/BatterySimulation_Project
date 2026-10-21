@@ -102,6 +102,9 @@ public class UI_EditorView : MonoBehaviour
         string prefix;
         switch (_model)
         {
+            case ContainerDataModel _:
+                prefix = "Container";
+                break;
             case PackDataModel _:
                 prefix = "Pack";
                 break;
@@ -124,6 +127,9 @@ public class UI_EditorView : MonoBehaviour
 
         switch (_model)
         {
+            case ContainerDataModel container:
+                container.containerName = modelName;
+                break;
             case PackDataModel pack:
                 pack.packName = modelName;
                 break;
@@ -197,7 +203,18 @@ public class UI_EditorView : MonoBehaviour
         RefreshTree();
     }
 
-    /// <summary>Pack을 최상위 항목으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
+    /// <summary>Container를 최상위 항목으로 추가한다. 씬 오브젝트는 _container.containerPosition이다.</summary>
+    public void AddContainer(ContainerDataModel _container)
+    {
+        if (_container == null)
+        {
+            return;
+        }
+
+        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition, MainSceneManager.TargetKind.Container);
+    }
+
+    /// <summary>Pack을 그 Container의 자식으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
     public void AddPack(PackDataModel _pack, Transform _target)
     {
         if (_pack == null)
@@ -205,10 +222,10 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_pack, $"Pack {_pack.packName}", null, _target, MainSceneManager.TargetKind.Pack);
+        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target, MainSceneManager.TargetKind.Pack);
     }
 
-    /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 최상위 항목이 된다.</summary>
+    /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 그 Module을 담은 Container의 자식이 된다.</summary>
     public void AddModule(ModuleDataModel _module, PackDataModel _parentPack)
     {
         if (_module == null)
@@ -216,7 +233,8 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_module, $"Module {_module.moduleName}", _parentPack, _module.modulePosition, MainSceneManager.TargetKind.Module);
+        object parentKey = _parentPack != null ? _parentPack : (object)_module.parentContainer;
+        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition, MainSceneManager.TargetKind.Module);
     }
 
     /// <summary>Cell을 추가한다. 부모는 cell.parentModule이다.</summary>

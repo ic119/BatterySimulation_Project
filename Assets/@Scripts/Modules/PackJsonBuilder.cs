@@ -11,6 +11,7 @@ public class PackJsonBuilder
     /// <summary>불러온 뒤의 항목 번호와 건너뛴 개수. 번호는 이름이 "3"처럼 번호 문자열인 것 중 가장 큰 값이다.</summary>
     public struct Result
     {
+        public int containerCount;
         public int packCount;
         public int moduleCount;
         public int cellCount;
@@ -18,18 +19,21 @@ public class PackJsonBuilder
     }
 
     private readonly PackFactory packFactory;
+    private readonly Action<ContainerDataModel> containerCreated;
     private readonly Action<PackDataModel, Transform> packCreated;
     private readonly Action<ModuleDataModel, PackDataModel> moduleCreated;
     private readonly Action<CellDataModel> cellCreated;
 
     private Result result;
 
+    /// <param name="_containerCreated">Container가 만들어질 때마다.</param>
     /// <param name="_packCreated">Pack이 만들어질 때마다(Pack, 그 Transform).</param>
     /// <param name="_moduleCreated">Module이 만들어질 때마다(Module, 부모 Pack. 단독 Module이면 null).</param>
     /// <param name="_cellCreated">Cell이 만들어질 때마다.</param>
-    public PackJsonBuilder(PackFactory _packFactory, Action<PackDataModel, Transform> _packCreated, Action<ModuleDataModel, PackDataModel> _moduleCreated, Action<CellDataModel> _cellCreated)
+    public PackJsonBuilder(PackFactory _packFactory, Action<ContainerDataModel> _containerCreated, Action<PackDataModel, Transform> _packCreated, Action<ModuleDataModel, PackDataModel> _moduleCreated, Action<CellDataModel> _cellCreated)
     {
         packFactory = _packFactory;
+        containerCreated = _containerCreated;
         packCreated = _packCreated;
         moduleCreated = _moduleCreated;
         cellCreated = _cellCreated;
@@ -40,30 +44,61 @@ public class PackJsonBuilder
     {
         result = default;
 
+        for (int c = 0; c < _data.containers.Count; c++)
+        {
+            JsonDataController.ContainerJson containerJson = _data.containers[c];
+            ContainerDataModel container = NewContainer(containerJson.name);
+            BuildContents(container, containerJson.packs, containerJson.standaloneModules, _packPrefab, _modulePrefab, _cellPrefab);
+        }
+
+        // Container가 없던 예전 파일: Pack과 단독 Module마다 새 Container에 담는다.
         for (int i = 0; i < _data.packs.Count; i++)
         {
-            JsonDataController.PackJson packJson = _data.packs[i];
-            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size);
-            packCreated?.Invoke(pack, packFactory.GetPackTransform(pack));
-            result.packCount = Mathf.Max(result.packCount, ParseCount(packJson.name));
-
-            for (int j = 0; j < packJson.modules.Count; j++)
-            {
-                BuildModule(pack, packJson.modules[j], _modulePrefab, _cellPrefab);
-            }
+            ContainerDataModel container = NewContainer((result.containerCount + 1).ToString());
+            BuildContents(container, new System.Collections.Generic.List<JsonDataController.PackJson> { _data.packs[i] }, null, _packPrefab, _modulePrefab, _cellPrefab);
         }
 
         for (int i = 0; i < _data.standaloneModules.Count; i++)
         {
-            BuildModule(null, _data.standaloneModules[i], _modulePrefab, _cellPrefab);
+            ContainerDataModel container = NewContainer((result.containerCount + 1).ToString());
+            BuildContents(container, null, new System.Collections.Generic.List<JsonDataController.ModuleJson> { _data.standaloneModules[i] }, _packPrefab, _modulePrefab, _cellPrefab);
         }
 
         return result;
     }
 
-    private void BuildModule(PackDataModel _pack, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
+    private ContainerDataModel NewContainer(string _name)
     {
-        ModuleDataModel module = packFactory.CreateModule(_pack, _moduleJson.name, _modulePrefab, _moduleJson.size);
+        ContainerDataModel container = packFactory.CreateContainer(_name);
+        containerCreated?.Invoke(container);
+        result.containerCount = Mathf.Max(result.containerCount, ParseCount(_name));
+        return container;
+    }
+
+    private void BuildContents(ContainerDataModel _container, System.Collections.Generic.List<JsonDataController.PackJson> _packList, System.Collections.Generic.List<JsonDataController.ModuleJson> _moduleList, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
+    {
+        for (int i = 0; _packList != null && i < _packList.Count; i++)
+        {
+            JsonDataController.PackJson packJson = _packList[i];
+            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size, _container);
+            packCreated?.Invoke(pack, packFactory.GetPackTransform(pack));
+            result.packCount = Mathf.Max(result.packCount, ParseCount(packJson.name));
+
+            for (int j = 0; j < packJson.modules.Count; j++)
+            {
+                BuildModule(pack, _container, packJson.modules[j], _modulePrefab, _cellPrefab);
+            }
+        }
+
+        for (int i = 0; _moduleList != null && i < _moduleList.Count; i++)
+        {
+            BuildModule(null, _container, _moduleList[i], _modulePrefab, _cellPrefab);
+        }
+    }
+
+    private void BuildModule(PackDataModel _pack, ContainerDataModel _container, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
+    {
+        ModuleDataModel module = packFactory.CreateModule(_pack, _moduleJson.name, _modulePrefab, _moduleJson.size, _container);
         if (module == null)
         {
             // 이 Module이 못 만들어지면 그 안의 Cell도 만들 곳이 없다.

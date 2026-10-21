@@ -31,6 +31,9 @@ public class UI_MainSceneView : MonoBehaviour
     [SerializeField] private UI_ConfirmPopupView confirmPopupView;
     [SerializeField] private UI_JsonFileListView jsonFileListView;
 
+    [Header("Pack Layout")]
+    [SerializeField, Min(0.0f), Tooltip("같은 Container 안에서 Pack 사이의 가로 여백.")] private float packPadding = 0.0f;
+
     [Header("Module Layout")]
     [SerializeField, Min(0.0f), Tooltip("Module 사이(가로/깊이)의 여백. Module은 칸 가운데에 놓여 Pack 벽과도 여백의 절반만큼 떨어진다.")] private float modulePadding = 0.0f;
 
@@ -46,6 +49,7 @@ public class UI_MainSceneView : MonoBehaviour
     private JsonDataController jsonDataController;
     private MainSceneManager mainSceneManager;
 
+    private int containerCount;
     private int packCount;
     private int moduleCount;
     private int cellCount;
@@ -177,6 +181,9 @@ public class UI_MainSceneView : MonoBehaviour
         string description;
         switch (_model)
         {
+            case ContainerDataModel container:
+                description = $"Container {container.containerName}과(와) 그 안의 모든 Pack / Module / Cell을";
+                break;
             case PackDataModel pack:
                 description = $"Pack {pack.packName}과(와) 그 안의 모든 Module / Cell을";
                 break;
@@ -203,13 +210,19 @@ public class UI_MainSceneView : MonoBehaviour
     private void DeleteModel(object _model)
     {
         Transform removedTransform = null;
+        ContainerDataModel parentContainer = null;
         switch (_model)
         {
+            case ContainerDataModel container:
+                removedTransform = container.containerPosition;
+                break;
             case PackDataModel pack:
                 removedTransform = packFactory.GetPackTransform(pack);
+                parentContainer = pack.parentContainer;
                 break;
             case ModuleDataModel module:
                 removedTransform = module.modulePosition;
+                parentContainer = module.parentContainer;
                 break;
             case CellDataModel cell:
                 removedTransform = cell.cellPosition;
@@ -226,6 +239,9 @@ public class UI_MainSceneView : MonoBehaviour
         bool removed = false;
         switch (_model)
         {
+            case ContainerDataModel container:
+                removed = packFactory.RemoveContainer(container);
+                break;
             case PackDataModel pack:
                 removed = packFactory.RemovePack(pack);
                 break;
@@ -240,6 +256,15 @@ public class UI_MainSceneView : MonoBehaviour
         if (removed)
         {
             editorView?.RemoveNode(_model);
+
+            // 마지막 Pack / 단독 Module을 지워 비게 된 Container는 함께 지운다.
+            if (parentContainer != null && parentContainer.packsList.Count == 0 && parentContainer.modulesList.Count == 0)
+            {
+                ObjectRemoving?.Invoke(parentContainer.containerPosition);
+                packFactory.RemoveContainer(parentContainer);
+                editorView?.RemoveNode(parentContainer);
+            }
+
             DebugLogManager.GenerateLogMessage<UI_MainSceneView>("삭제 완료");
         }
     }
@@ -302,11 +327,13 @@ public class UI_MainSceneView : MonoBehaviour
         packFactory.Clear();
 
         // newButton으로 만들 때와 같은 여백 설정을 쓴다.
+        packFactory.PackPadding = packPadding;
         packFactory.ModulePadding = modulePadding;
         packFactory.CellPadding = cellPadding;
 
         PackJsonBuilder builder = new PackJsonBuilder(
             packFactory,
+            container => editorView?.AddContainer(container),
             (pack, packTransform) =>
             {
                 HideOrShowCreated(packTransform);
@@ -324,6 +351,7 @@ public class UI_MainSceneView : MonoBehaviour
             });
 
         PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
+        containerCount = result.containerCount;
         packCount = result.packCount;
         moduleCount = result.moduleCount;
         cellCount = result.cellCount;
@@ -379,10 +407,11 @@ public class UI_MainSceneView : MonoBehaviour
     /// - 선택된 항목 아래에 만들 수 없는 종류(Pack 아래의 Pack, Module 아래의 Pack/Module, Cell 아래의 모든 것)거나
     ///   부모를 찾지 못하면 false를 반환하고 생성하지 않는다.
     /// </summary>
-    private bool ResolveParent(CreateType _type, out PackDataModel _parentPack, out ModuleDataModel _parentModule)
+    private bool ResolveParent(CreateType _type, out PackDataModel _parentPack, out ModuleDataModel _parentModule, out ContainerDataModel _parentContainer)
     {
         _parentPack = packFactory.LastPack;
         _parentModule = packFactory.LastModule;
+        _parentContainer = null;
 
         if (mainSceneManager == null || mainSceneManager.SelectedModel == null || mainSceneManager.SelectedTarget == null)
         {
@@ -392,6 +421,32 @@ public class UI_MainSceneView : MonoBehaviour
         Transform selectedTarget = mainSceneManager.SelectedTarget;
         switch (mainSceneManager.SelectedKind)
         {
+            case MainSceneManager.TargetKind.Container:
+                {
+                    ContainerDataModel selectedContainer = packFactory.FindContainer(selectedTarget);
+                    if (selectedContainer == null)
+                    {
+                        break;
+                    }
+
+                    // 선택한 Container 안에 Pack을, Module은 하위 Pack 안에(Pack이 없으면 Pack 없는 Module로) 만든다.
+                    if (_type == CreateType.Pack)
+                    {
+                        _parentContainer = selectedContainer;
+                        return true;
+                    }
+
+                    if (_type == CreateType.Module)
+                    {
+                        // 하위에 Pack이 있으면 마지막 Pack의 자식으로, 없을 때만 Pack 없는 Module로 만든다.
+                        _parentPack = selectedContainer.packsList.Count > 0 ? selectedContainer.packsList[selectedContainer.packsList.Count - 1] : null;
+                        _parentContainer = selectedContainer;
+                        return true;
+                    }
+
+                    DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Container 아래에는 Cell을 직접 만들 수 없습니다. Module을 선택하세요.");
+                    return false;
+                }
             case MainSceneManager.TargetKind.Pack:
                 {
                     PackDataModel selectedPack = packFactory.FindPack(selectedTarget);
@@ -451,7 +506,7 @@ public class UI_MainSceneView : MonoBehaviour
     private void CreateObject(CreateType _type)
     {
         // 클릭 시점의 선택으로 부모를 정한다. 만들 수 없는 조합이면 불필요한 로드를 하지 않고 끝낸다.
-        if (!ResolveParent(_type, out PackDataModel parentPack, out ModuleDataModel parentModule))
+        if (!ResolveParent(_type, out PackDataModel parentPack, out ModuleDataModel parentModule, out ContainerDataModel parentContainer))
         {
             return;
         }
@@ -466,7 +521,7 @@ public class UI_MainSceneView : MonoBehaviour
         string key = GetPrefabKey(_type).ToString();
         AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
             key,
-            prefab => OnPrefabLoaded(_type, prefab, parentPack, parentModule),
+            prefab => OnPrefabLoaded(_type, prefab, parentPack, parentModule, parentContainer),
             () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
     }
 
@@ -494,14 +549,30 @@ public class UI_MainSceneView : MonoBehaviour
         alarmPopupView?.Show(message);
     }
 
-    /// <summary>_parentPack / _parentModule는 클릭 시점에 ResolveParent로 정해진 부모다(프리폹 로드를 기다리는 사이 선택이 바뀔어도 그대로 쓴다).</summary>
-    private void OnPrefabLoaded(CreateType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule)
+    /// <summary>_container가 있으면 그대로, 없으면 새 Container를 만들어 트리에 추가해 돌려준다.</summary>
+    private ContainerDataModel EnsureContainer(ContainerDataModel _container)
+    {
+        if (_container != null)
+        {
+            return _container;
+        }
+
+        ContainerDataModel container = packFactory.CreateContainer((++containerCount).ToString());
+        editorView?.AddContainer(container);
+        return container;
+    }
+
+    /// <summary>_parentPack / _parentModule / _parentContainer는 클릭 시점에 ResolveParent로 정해진 부모다(프리폹 로드를 기다리는 사이 선택이 바뀔어도 그대로 쓴다).</summary>
+    private void OnPrefabLoaded(CreateType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule, ContainerDataModel _parentContainer)
     {
         switch (_type)
         {
             case CreateType.Pack:
                 {
-                    PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab);
+                    // 선택한 Container가 없으면 이 Pack을 담을 새 Container를 만든다.
+                    ContainerDataModel container = EnsureContainer(_parentContainer);
+                    packFactory.PackPadding = packPadding;
+                    PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container);
                     Transform packTransform = packFactory.GetPackTransform(pack);
                     HideOrShowCreated(packTransform);
                     editorView?.AddPack(pack, packTransform);
@@ -512,7 +583,8 @@ public class UI_MainSceneView : MonoBehaviour
                 {
                     // 부모 Pack이 있으면 그 Pack에 속하고, 없으면 단독 Module로 만든다.
                     packFactory.ModulePadding = modulePadding;
-                    ModuleDataModel module = packFactory.CreateModule(_parentPack, (++moduleCount).ToString(), _prefab);
+                    ContainerDataModel container = _parentPack == null ? EnsureContainer(_parentContainer) : null;
+                    ModuleDataModel module = packFactory.CreateModule(_parentPack, (++moduleCount).ToString(), _prefab, default, container);
                     if (module != null)
                     {
                         HideOrShowCreated(module.modulePosition);
