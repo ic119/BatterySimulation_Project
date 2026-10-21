@@ -27,6 +27,7 @@ namespace Incheol.Presenter
         private OrbitCameraView cameraView;
         private UI_PropertiesView propertiesView;
         private UI_DeviceScaleView scaleView;
+        private UI_SubDeviceSpacingView spacingView;
         private UI_DeviceStructureView structureView;
         private UI_EditorView editorView;
         private UI_SelectedDeviceNameView nameView;
@@ -92,6 +93,7 @@ namespace Incheol.Presenter
                 mainSceneView.ObjectRemoving -= OnObjectRemoving;
                 mainSceneView.SelectionClearRequested -= OnSelectionClearRequested;
                 mainSceneView.ObjectCreated -= ShowIfInSelection;
+                mainSceneView.ObjectCreated -= ApplySpacingToCreated;
             }
 
             DeviceAxisGraphManager.SetSelectedOwner(null);
@@ -135,6 +137,7 @@ namespace Incheol.Presenter
         {
             propertiesView = _root.GetComponentInChildren<UI_PropertiesView>(true);
             scaleView = _root.GetComponentInChildren<UI_DeviceScaleView>(true);
+            spacingView = _root.GetComponentInChildren<UI_SubDeviceSpacingView>(true);
             structureView = _root.GetComponentInChildren<UI_DeviceStructureView>(true);
             editorView = _root.GetComponentInChildren<UI_EditorView>(true);
             nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
@@ -142,6 +145,7 @@ namespace Incheol.Presenter
             mainSceneView = _root.GetComponentInChildren<UI_MainSceneView>(true);
 
             scaleView?.Init(this);
+            spacingView?.Init(this);
             mainSceneView?.Init(this);
 
             if (editorView != null)
@@ -160,6 +164,32 @@ namespace Incheol.Presenter
                 mainSceneView.ObjectRemoving += OnObjectRemoving;
                 mainSceneView.SelectionClearRequested += OnSelectionClearRequested;
                 mainSceneView.ObjectCreated += ShowIfInSelection;
+                mainSceneView.ObjectCreated += ApplySpacingToCreated;
+            }
+        }
+
+        /// <summary>
+        /// 새로 생성된 _created의 부모에 이미 적용한 간격이 있으면 같은 간격을 다시 적용한다.
+        /// 간격을 늘리면 부모 몸체를 벗어나는 축은 건드리지 않고 알람으로 알린다.
+        /// </summary>
+        private void ApplySpacingToCreated(Transform _created)
+        {
+            if (_created == null || _created.parent == null)
+            {
+                return;
+            }
+
+            Transform parent = _created.parent;
+            if (DeviceSpacingCalculator.ApplyStored(parent, out int failedAxis) && parent == selectedTarget)
+            {
+                RefreshProperties();
+            }
+
+            if (failedAxis >= 0)
+            {
+                string message = $"{parent.name}에 저장된 간격을 새 항목에 적용하면 밖으로 벗어나 적용하지 않았습니다.";
+                DebugLogManager.GenerateErrorMessage<MainSceneManager>(message);
+                spacingView?.ShowAlarm(message);
             }
         }
 
@@ -303,6 +333,18 @@ namespace Incheol.Presenter
                 else
                 {
                     scaleView.Clear();
+                }
+            }
+
+            if (spacingView != null)
+            {
+                if (hasSelection)
+                {
+                    spacingView.ShowSelected(selectedTarget);
+                }
+                else
+                {
+                    spacingView.Clear();
                 }
             }
         }

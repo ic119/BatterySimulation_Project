@@ -312,7 +312,7 @@ public class PackFactory
             {
                 // Pack 크기는 그대로 두고, Cell과 같은 규칙으로 Pack 내부 공간의 칸에 놓는다.
                 // Pack 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Module과 겹치지 않는 첫 빈 칸을 찾는다.
-                if (!PackLayout.TryFindFreeSlot(packBody.bounds, moduleRenderer.bounds.size, modulePadding, PackLayout.GetOccupiedBounds(_pack), out Vector3 slotCenter, out int capacity))
+                if (!PackLayout.TryFindFreeSlot(packBody.bounds, moduleRenderer.bounds.size, modulePadding, PackLayout.GetOccupiedBounds(_pack), parent, out Vector3 slotCenter, out int capacity))
                 {
                     DebugLogManager.GenerateErrorMessage<PackFactory>($"Pack에 Module을 놓을 공간이 없습니다. Module : {_moduleName}, Pack : {_pack.packName}, 용량 : {capacity}개, 현재 : {_pack.modulesList.Count}개");
                     LastFullMessage = $"Pack {_pack.packName}에 더 이상 Module을 추가할 수 없습니다.";
@@ -384,7 +384,7 @@ public class PackFactory
         if (hasInner && cellRenderer != null)
         {
             // Module 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Cell과 겹치지 않는 첫 빈 칸을 찾는다.
-            if (!PackLayout.TryFindFreeSlot(inner, cellRenderer.bounds.size, cellPadding, PackLayout.GetOccupiedBounds(_module), out Vector3 slotCenter, out int capacity))
+            if (!PackLayout.TryFindFreeSlot(inner, cellRenderer.bounds.size, cellPadding, PackLayout.GetOccupiedBounds(_module), _module.modulePosition, out Vector3 slotCenter, out int capacity))
             {
                 DebugLogManager.GenerateErrorMessage<PackFactory>($"Module에 Cell을 놓을 공간이 없습니다. Cell : {_cellName}, Module : {_module.moduleName}, 용량 : {capacity}개, 현재 : {_module.cellsList.Count}개");
                 LastFullMessage = $"Module {_module.moduleName}에 더 이상 Cell을 추가할 수 없습니다.";

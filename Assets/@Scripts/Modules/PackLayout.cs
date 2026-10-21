@@ -1,3 +1,4 @@
+using Incheol.Modules;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -172,6 +173,87 @@ public static class PackLayout
             }
 
             index++;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// _parent에 사용자가 조절한 자식 간격(SubDeviceSpacingData)이 있으면 그 간격을 지키는 칸에서 첫 빈 칸을, 없으면 기존 칸 배치(TryFindFreeSlot)에서 구한다.
+    /// 간격 칸은 이미 놓인 항목(_occupied)의 좌측 바닥 뒤쪽 모서리(min.x, min.y, max.z)에서 시작해 항목 크기 + 간격 단위로 z(-방향), x, y 순서로 채우며,
+    /// 간격을 지정하지 않은 축은 x, z는 _padding, y는 0을 간격으로 쓴다. 부모 내부(_inner)를 벗어나는 칸은 건너뛴다.
+    /// </summary>
+    public static bool TryFindFreeSlot(Bounds _inner, Vector3 _itemSize, float _padding, List<Bounds> _occupied, Transform _parent, out Vector3 _center, out int _capacity)
+    {
+        if (_parent == null || _occupied.Count == 0 || !_parent.TryGetComponent(out SubDeviceSpacingData data))
+        {
+            return TryFindFreeSlot(_inner, _itemSize, _padding, _occupied, out _center, out _capacity);
+        }
+
+        _center = default;
+        _capacity = 0;
+
+        Vector3 pitch = new Vector3(
+            _itemSize.x + (data.TryGet(0, out float sx) ? sx : _padding),
+            _itemSize.y + (data.TryGet(1, out float sy) ? sy : 0.0f),
+            _itemSize.z + (data.TryGet(2, out float sz) ? sz : _padding));
+        if (pitch.x <= 0.0f || pitch.y <= 0.0f || pitch.z <= 0.0f)
+        {
+            return TryFindFreeSlot(_inner, _itemSize, _padding, _occupied, out _center, out _capacity);
+        }
+
+        const float Tolerance = 0.001f;
+        Vector3 start = new Vector3(float.MaxValue, float.MaxValue, float.MinValue);
+        for (int i = 0; i < _occupied.Count; i++)
+        {
+            start.x = Mathf.Min(start.x, _occupied[i].min.x);
+            start.y = Mathf.Min(start.y, _occupied[i].min.y);
+            start.z = Mathf.Max(start.z, _occupied[i].max.z);
+        }
+
+        int countX = Mathf.Max(1, Mathf.FloorToInt((_inner.max.x - start.x) / pitch.x + Tolerance) + 1);
+        int countY = Mathf.Max(1, Mathf.FloorToInt((_inner.max.y - start.y) / pitch.y + Tolerance) + 1);
+        int countZ = Mathf.Max(1, Mathf.FloorToInt((start.z - _inner.min.z) / pitch.z + Tolerance) + 1);
+
+        for (int y = 0; y < countY; y++)
+        {
+            for (int x = 0; x < countX; x++)
+            {
+                for (int z = 0; z < countZ; z++)
+                {
+                    Vector3 center = new Vector3(
+                        start.x + pitch.x * x + _itemSize.x * 0.5f,
+                        start.y + pitch.y * y + _itemSize.y * 0.5f,
+                        start.z - pitch.z * z - _itemSize.z * 0.5f);
+                    Bounds candidate = new Bounds(center, _itemSize);
+
+                    bool inside =
+                        candidate.min.x >= _inner.min.x - Tolerance && candidate.max.x <= _inner.max.x + Tolerance &&
+                        candidate.min.y >= _inner.min.y - Tolerance && candidate.max.y <= _inner.max.y + Tolerance &&
+                        candidate.min.z >= _inner.min.z - Tolerance && candidate.max.z <= _inner.max.z + Tolerance;
+                    if (!inside)
+                    {
+                        continue;
+                    }
+
+                    _capacity++;
+                    bool overlapped = false;
+                    for (int i = 0; i < _occupied.Count && !overlapped; i++)
+                    {
+                        Bounds other = _occupied[i];
+                        overlapped =
+                            candidate.min.x < other.max.x - Tolerance && candidate.max.x > other.min.x + Tolerance &&
+                            candidate.min.y < other.max.y - Tolerance && candidate.max.y > other.min.y + Tolerance &&
+                            candidate.min.z < other.max.z - Tolerance && candidate.max.z > other.min.z + Tolerance;
+                    }
+
+                    if (!overlapped)
+                    {
+                        _center = center;
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;
