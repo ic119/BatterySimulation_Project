@@ -90,10 +90,7 @@ namespace Incheol.Modules
                 return false;
             }
 
-            // 부모는 Cell일 수 없다. 몸체(Body)가 없는 빈 오브젝트면 Container, 있으면 Pack / Module(탐색 방식은 같다)이다.
-            MainSceneManager.TargetKind kind = DeviceSizeCalculator.TryGetSizeRenderer(_parent, MainSceneManager.TargetKind.Pack, out _)
-                ? MainSceneManager.TargetKind.Pack
-                : MainSceneManager.TargetKind.Container;
+            MainSceneManager.TargetKind kind = GetParentKind(_parent);
 
             bool applied = false;
             for (int axis = 0; axis < 3; axis++)
@@ -114,6 +111,36 @@ namespace Incheol.Modules
             }
 
             return applied;
+        }
+
+        /// <summary>부모는 Cell일 수 없다. 몸체(Body)가 없는 빈 오브젝트면 Container, 있으면 Pack / Module(탐색 방식은 같다)이다.</summary>
+        private static MainSceneManager.TargetKind GetParentKind(Transform _parent)
+        {
+            return DeviceSizeCalculator.TryGetSizeRenderer(_parent, MainSceneManager.TargetKind.Pack, out _)
+                ? MainSceneManager.TargetKind.Pack
+                : MainSceneManager.TargetKind.Container;
+        }
+
+        /// <summary>
+        /// _parent에 기억된 축별 간격을 자식의 현재 실제 간격으로 갱신한다. 자식 크기를 바꾼 뒤 부르면 기억된 값이 실제와 어긋나지 않는다
+        /// (어긋나면 새 자식이 생길 때 ApplyStored가 예전 간격으로 되돌려 버린다).
+        /// 기억된 간격이 없는 축이나 층이 2개 미만이라 간격을 잴 수 없는 축은 그대로 둔다.
+        /// </summary>
+        public static void SyncStored(Transform _parent)
+        {
+            if (_parent == null || !_parent.TryGetComponent(out SubDeviceSpacingData data))
+            {
+                return;
+            }
+
+            MainSceneManager.TargetKind kind = GetParentKind(_parent);
+            for (int axis = 0; axis < 3; axis++)
+            {
+                if (data.TryGet(axis, out _) && TryGetSpacing(_parent, kind, axis, out float current, out _))
+                {
+                    data.Set(axis, current);
+                }
+            }
         }
 
         /// <summary>

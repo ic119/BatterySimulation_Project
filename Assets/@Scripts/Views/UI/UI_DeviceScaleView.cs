@@ -273,7 +273,28 @@ public class UI_DeviceScaleView : MonoBehaviour
             }
         }
 
+        // Pack은 같은 Container의 다른 Pack / 단독 Module과 겹치면 막는다. 타이핑 중에는 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 현재 크기로 되돌린다.
+        if (kind == MainSceneManager.TargetKind.Pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
+        {
+            if (!_log)
+            {
+                return;
+            }
+
+            string message = $"다른 Pack과 겹쳐 크기를 바꿀 수 없습니다. 입력(x,y,z) : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
+            DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
+            alarmPopupView?.Show(message);
+
+            SetInput(xAxisInputField, current.size.x);
+            SetInput(yAxisInputField, current.size.y);
+            SetInput(zAxisInputField, current.size.z);
+            return;
+        }
+
         DeviceSizeCalculator.Resize(sizeRenderer, bodyTransform == target, current, newSize);
+
+        // 크기가 바뀌면 부모 안의 자식 사이 실제 간격도 바뀌므로, 부모에 기억된 간격을 현재 값으로 맞춘다.
+        DeviceSpacingCalculator.SyncStored(target.parent);
     }
 
     private static bool TryParseAxis(TMP_InputField _field, float _fallback, out float _value)

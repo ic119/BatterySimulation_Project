@@ -149,6 +149,35 @@ namespace Incheol.Modules
         }
 
         /// <summary>
+        /// Pack(_pack) 몸체를 _newSize로 바꿨을 때 같은 Container 아래의 다른 항목(Pack, 단독 Module과 그 자식)과 겹치는지 검사한다.
+        /// 몸체는 좌측 바닥 뒤쪽 모서리(min.x, min.y, max.z)를 고정한 채 +x, +y, -z 방향으로 바뀐다고 본다(Resize와 같다).
+        /// 겹치면 true이고 _overlapped에는 겹친 영역이 담긴다. _current는 바꾸기 전 몸체 bounds.
+        /// </summary>
+        public static bool OverlapsSiblings(Transform _pack, Bounds _current, Vector3 _newSize, out Bounds _overlapped)
+        {
+            _overlapped = default;
+            if (_pack == null || _pack.parent == null)
+            {
+                return false;
+            }
+
+            Vector3 min = new Vector3(_current.min.x, _current.min.y, _current.max.z - _newSize.z);
+            Bounds resized = new Bounds(min + _newSize * 0.5f, _newSize);
+
+            System.Collections.Generic.List<Bounds> occupied = PackLayout.GetOccupiedBounds(_pack.parent, _pack);
+            for (int i = 0; i < occupied.Count; i++)
+            {
+                if (PackLayout.Overlaps(resized, occupied[i]))
+                {
+                    _overlapped = occupied[i];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// _sizeRenderer 몸체를 _newSize(월드 크기)로 바꾸고 좌측 바닥 뒤쪽 모서리를 제자리에 둔다. _current는 바꾸기 전 bounds.
         /// _isTarget이 true면(Cell처럼 선택한 오브젝트가 곧 몸체) 현재 스케일을 비율만큼 바꾸고,
         /// false면(Pack / Module의 자식 Body) 단위 크기 메시(Cube)라 목표 월드 크기를 부모 스케일로 나눠 로컬 스케일로 쓴다.

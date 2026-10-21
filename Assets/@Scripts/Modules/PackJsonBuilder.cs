@@ -4,8 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// 저장된 Json(JsonDataController.SaveJson)의 Pack / Module / Cell을 PackFactory로 다시 만든다. UI는 알지 못하고, 만들어진 것은 콜백으로 알린다.
-/// 저장된 이름, 자식 구조, 크기를 쓴다. Pack은 저장된 위치(격자 칸 / 간격 적용 결과)에 그대로 두고, Container의 격자와 간격도 되돌린다.
-/// Module / Cell의 위치는 저장값 대신 PackFactory의 자동 배치(첫 빈 칸 + Padding)가 정한다.
+/// 저장된 이름, 자식 구조, 크기(Scale), 몸체 중심을 써서 Pack / Module / Cell을 저장 당시 크기와 자리에 그대로 놓고, Container의 격자와 Container / Pack / Module의 간격도 되돌린다.
+/// 몸체 중심이 없던 예전 파일은 Module / Cell을 PackFactory의 자동 배치(첫 빈 칸 + Padding)로 놓는다.
 /// 부모가 가득 차 놓을 곳이 없는 항목은 직접 만들 때처럼 만들어지지 않고 건너뛴 개수로 센다.
 /// </summary>
 public class PackJsonBuilder
@@ -59,6 +59,9 @@ public class PackJsonBuilder
             ContainerDataModel container = NewContainer(containerJson.name);
             RestoreContainerLayout(container, containerJson);
             BuildContents(container, containerJson.packs, containerJson.standaloneModules, _packPrefab, _modulePrefab, _cellPrefab);
+
+            // 간격은 자식을 모두 저장 당시 자리에 놓은 뒤에 기억시킨다. 먼저 기억시키면 자식이 생길 때마다 간격을 다시 적용해 저장 당시 자리가 달라질 수 있다.
+            RestoreSpacing(container.containerPosition, containerJson.spacing, containerJson.spacingApplied);
         }
 
         // Container가 없던 예전 파일: Pack과 단독 Module마다 새 Container에 담는다.
@@ -78,7 +81,7 @@ public class PackJsonBuilder
     }
 
     /// <summary>
-    /// 저장된 Pack 생성 격자(x * z)와 Pack 사이 간격을 Container에 되돌린다. Pack을 만들기 전에 불러야 이후 새로 만드는 Pack도 같은 격자와 간격으로 놓인다.
+    /// 저장된 Pack 생성 격자(x * z)를 Container에 되돌린다. Pack을 만들기 전에 불러야 한다.
     /// 격자가 없던 예전 파일은 x를 Pack 개수(최소 1), z를 1로 본다.
     /// </summary>
     private void RestoreContainerLayout(ContainerDataModel _container, JsonDataController.ContainerJson _json)
@@ -88,13 +91,11 @@ public class PackJsonBuilder
         currentColumns = columns;
         currentRows = rows;
         containerGridRestored?.Invoke(_container, columns, rows);
-
-        RestoreSpacing(_container.containerPosition, _json.spacing, _json.spacingApplied);
     }
 
     /// <summary>
     /// 저장된 자식 간격(_values 중 _applied가 true인 축)을 _target(Container / Pack / Module)에 기억시킨다.
-    /// 자식을 만들기 전에 불러야 자식이 칸을 찾을 때와 만들어진 뒤에 이 간격이 적용된다.
+    /// 이후 새로 만드는 자식이 같은 간격으로 놓이도록 하는 용도이며, 불러오는 도중에는 자식을 모두 놓은 뒤에 불러야 한다.
     /// </summary>
     private static void RestoreSpacing(Transform _target, float[] _values, bool[] _applied)
     {
@@ -135,14 +136,13 @@ public class PackJsonBuilder
         {
             JsonDataController.PackJson packJson = _packList[i];
             // 저장된 칸 번호를 그대로 쓴다(번호가 비어 있던 예전 파일은 번호가 낮은 빈 칸). 삭제로 비어 있던 칸도 저장 때 그대로 비어 있게 된다.
-            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size, _container, currentColumns, currentRows, packJson.hasSlot ? packJson.slotColumn : -1, packJson.hasSlot ? packJson.slotRow : -1);
+            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size, _container, currentColumns, currentRows, packJson.hasSlot ? packJson.slotColumn : -1, packJson.hasSlot ? packJson.slotRow : -1, GetBodyCenter(packJson.hasBodyCenter, packJson.bodyCenter));
 
-            // 저장할 때 놓여 있던 자리(간격 적용 결과 포함)에 그대로 둔다. 이후 만드는 Module은 이 자리를 기준으로 놓인다.
+            // 몸체 중심이 없는 예전 파일은 저장된 pivot 위치에 둔다. 새 파일은 CreatePack이 저장 당시 몸체 자리에 이미 놓았다.
             Transform packTransform = packFactory.GetPackTransform(pack);
-            if (packTransform != null)
+            if (packTransform != null && !packJson.hasBodyCenter)
             {
                 packTransform.position = packJson.position;
-                RestoreSpacing(packTransform, packJson.moduleSpacing?.values, packJson.moduleSpacing?.applied);
             }
 
             packCreated?.Invoke(pack, packTransform);
@@ -152,6 +152,8 @@ public class PackJsonBuilder
             {
                 BuildModule(pack, _container, packJson.modules[j], _modulePrefab, _cellPrefab);
             }
+
+            RestoreSpacing(packTransform, packJson.moduleSpacing?.values, packJson.moduleSpacing?.applied);
         }
 
         for (int i = 0; _moduleList != null && i < _moduleList.Count; i++)
@@ -162,7 +164,7 @@ public class PackJsonBuilder
 
     private void BuildModule(PackDataModel _pack, ContainerDataModel _container, JsonDataController.ModuleJson _moduleJson, GameObject _modulePrefab, GameObject _cellPrefab)
     {
-        ModuleDataModel module = packFactory.CreateModule(_pack, _moduleJson.name, _modulePrefab, _moduleJson.size, _container);
+        ModuleDataModel module = packFactory.CreateModule(_pack, _moduleJson.name, _modulePrefab, _moduleJson.size, _container, GetBodyCenter(_moduleJson.hasBodyCenter, _moduleJson.bodyCenter));
         if (module == null)
         {
             // 이 Module이 못 만들어지면 그 안의 Cell도 만들 곳이 없다.
@@ -170,14 +172,13 @@ public class PackJsonBuilder
             return;
         }
 
-        RestoreSpacing(module.modulePosition, _moduleJson.cellSpacing?.values, _moduleJson.cellSpacing?.applied);
         moduleCreated?.Invoke(module, _pack);
         result.moduleCount = Mathf.Max(result.moduleCount, ParseCount(_moduleJson.name));
 
         for (int i = 0; i < _moduleJson.cells.Count; i++)
         {
             JsonDataController.CellJson cellJson = _moduleJson.cells[i];
-            CellDataModel cell = packFactory.CreateCell(module, cellJson.name, _cellPrefab, cellJson.size);
+            CellDataModel cell = packFactory.CreateCell(module, cellJson.name, _cellPrefab, cellJson.size, GetBodyCenter(cellJson.hasBodyCenter, cellJson.bodyCenter));
             if (cell == null)
             {
                 result.skippedCount++;
@@ -187,6 +188,14 @@ public class PackJsonBuilder
             cellCreated?.Invoke(cell);
             result.cellCount = Mathf.Max(result.cellCount, ParseCount(cellJson.name));
         }
+
+        RestoreSpacing(module.modulePosition, _moduleJson.cellSpacing?.values, _moduleJson.cellSpacing?.applied);
+    }
+
+    /// <summary>저장된 몸체 중심이 있으면 그 값을, 없던 예전 파일이면 null(= 자동 배치)을 돌려준다.</summary>
+    private static Vector3? GetBodyCenter(bool _hasBodyCenter, Vector3 _bodyCenter)
+    {
+        return _hasBodyCenter ? _bodyCenter : (Vector3?)null;
     }
 
     /// <summary>이름이 "3"처럼 번호 문자열이면 그 번호, 아니면 0. 불러온 뒤 새로 만드는 항목의 번호가 겹치지 않게 이어 붙이는 데 쓴다.</summary>

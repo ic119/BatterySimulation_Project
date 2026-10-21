@@ -14,6 +14,10 @@ public class JsonDataController : MonoBehaviour
         public string name;
         public Vector3 position;
         public Vector3 size;
+
+        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
+        public bool hasBodyCenter;
+        public Vector3 bodyCenter;
     }
 
     /// <summary>항목(Pack / Module)에 적용한 자식 간격(축 x, y, z 순서). applied가 true인 축만 유효하다. 없던 예전 파일은 모두 false.</summary>
@@ -31,6 +35,10 @@ public class JsonDataController : MonoBehaviour
         public Vector3 position;
         public Vector3 size;
 
+        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
+        public bool hasBodyCenter;
+        public Vector3 bodyCenter;
+
         /// <summary>이 Module 안의 Cell 사이 간격.</summary>
         public SpacingJson cellSpacing = new SpacingJson();
 
@@ -43,6 +51,10 @@ public class JsonDataController : MonoBehaviour
         public string name;
         public Vector3 position;
         public Vector3 size;
+
+        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
+        public bool hasBodyCenter;
+        public Vector3 bodyCenter;
 
         /// <summary>Container의 Pack 격자에서 놓인 열(x 방향)과 줄(z 방향). hasSlot이 false면 칸 정보가 없던 예전 파일이다.</summary>
         public bool hasSlot;
@@ -230,7 +242,10 @@ public class JsonDataController : MonoBehaviour
                 if (packTransform != null)
                 {
                     packJson.position = packTransform.position;
-                    packJson.size = GetBodyBounds(packTransform).size;
+                    Bounds packBounds = GetBodyBounds(packTransform);
+                    packJson.size = packBounds.size;
+                    packJson.hasBodyCenter = true;
+                    packJson.bodyCenter = packBounds.center;
                     ReadSpacing(packTransform, packJson.moduleSpacing);
                 }
 
@@ -276,7 +291,10 @@ public class JsonDataController : MonoBehaviour
         if (_module.modulePosition != null)
         {
             moduleJson.position = _module.modulePosition.position;
-            moduleJson.size = GetBodyBounds(_module.modulePosition).size;
+            Bounds moduleBounds = GetBodyBounds(_module.modulePosition);
+            moduleJson.size = moduleBounds.size;
+            moduleJson.hasBodyCenter = true;
+            moduleJson.bodyCenter = moduleBounds.center;
             ReadSpacing(_module.modulePosition, moduleJson.cellSpacing);
         }
 
@@ -289,7 +307,10 @@ public class JsonDataController : MonoBehaviour
                 if (cell.cellPosition != null)
                 {
                     cellJson.position = cell.cellPosition.position;
-                    cellJson.size = GetBodyBounds(cell.cellPosition).size;
+                    Bounds cellBounds = GetBodyBounds(cell.cellPosition);
+                    cellJson.size = cellBounds.size;
+                    cellJson.hasBodyCenter = true;
+                    cellJson.bodyCenter = cellBounds.center;
                 }
 
                 moduleJson.cells.Add(cellJson);

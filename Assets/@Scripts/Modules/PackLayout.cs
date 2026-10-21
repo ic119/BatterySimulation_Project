@@ -180,7 +180,8 @@ public static class PackLayout
         return false;
     }
 
-    private static bool Overlaps(Bounds _a, Bounds _b)
+    /// <summary>두 Bounds가 겹치는지. 맞닿는 면은 겹침으로 보지 않는다.</summary>
+    public static bool Overlaps(Bounds _a, Bounds _b)
     {
         const float Tolerance = 0.001f;
         return _a.min.x < _b.max.x - Tolerance && _a.max.x > _b.min.x + Tolerance &&
