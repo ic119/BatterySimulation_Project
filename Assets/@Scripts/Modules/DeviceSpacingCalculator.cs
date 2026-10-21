@@ -12,6 +12,7 @@ namespace Incheol.Modules
     public static class DeviceSpacingCalculator
     {
         private const float Tolerance = 0.001f;
+        private const float UnboundedSize = 2.0e7f;
 
         private struct Layer
         {
@@ -89,6 +90,11 @@ namespace Incheol.Modules
                 return false;
             }
 
+            // 부모는 Cell일 수 없다. 몸체(Body)가 없는 빈 오브젝트면 Container, 있으면 Pack / Module(탐색 방식은 같다)이다.
+            MainSceneManager.TargetKind kind = DeviceSizeCalculator.TryGetSizeRenderer(_parent, MainSceneManager.TargetKind.Pack, out _)
+                ? MainSceneManager.TargetKind.Pack
+                : MainSceneManager.TargetKind.Container;
+
             bool applied = false;
             for (int axis = 0; axis < 3; axis++)
             {
@@ -97,8 +103,7 @@ namespace Incheol.Modules
                     continue;
                 }
 
-                // 부모는 Cell일 수 없으므로 Pack으로 넘겨도 몸체(Body) 탐색은 같다.
-                if (TrySetSpacing(_parent, MainSceneManager.TargetKind.Pack, axis, spacing, out _))
+                if (TrySetSpacing(_parent, kind, axis, spacing, out _))
                 {
                     applied = true;
                 }
@@ -161,7 +166,9 @@ namespace Incheol.Modules
         {
             _layerList = null;
             _body = default;
-            if (_target == null || !DeviceSizeCalculator.TryGetSizeRenderer(_target, _kind, out Renderer bodyRenderer))
+            Renderer bodyRenderer = null;
+            bool unbounded = _kind == MainSceneManager.TargetKind.Container;
+            if (_target == null || (!unbounded && !DeviceSizeCalculator.TryGetSizeRenderer(_target, _kind, out bodyRenderer)))
             {
                 return false;
             }
@@ -172,7 +179,8 @@ namespace Incheol.Modules
                 return false;
             }
 
-            _body = bodyRenderer.bounds;
+            // Container는 몸체가 없는 빈 오브젝트라 자식이 나갈 한계가 없다. 사실상 제한이 없는 큰 범위로 본다.
+            _body = unbounded ? new Bounds(Vector3.zero, Vector3.one * UnboundedSize) : bodyRenderer.bounds;
             bool reverse = _axis == 2;
             List<KeyValuePair<Transform, Bounds>> boundsList = new List<KeyValuePair<Transform, Bounds>>();
             for (int i = 0; i < children.Count; i++)

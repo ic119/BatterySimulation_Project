@@ -313,7 +313,7 @@ namespace Incheol.Presenter
         {
             bool hasSelection = selectedModel != null && selectedTarget != null;
 
-            // Container는 빈 오브젝트라 몸체 크기와 자식 간격이 없으므로 크기 / 간격 패널은 비워 둔다.
+            // Container는 빈 오브젝트라 몸체 크기가 없으므로 크기 패널은 비워 둔다(자식 Pack 사이의 간격은 간격 패널로 조절한다).
             bool hasBody = hasSelection && selectedKind != TargetKind.Container;
 
             if (propertiesView != null)
@@ -342,7 +342,7 @@ namespace Incheol.Presenter
 
             if (spacingView != null)
             {
-                if (hasBody)
+                if (hasSelection)
                 {
                     spacingView.ShowSelected(selectedTarget);
                 }
