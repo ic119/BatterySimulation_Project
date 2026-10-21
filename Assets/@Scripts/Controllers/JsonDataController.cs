@@ -1,4 +1,5 @@
-﻿using Incheol.Utils;
+﻿using Incheol.Modules;
+using Incheol.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,12 +16,24 @@ public class JsonDataController : MonoBehaviour
         public Vector3 size;
     }
 
+    /// <summary>항목(Pack / Module)에 적용한 자식 간격(축 x, y, z 순서). applied가 true인 축만 유효하다. 없던 예전 파일은 모두 false.</summary>
+    [Serializable]
+    public class SpacingJson
+    {
+        public float[] values = new float[3];
+        public bool[] applied = new bool[3];
+    }
+
     [Serializable]
     public class ModuleJson
     {
         public string name;
         public Vector3 position;
         public Vector3 size;
+
+        /// <summary>이 Module 안의 Cell 사이 간격.</summary>
+        public SpacingJson cellSpacing = new SpacingJson();
+
         public List<CellJson> cells = new List<CellJson>();
     }
 
@@ -30,6 +43,15 @@ public class JsonDataController : MonoBehaviour
         public string name;
         public Vector3 position;
         public Vector3 size;
+
+        /// <summary>Container의 Pack 격자에서 놓인 열(x 방향)과 줄(z 방향). hasSlot이 false면 칸 정보가 없던 예전 파일이다.</summary>
+        public bool hasSlot;
+        public int slotColumn;
+        public int slotRow;
+
+        /// <summary>이 Pack 안의 Module 사이 간격.</summary>
+        public SpacingJson moduleSpacing = new SpacingJson();
+
         public List<ModuleJson> modules = new List<ModuleJson>();
     }
 
@@ -37,6 +59,15 @@ public class JsonDataController : MonoBehaviour
     public class ContainerJson
     {
         public string name;
+
+        /// <summary>Pack 생성 격자(UI_CreateDeviceCount의 x 개수 / z 줄 수). 0이면 이 값이 없던 예전 파일이다.</summary>
+        public int packColumns;
+        public int packRows;
+
+        /// <summary>Container에 적용한 Pack 사이 간격(축 x, y, z 순서). spacingApplied가 true인 축만 유효하다.</summary>
+        public float[] spacing = new float[3];
+        public bool[] spacingApplied = new bool[3];
+
         public List<PackJson> packs = new List<PackJson>();
 
         /// <summary>어느 Pack에도 속하지 않고 이 Container에 단독으로 만든 Module.</summary>
@@ -129,9 +160,9 @@ public class JsonDataController : MonoBehaviour
     /// _factory가 가진 Pack / Module / Cell(Pack에 속한 것과 단독 Module 모두)의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss다.
     /// 저장할 항목이 하나도 없거나 쓰기에 실패하면 false.
     /// </summary>
-    public bool Save(PackFactory _factory)
+    public bool Save(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
     {
-        SaveJson data = Build(_factory);
+        SaveJson data = Build(_factory, _gridProvider);
         if (data.containers.Count == 0)
         {
             DebugLogManager.GenerateErrorMessage<JsonDataController>("저장할 Pack / Module이 없습니다.");
@@ -153,7 +184,8 @@ public class JsonDataController : MonoBehaviour
         return true;
     }
 
-    private static SaveJson Build(PackFactory _factory)
+    /// <param name="_gridProvider">Container의 Pack 생성 격자(x 개수, z 줄 수). 없으면 격자를 저장하지 않는다.</param>
+    private static SaveJson Build(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider)
     {
         SaveJson data = new SaveJson();
         if (_factory == null)
@@ -167,10 +199,31 @@ public class JsonDataController : MonoBehaviour
             ContainerDataModel container = containerList[c];
             ContainerJson containerJson = new ContainerJson { name = container.containerName };
 
+            if (_gridProvider != null)
+            {
+                Vector2Int grid = _gridProvider(container);
+                containerJson.packColumns = grid.x;
+                containerJson.packRows = grid.y;
+            }
+
+            if (container.containerPosition != null && container.containerPosition.TryGetComponent(out SubDeviceSpacingData spacingData))
+            {
+                for (int axis = 0; axis < 3; axis++)
+                {
+                    containerJson.spacingApplied[axis] = spacingData.TryGet(axis, out containerJson.spacing[axis]);
+                }
+            }
+
             for (int i = 0; i < container.packsList.Count; i++)
             {
                 PackDataModel pack = container.packsList[i];
-                PackJson packJson = new PackJson { name = pack.packName };
+                PackJson packJson = new PackJson
+                {
+                    name = pack.packName,
+                    hasSlot = pack.slotColumn >= 0 && pack.slotRow >= 0,
+                    slotColumn = pack.slotColumn,
+                    slotRow = pack.slotRow,
+                };
 
                 // PackDataModel에는 Transform이 없으므로 팩토리가 따로 들고 있는 Pack 오브젝트를 꺼낸다.
                 Transform packTransform = _factory.GetPackTransform(pack);
@@ -178,6 +231,7 @@ public class JsonDataController : MonoBehaviour
                 {
                     packJson.position = packTransform.position;
                     packJson.size = GetBodyBounds(packTransform).size;
+                    ReadSpacing(packTransform, packJson.moduleSpacing);
                 }
 
                 if (pack.modulesList != null)
@@ -202,6 +256,20 @@ public class JsonDataController : MonoBehaviour
         return data;
     }
 
+    /// <summary>_target(Pack / Module)에 기억된 자식 간격을 _spacing에 옮겨 담는다. 기억된 간격이 없으면 그대로 둔다.</summary>
+    private static void ReadSpacing(Transform _target, SpacingJson _spacing)
+    {
+        if (!_target.TryGetComponent(out SubDeviceSpacingData data))
+        {
+            return;
+        }
+
+        for (int axis = 0; axis < 3; axis++)
+        {
+            _spacing.applied[axis] = data.TryGet(axis, out _spacing.values[axis]);
+        }
+    }
+
     private static ModuleJson BuildModule(ModuleDataModel _module)
     {
         ModuleJson moduleJson = new ModuleJson { name = _module.moduleName };
@@ -209,6 +277,7 @@ public class JsonDataController : MonoBehaviour
         {
             moduleJson.position = _module.modulePosition.position;
             moduleJson.size = GetBodyBounds(_module.modulePosition).size;
+            ReadSpacing(_module.modulePosition, moduleJson.cellSpacing);
         }
 
         if (_module.cellsList != null)

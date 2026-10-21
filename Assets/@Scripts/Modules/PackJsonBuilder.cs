@@ -1,9 +1,11 @@
+using Incheol.Modules;
 using System;
 using UnityEngine;
 
 /// <summary>
 /// 저장된 Json(JsonDataController.SaveJson)의 Pack / Module / Cell을 PackFactory로 다시 만든다. UI는 알지 못하고, 만들어진 것은 콜백으로 알린다.
-/// 저장된 이름, 자식 구조, 크기를 쓰고, 위치는 저장값 대신 PackFactory의 자동 배치(첫 빈 칸 + Padding)가 정한다.
+/// 저장된 이름, 자식 구조, 크기를 쓴다. Pack은 저장된 위치(격자 칸 / 간격 적용 결과)에 그대로 두고, Container의 격자와 간격도 되돌린다.
+/// Module / Cell의 위치는 저장값 대신 PackFactory의 자동 배치(첫 빈 칸 + Padding)가 정한다.
 /// 부모가 가득 차 놓을 곳이 없는 항목은 직접 만들 때처럼 만들어지지 않고 건너뛴 개수로 센다.
 /// </summary>
 public class PackJsonBuilder
@@ -23,15 +25,22 @@ public class PackJsonBuilder
     private readonly Action<PackDataModel, Transform> packCreated;
     private readonly Action<ModuleDataModel, PackDataModel> moduleCreated;
     private readonly Action<CellDataModel> cellCreated;
+    private readonly Action<ContainerDataModel, int, int> containerGridRestored;
 
     private Result result;
+
+    // 지금 만드는 Container의 Pack 격자. 0이면 격자 없이(예전 파일) 만든다.
+    private int currentColumns;
+    private int currentRows;
 
     /// <param name="_containerCreated">Container가 만들어질 때마다.</param>
     /// <param name="_packCreated">Pack이 만들어질 때마다(Pack, 그 Transform).</param>
     /// <param name="_moduleCreated">Module이 만들어질 때마다(Module, 부모 Pack. 단독 Module이면 null).</param>
     /// <param name="_cellCreated">Cell이 만들어질 때마다.</param>
-    public PackJsonBuilder(PackFactory _packFactory, Action<ContainerDataModel> _containerCreated, Action<PackDataModel, Transform> _packCreated, Action<ModuleDataModel, PackDataModel> _moduleCreated, Action<CellDataModel> _cellCreated)
+    /// <param name="_containerGridRestored">저장된 Pack 생성 격자를 Container에 되돌릴 때마다(Container, x 개수, z 줄 수).</param>
+    public PackJsonBuilder(PackFactory _packFactory, Action<ContainerDataModel> _containerCreated, Action<PackDataModel, Transform> _packCreated, Action<ModuleDataModel, PackDataModel> _moduleCreated, Action<CellDataModel> _cellCreated, Action<ContainerDataModel, int, int> _containerGridRestored = null)
     {
+        containerGridRestored = _containerGridRestored;
         packFactory = _packFactory;
         containerCreated = _containerCreated;
         packCreated = _packCreated;
@@ -48,6 +57,7 @@ public class PackJsonBuilder
         {
             JsonDataController.ContainerJson containerJson = _data.containers[c];
             ContainerDataModel container = NewContainer(containerJson.name);
+            RestoreContainerLayout(container, containerJson);
             BuildContents(container, containerJson.packs, containerJson.standaloneModules, _packPrefab, _modulePrefab, _cellPrefab);
         }
 
@@ -67,9 +77,53 @@ public class PackJsonBuilder
         return result;
     }
 
+    /// <summary>
+    /// 저장된 Pack 생성 격자(x * z)와 Pack 사이 간격을 Container에 되돌린다. Pack을 만들기 전에 불러야 이후 새로 만드는 Pack도 같은 격자와 간격으로 놓인다.
+    /// 격자가 없던 예전 파일은 x를 Pack 개수(최소 1), z를 1로 본다.
+    /// </summary>
+    private void RestoreContainerLayout(ContainerDataModel _container, JsonDataController.ContainerJson _json)
+    {
+        int columns = _json.packColumns > 0 ? _json.packColumns : Mathf.Max(1, _json.packs.Count);
+        int rows = _json.packRows > 0 ? _json.packRows : 1;
+        currentColumns = columns;
+        currentRows = rows;
+        containerGridRestored?.Invoke(_container, columns, rows);
+
+        RestoreSpacing(_container.containerPosition, _json.spacing, _json.spacingApplied);
+    }
+
+    /// <summary>
+    /// 저장된 자식 간격(_values 중 _applied가 true인 축)을 _target(Container / Pack / Module)에 기억시킨다.
+    /// 자식을 만들기 전에 불러야 자식이 칸을 찾을 때와 만들어진 뒤에 이 간격이 적용된다.
+    /// </summary>
+    private static void RestoreSpacing(Transform _target, float[] _values, bool[] _applied)
+    {
+        if (_target == null || _values == null || _applied == null)
+        {
+            return;
+        }
+
+        for (int axis = 0; axis < 3 && axis < _values.Length && axis < _applied.Length; axis++)
+        {
+            if (!_applied[axis])
+            {
+                continue;
+            }
+
+            if (!_target.TryGetComponent(out SubDeviceSpacingData data))
+            {
+                data = _target.gameObject.AddComponent<SubDeviceSpacingData>();
+            }
+
+            data.Set(axis, _values[axis]);
+        }
+    }
+
     private ContainerDataModel NewContainer(string _name)
     {
         ContainerDataModel container = packFactory.CreateContainer(_name);
+        currentColumns = 0;
+        currentRows = 0;
         containerCreated?.Invoke(container);
         result.containerCount = Mathf.Max(result.containerCount, ParseCount(_name));
         return container;
@@ -80,8 +134,18 @@ public class PackJsonBuilder
         for (int i = 0; _packList != null && i < _packList.Count; i++)
         {
             JsonDataController.PackJson packJson = _packList[i];
-            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size, _container);
-            packCreated?.Invoke(pack, packFactory.GetPackTransform(pack));
+            // 저장된 칸 번호를 그대로 쓴다(번호가 비어 있던 예전 파일은 번호가 낮은 빈 칸). 삭제로 비어 있던 칸도 저장 때 그대로 비어 있게 된다.
+            PackDataModel pack = packFactory.CreatePack(packJson.name, _packPrefab, packJson.size, _container, currentColumns, currentRows, packJson.hasSlot ? packJson.slotColumn : -1, packJson.hasSlot ? packJson.slotRow : -1);
+
+            // 저장할 때 놓여 있던 자리(간격 적용 결과 포함)에 그대로 둔다. 이후 만드는 Module은 이 자리를 기준으로 놓인다.
+            Transform packTransform = packFactory.GetPackTransform(pack);
+            if (packTransform != null)
+            {
+                packTransform.position = packJson.position;
+                RestoreSpacing(packTransform, packJson.moduleSpacing?.values, packJson.moduleSpacing?.applied);
+            }
+
+            packCreated?.Invoke(pack, packTransform);
             result.packCount = Mathf.Max(result.packCount, ParseCount(packJson.name));
 
             for (int j = 0; j < packJson.modules.Count; j++)
@@ -106,6 +170,7 @@ public class PackJsonBuilder
             return;
         }
 
+        RestoreSpacing(module.modulePosition, _moduleJson.cellSpacing?.values, _moduleJson.cellSpacing?.applied);
         moduleCreated?.Invoke(module, _pack);
         result.moduleCount = Mathf.Max(result.moduleCount, ParseCount(_moduleJson.name));
 

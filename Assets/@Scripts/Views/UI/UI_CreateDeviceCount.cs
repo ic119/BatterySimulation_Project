@@ -102,18 +102,32 @@ public class UI_CreateDeviceCount : MonoBehaviour
         return _currentPackCount < count.x * count.y;
     }
 
-    /// <summary>_container에 설정된 최대 Pack 수(x * z). 설정하지 않았으면 1.</summary>
-    public bool TryGetMaxPackCount(ContainerDataModel _container, out int _max)
+    /// <summary>_container의 Pack 격자 크기. x는 x축 방향 최대 개수, z는 z축 방향 최대 줄 수(설정하지 않았으면 1, 1).</summary>
+    public bool TryGetPackGrid(ContainerDataModel _container, out int _x, out int _z)
     {
-        _max = 0;
+        _x = 0;
+        _z = 0;
         if (_container == null)
         {
             return false;
         }
 
         Vector2Int count = GetCount(_container);
-        _max = count.x * count.y;
+        _x = count.x;
+        _z = count.y;
         return true;
+    }
+
+    /// <summary>_container의 x / z 수량을 입력 필드를 거치지 않고 정한다(저장된 파일을 불러올 때). 0보다 작은 값은 0으로 본다.</summary>
+    public void SetCount(ContainerDataModel _container, int _x, int _z)
+    {
+        if (_container == null)
+        {
+            return;
+        }
+
+        countDictionary[_container] = new Vector2Int(Mathf.Max(0, _x), Mathf.Max(0, _z));
+        Refresh();
     }
 
     /// <summary>_container의 x / z 수량. 설정하지 않았으면 기본값(1, 1).</summary>

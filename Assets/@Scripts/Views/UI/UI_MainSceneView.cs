@@ -281,8 +281,19 @@ public class UI_MainSceneView : MonoBehaviour
             }
         }
 
-        bool saved = jsonDataController.Save(packFactory);
+        bool saved = jsonDataController.Save(packFactory, GetPackGrid);
         alarmPopupView?.Show(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
+    }
+
+    /// <summary>저장할 _container의 Pack 생성 격자(x 개수, z 줄 수). 패널이 없으면 (0, 0)이라 저장하지 않은 것으로 본다.</summary>
+    private Vector2Int GetPackGrid(ContainerDataModel _container)
+    {
+        if (mainSceneManager != null && mainSceneManager.TryGetPackGrid(_container, out int gridX, out int gridZ))
+        {
+            return new Vector2Int(gridX, gridZ);
+        }
+
+        return Vector2Int.zero;
     }
 
     /// <summary>loadButton은 저장된 Json 파일 목록을 JsonFileListContainer의 ScrollView에 보여준다.</summary>
@@ -348,7 +359,8 @@ public class UI_MainSceneView : MonoBehaviour
             {
                 HideOrShowCreated(cell.cellPosition);
                 editorView?.AddCell(cell);
-            });
+            },
+            (container, columns, rows) => mainSceneManager?.SetPackGrid(container, columns, rows));
 
         PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
         containerCount = result.containerCount;
@@ -434,8 +446,8 @@ public class UI_MainSceneView : MonoBehaviour
                     {
                         if (mainSceneManager != null && !mainSceneManager.CanCreatePack(selectedContainer))
                         {
-                            mainSceneManager.TryGetMaxPackCount(selectedContainer, out int maxPackCount);
-                            string message = $"Container {selectedContainer.containerName}에는 Pack을 최대 {maxPackCount}개까지만 만들 수 있습니다.";
+                            mainSceneManager.TryGetPackGrid(selectedContainer, out int gridX, out int gridZ);
+                            string message = $"Container {selectedContainer.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
                             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(message);
                             alarmPopupView?.Show(message);
                             return false;
@@ -581,7 +593,15 @@ public class UI_MainSceneView : MonoBehaviour
                     // 선택한 Container가 없으면 이 Pack을 담을 새 Container를 만든다.
                     ContainerDataModel container = EnsureContainer(_parentContainer);
                     packFactory.PackPadding = packPadding;
-                    PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container);
+                    // 선택한 Container의 x * z 격자에 맞춰 x 방향으로 채운 뒤 z 방향 다음 줄에 놓는다(새 Container나 패널이 없으면 기존처럼 x 방향).
+                    int gridX = 0;
+                    int gridZ = 0;
+                    if (_parentContainer != null && mainSceneManager != null)
+                    {
+                        mainSceneManager.TryGetPackGrid(_parentContainer, out gridX, out gridZ);
+                    }
+
+                    PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container, gridX, gridZ);
                     Transform packTransform = packFactory.GetPackTransform(pack);
                     HideOrShowCreated(packTransform);
                     editorView?.AddPack(pack, packTransform);

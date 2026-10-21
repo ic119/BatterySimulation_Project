@@ -367,11 +367,18 @@ namespace Incheol.Presenter
             return createCountView == null || _container == null || createCountView.CanCreatePack(_container, _container.packsList.Count);
         }
 
-        /// <summary>_container의 최대 Pack 수(설정하지 않았으면 1). 패널이 없으면 false.</summary>
-        public bool TryGetMaxPackCount(ContainerDataModel _container, out int _max)
+        /// <summary>_container의 Pack 격자 크기를 정한다(저장된 파일을 불러올 때). 패널이 없으면 아무것도 하지 않는다.</summary>
+        public void SetPackGrid(ContainerDataModel _container, int _x, int _z)
         {
-            _max = 0;
-            return createCountView != null && createCountView.TryGetMaxPackCount(_container, out _max);
+            createCountView?.SetCount(_container, _x, _z);
+        }
+
+        /// <summary>_container의 Pack 격자 크기(x축 방향 개수, z축 방향 줄 수. 설정하지 않았으면 1, 1). 패널이 없으면 false.</summary>
+        public bool TryGetPackGrid(ContainerDataModel _container, out int _x, out int _z)
+        {
+            _x = 0;
+            _z = 0;
+            return createCountView != null && createCountView.TryGetPackGrid(_container, out _x, out _z);
         }
 
         /// <summary>

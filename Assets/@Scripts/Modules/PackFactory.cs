@@ -1,3 +1,4 @@
+using Incheol.Modules;
 using Incheol.Utils;
 using System.Collections.Generic;
 using UnityEngine;
@@ -352,13 +353,115 @@ public class PackFactory
         }
     }
 
+    /// <summary>
+    /// _packTransform(방금 만든 Pack)을 Container의 x(_columns) * z(_rows) 격자 칸에 놓고 칸(열, 줄)을 _pack에 기록한다.
+    /// 칸의 위치는 (열, 줄)로만 정해지고(+x로 열, -z로 줄) 다른 Pack의 Renderer bounds는 보지 않는다.
+    /// 칸 크기는 Pack 크기 + 축별 간격이며, Container에 사용자가 조절한 간격(SubDeviceSpacingData)이 있으면 그 축은 여백 대신 그 간격을 쓴다.
+    /// 칸을 기록한 적 없는 Pack(격자를 정하기 전에 만든 Pack, 예전 파일의 Pack)은 현재 위치를 칸 크기로 나눠 어느 칸인지 구해 그 칸을 차지한 것으로 본다.
+    /// (_requestedColumn, _requestedRow)가 비어 있으면 그 칸에(저장된 파일을 불러올 때), 아니면 첫 줄부터 x 방향으로 훑어 가장 먼저 나오는 빈 칸에 놓는다.
+    /// 빈 칸이 없으면 false.
+    /// </summary>
+    private bool PlaceInGridSlot(PackDataModel _pack, Transform _packTransform, ContainerDataModel _container, int _columns, int _rows, int _requestedColumn, int _requestedRow)
+    {
+        _pack.slotColumn = -1;
+        _pack.slotRow = -1;
+
+        Renderer[] rendererArray = _packTransform.GetComponentsInChildren<Renderer>(true);
+        if (_columns <= 0 || _rows <= 0 || rendererArray.Length == 0)
+        {
+            return false;
+        }
+
+        Bounds own = rendererArray[0].bounds;
+        for (int i = 1; i < rendererArray.Length; i++)
+        {
+            own.Encapsulate(rendererArray[i].bounds);
+        }
+
+        Vector3 size = own.size;
+
+        float paddingX = packPadding;
+        float paddingZ = packPadding;
+        if (_container.containerPosition.TryGetComponent(out SubDeviceSpacingData data))
+        {
+            paddingX = data.TryGet(0, out float spacingX) ? spacingX : paddingX;
+            paddingZ = data.TryGet(2, out float spacingZ) ? spacingZ : paddingZ;
+        }
+
+        float pitchX = size.x + paddingX;
+        float pitchZ = size.z + paddingZ;
+        if (pitchX <= 0.0f || pitchZ <= 0.0f)
+        {
+            return false;
+        }
+
+        bool[,] used = new bool[_columns, _rows];
+        for (int i = 0; i < _container.packsList.Count; i++)
+        {
+            PackDataModel other = _container.packsList[i];
+            if (other == _pack)
+            {
+                continue;
+            }
+
+            // 칸을 기록한 적 없으면 지금 위치에서 칸을 구해 기록해 둔다(첫 Pack은 원점이라 0열 0줄).
+            if (other.slotColumn < 0 || other.slotRow < 0)
+            {
+                Transform otherTransform = GetPackTransform(other);
+                if (otherTransform != null)
+                {
+                    other.slotColumn = Mathf.Max(0, Mathf.RoundToInt(otherTransform.position.x / pitchX));
+                    other.slotRow = Mathf.Max(0, Mathf.RoundToInt(-otherTransform.position.z / pitchZ));
+                }
+            }
+
+            if (other.slotColumn >= 0 && other.slotColumn < _columns && other.slotRow >= 0 && other.slotRow < _rows)
+            {
+                used[other.slotColumn, other.slotRow] = true;
+            }
+        }
+
+        int column = -1;
+        int row = -1;
+        if (_requestedColumn >= 0 && _requestedColumn < _columns && _requestedRow >= 0 && _requestedRow < _rows && !used[_requestedColumn, _requestedRow])
+        {
+            column = _requestedColumn;
+            row = _requestedRow;
+        }
+
+        for (int r = 0; column < 0 && r < _rows; r++)
+        {
+            for (int c = 0; column < 0 && c < _columns; c++)
+            {
+                if (!used[c, r])
+                {
+                    column = c;
+                    row = r;
+                }
+            }
+        }
+
+        if (column < 0)
+        {
+            return false;
+        }
+
+        _packTransform.position += new Vector3(pitchX * column, 0.0f, -pitchZ * row);
+        _pack.slotColumn = column;
+        _pack.slotRow = row;
+        return true;
+    }
+
     private static float DivideSafe(float _value, float _divisor)
     {
         return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
     }
 
-    /// <summary>새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.</summary>
-    public PackDataModel CreatePack(string _packName, GameObject _prefab = null, Vector3 _size = default, ContainerDataModel _container = null)
+    /// <summary>
+    /// 새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.
+    /// _columns(x) / _rows(z)를 주면 Container 안의 격자에서 가장 먼저 나오는 빈 칸(_slotColumn / _slotRow가 비어 있으면 그 칸)에 놓는다. 주지 않으면 x 방향으로 빈자리를 찾는다.
+    /// </summary>
+    public PackDataModel CreatePack(string _packName, GameObject _prefab = null, Vector3 _size = default, ContainerDataModel _container = null, int _columns = 0, int _rows = 0, int _slotColumn = -1, int _slotRow = -1)
     {
         // Container를 주지 않으면 이 Pack만 담는 새 Container를 만든다.
         ContainerDataModel container = _container != null ? _container : CreateContainer(_packName);
@@ -376,7 +479,11 @@ public class PackFactory
         packObject.transform.position = Vector3.zero;
         ResizeBody(packObject.transform, _size);
 
-        PlaceInContainer(packObject.transform, container.containerPosition, packPadding);
+        bool placed = _columns > 0 && _rows > 0 && PlaceInGridSlot(pack, packObject.transform, container, _columns, _rows, _slotColumn, _slotRow);
+        if (!placed)
+        {
+            PlaceInContainer(packObject.transform, container.containerPosition, packPadding);
+        }
 
         packs.Add(pack);
         packTransforms[pack] = packObject.transform;
