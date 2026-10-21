@@ -197,7 +197,7 @@ public class JsonDataController : MonoBehaviour
     }
 
     /// <param name="_gridProvider">Container의 Pack 생성 격자(x 개수, z 줄 수). 없으면 격자를 저장하지 않는다.</param>
-    private static SaveJson Build(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider)
+    public static SaveJson Build(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
     {
         SaveJson data = new SaveJson();
         if (_factory == null)
