@@ -31,6 +31,7 @@ namespace Incheol.Presenter
         private UI_SubDeviceSpacingView spacingView;
         private UI_DeviceStructureView structureView;
         private UI_EditorView editorView;
+        private UI_EditorView simulationTreeView;
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
         private UI_CreateDeviceCount createCountView;
@@ -83,6 +84,11 @@ namespace Incheol.Presenter
             {
                 editorView.ItemClicked -= OnItemClicked;
                 editorView.TreeChanged -= OnTreeChanged;
+            }
+
+            if (simulationTreeView != null)
+            {
+                simulationTreeView.ItemClicked -= OnItemClicked;
             }
 
             if (nameView != null)
@@ -141,10 +147,13 @@ namespace Incheol.Presenter
             scaleView = _root.GetComponentInChildren<UI_DeviceScaleView>(true);
             spacingView = _root.GetComponentInChildren<UI_SubDeviceSpacingView>(true);
             structureView = _root.GetComponentInChildren<UI_DeviceStructureView>(true);
-            editorView = _root.GetComponentInChildren<UI_EditorView>(true);
             nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
 
             mainSceneView = _root.GetComponentInChildren<UI_MainSceneView>(true);
+
+            // 트리 뷰는 탭마다 하나씩 있어서 계층 순서에 기대지 않고 UI_MainSceneView가 가진 것을 쓴다.
+            editorView = mainSceneView != null ? mainSceneView.EditorTreeView : null;
+            simulationTreeView = mainSceneView != null ? mainSceneView.SimulationTreeView : null;
             createCountView = _root.GetComponentInChildren<UI_CreateDeviceCount>(true);
 
             scaleView?.Init(this);
@@ -156,6 +165,11 @@ namespace Incheol.Presenter
             {
                 editorView.ItemClicked += OnItemClicked;
                 editorView.TreeChanged += OnTreeChanged;
+            }
+
+            if (simulationTreeView != null)
+            {
+                simulationTreeView.ItemClicked += OnItemClicked;
             }
 
             if (nameView != null)
@@ -225,6 +239,7 @@ namespace Incheol.Presenter
             selectedKind = _kind;
 
             editorView?.SetSelected(selectedModel);
+            simulationTreeView?.SetSelected(selectedModel);
             SetVisible(selectedTarget, true, _kind);
             RefreshGraph();
             RefreshProperties();
@@ -414,6 +429,7 @@ namespace Incheol.Presenter
 
             if (editorView != null && editorView.Rename(selectedModel, _newName))
             {
+                simulationTreeView?.Rename(selectedModel, _newName);
                 RefreshProperties();
             }
 
@@ -426,6 +442,7 @@ namespace Incheol.Presenter
             SetVisible(selectedTarget, false);
             selectedModel = null;
             editorView?.SetSelected(null);
+            simulationTreeView?.SetSelected(null);
             selectedTarget = null;
             RefreshGraph();
             RefreshProperties();

@@ -140,6 +140,12 @@ public class UI_MainSceneView : MonoBehaviour
 
     #region Method
     // 트리는 EditorTab의 UI_EditorView가 기준이고, SimulationTab의 트리(simulationTreeView)에는 같은 변경을 그대로 따라 한다.
+    /// <summary>EditorTab의 트리 뷰(이 루트에 붙어 있다).</summary>
+    public UI_EditorView EditorTreeView => editorView;
+
+    /// <summary>SimulationTab의 트리 뷰. 없으면 null.</summary>
+    public UI_EditorView SimulationTreeView => simulationTreeView;
+
     private void AddContainerNode(ContainerDataModel _container)
     {
         editorView?.AddContainer(_container);
