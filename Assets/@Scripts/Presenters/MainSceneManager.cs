@@ -33,6 +33,7 @@ namespace Incheol.Presenter
         private UI_EditorView editorView;
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
+        private UI_CreateDeviceCount createCountView;
 
         private object selectedModel;
         private Transform selectedTarget;
@@ -144,9 +145,11 @@ namespace Incheol.Presenter
             nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
 
             mainSceneView = _root.GetComponentInChildren<UI_MainSceneView>(true);
+            createCountView = _root.GetComponentInChildren<UI_CreateDeviceCount>(true);
 
             scaleView?.Init(this);
             spacingView?.Init(this);
+            createCountView?.Init(this);
             mainSceneView?.Init(this);
 
             if (editorView != null)
@@ -351,6 +354,24 @@ namespace Incheol.Presenter
                     spacingView.Clear();
                 }
             }
+
+            // Container가 선택됐을 때만 Pack 생성 수량 패널을 보여준다.
+            createCountView?.Refresh();
+        }
+
+        /// <summary>
+        /// _container 안에 Pack을 하나 더 만들 수 있는지. 수량을 설정하지 않은 Container는 1개까지(패널이 없으면 항상 true).
+        /// </summary>
+        public bool CanCreatePack(ContainerDataModel _container)
+        {
+            return createCountView == null || _container == null || createCountView.CanCreatePack(_container, _container.packsList.Count);
+        }
+
+        /// <summary>_container의 최대 Pack 수(설정하지 않았으면 1). 패널이 없으면 false.</summary>
+        public bool TryGetMaxPackCount(ContainerDataModel _container, out int _max)
+        {
+            _max = 0;
+            return createCountView != null && createCountView.TryGetMaxPackCount(_container, out _max);
         }
 
         /// <summary>

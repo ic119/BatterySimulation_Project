@@ -432,6 +432,15 @@ public class UI_MainSceneView : MonoBehaviour
                     // 선택한 Container 안에 Pack을, Module은 하위 Pack 안에(Pack이 없으면 Pack 없는 Module로) 만든다.
                     if (_type == CreateType.Pack)
                     {
+                        if (mainSceneManager != null && !mainSceneManager.CanCreatePack(selectedContainer))
+                        {
+                            mainSceneManager.TryGetMaxPackCount(selectedContainer, out int maxPackCount);
+                            string message = $"Container {selectedContainer.containerName}에는 Pack을 최대 {maxPackCount}개까지만 만들 수 있습니다.";
+                            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(message);
+                            alarmPopupView?.Show(message);
+                            return false;
+                        }
+
                         _parentContainer = selectedContainer;
                         return true;
                     }
