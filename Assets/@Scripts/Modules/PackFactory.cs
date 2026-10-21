@@ -446,7 +446,124 @@ public class PackFactory
             return false;
         }
 
-        _packTransform.position += new Vector3(pitchX * column, 0.0f, -pitchZ * row);
+        // 이미 놓인 Pack(크기를 바꿨거나 간격이 조절됐을 수 있다)을 기준으로 위치를 정한다.
+        // 같은 열에 Pack이 있으면 그 왼쪽 면에, 같은 줄에 있으면 그 뒤쪽 면에 맞추고, 열(줄)이 비어 있으면 가까운 열(줄)의 Pack에서 간격만큼 떨어뜨린다.
+        // 기준이 될 Pack이 하나도 없을 때만 원점 기준 칸 크기(pitch)로 계산한다.
+        List<KeyValuePair<PackDataModel, Bounds>> placedList = new List<KeyValuePair<PackDataModel, Bounds>>();
+        for (int i = 0; i < _container.packsList.Count; i++)
+        {
+            PackDataModel other = _container.packsList[i];
+            Transform otherTransform = other == _pack ? null : GetPackTransform(other);
+            if (otherTransform == null || other.slotColumn < 0 || other.slotRow < 0)
+            {
+                continue;
+            }
+
+            Renderer[] otherRendererArray = otherTransform.GetComponentsInChildren<Renderer>(true);
+            if (otherRendererArray.Length == 0)
+            {
+                continue;
+            }
+
+            Bounds otherBounds = PackLayout.TryGetPackBody(other, otherTransform, out Renderer otherBody) ? otherBody.bounds : otherRendererArray[0].bounds;
+            placedList.Add(new KeyValuePair<PackDataModel, Bounds>(other, otherBounds));
+        }
+
+        float targetMinX = own.min.x + pitchX * column;
+        float targetMaxZ = own.max.z - pitchZ * row;
+        if (placedList.Count > 0)
+        {
+            bool found = false;
+
+            // x(열): 같은 열 > 앞쪽 열 > 뒤쪽 열 순으로 기준을 잡는다.
+            for (int i = 0; i < placedList.Count; i++)
+            {
+                if (placedList[i].Key.slotColumn == column)
+                {
+                    targetMinX = found ? Mathf.Min(targetMinX, placedList[i].Value.min.x) : placedList[i].Value.min.x;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                int prevColumn = -1;
+                int nextColumn = int.MaxValue;
+                for (int i = 0; i < placedList.Count; i++)
+                {
+                    int other = placedList[i].Key.slotColumn;
+                    prevColumn = other < column ? Mathf.Max(prevColumn, other) : prevColumn;
+                    nextColumn = other > column ? Mathf.Min(nextColumn, other) : nextColumn;
+                }
+
+                if (prevColumn >= 0)
+                {
+                    float edge = float.MinValue;
+                    for (int i = 0; i < placedList.Count; i++)
+                    {
+                        edge = placedList[i].Key.slotColumn == prevColumn ? Mathf.Max(edge, placedList[i].Value.max.x) : edge;
+                    }
+
+                    targetMinX = edge + paddingX + (column - prevColumn - 1) * pitchX;
+                }
+                else if (nextColumn != int.MaxValue)
+                {
+                    float edge = float.MaxValue;
+                    for (int i = 0; i < placedList.Count; i++)
+                    {
+                        edge = placedList[i].Key.slotColumn == nextColumn ? Mathf.Min(edge, placedList[i].Value.min.x) : edge;
+                    }
+
+                    targetMinX = edge - paddingX - size.x - (nextColumn - column - 1) * pitchX;
+                }
+            }
+
+            // z(줄): 같은 줄 > 앞쪽 줄 > 뒤쪽 줄 순으로 기준을 잡는다(줄이 늘수록 -z 쪽).
+            found = false;
+            for (int i = 0; i < placedList.Count; i++)
+            {
+                if (placedList[i].Key.slotRow == row)
+                {
+                    targetMaxZ = found ? Mathf.Max(targetMaxZ, placedList[i].Value.max.z) : placedList[i].Value.max.z;
+                    found = true;
+                }
+            }
+
+            if (!found)
+            {
+                int prevRow = -1;
+                int nextRow = int.MaxValue;
+                for (int i = 0; i < placedList.Count; i++)
+                {
+                    int other = placedList[i].Key.slotRow;
+                    prevRow = other < row ? Mathf.Max(prevRow, other) : prevRow;
+                    nextRow = other > row ? Mathf.Min(nextRow, other) : nextRow;
+                }
+
+                if (prevRow >= 0)
+                {
+                    float edge = float.MaxValue;
+                    for (int i = 0; i < placedList.Count; i++)
+                    {
+                        edge = placedList[i].Key.slotRow == prevRow ? Mathf.Min(edge, placedList[i].Value.min.z) : edge;
+                    }
+
+                    targetMaxZ = edge - paddingZ - (row - prevRow - 1) * pitchZ;
+                }
+                else if (nextRow != int.MaxValue)
+                {
+                    float edge = float.MinValue;
+                    for (int i = 0; i < placedList.Count; i++)
+                    {
+                        edge = placedList[i].Key.slotRow == nextRow ? Mathf.Max(edge, placedList[i].Value.max.z) : edge;
+                    }
+
+                    targetMaxZ = edge + paddingZ + size.z + (nextRow - row - 1) * pitchZ;
+                }
+            }
+        }
+
+        _packTransform.position += new Vector3(targetMinX - own.min.x, 0.0f, targetMaxZ - own.max.z);
         _pack.slotColumn = column;
         _pack.slotRow = row;
         return true;
