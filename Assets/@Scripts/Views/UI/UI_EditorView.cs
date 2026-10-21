@@ -1,16 +1,10 @@
-using Incheol.Models.Define;
+﻿using Incheol.Models.Define;
 using Incheol.Modules;
 using Incheol.Presenter;
 using Incheol.Utils;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// 생성된 Pack / Module / Cell을 scrollRect(ScrollRect의 Content) 아래에 트리 구조로 보여준다.
-/// 각 항목은 Addressable 프리팹(UI_TreeNodeItem)이며, 자식이 있는 항목은 화살표 버튼으로 자식들을 펼치거나(▼) 접는다(▶).
-/// 항목마다 줄 오브젝트를 만들지 않고 VirtualScrollList로 화면에 보이는 줄만 만들어 스크롤할 때 돌려 쓴다.
-/// 트리 구조(TreeNode)는 모델 단위로 따로 들고 있으므로, 줄 오브젝트는 보이는 항목의 내용을 잠깐 빌려 보여줄 뿐이다.
-/// </summary>
 public class UI_EditorView : MonoBehaviour
 {
     private class TreeNode
@@ -63,6 +57,15 @@ public class UI_EditorView : MonoBehaviour
         if (scrollRect != null)
         {
             list = new VirtualScrollList<UI_TreeNodeItem>(scrollRect, rowHeight, CreateRow, BindRow);
+        }
+    }
+
+    private void OnEnable()
+    {
+        // 꺼진 탭에 있는 트리는 항목이 추가되는 동안 줄을 그리지 못했으므로, 켜질 때 쌓인 항목을 다시 그린다.
+        if (rootNodeList.Count > 0)
+        {
+            RefreshTree();
         }
     }
 

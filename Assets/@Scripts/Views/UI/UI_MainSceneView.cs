@@ -20,7 +20,7 @@ public class UI_MainSceneView : MonoBehaviour
     }
 
     #region Variable
-    [Header("Tools Button Variable")]
+    [Header("EditorTab Tools Button Variable")]
     [SerializeField] private Button newButton;
     [SerializeField] private Button saveButton;
     [SerializeField] private Button loadButton;
@@ -28,6 +28,8 @@ public class UI_MainSceneView : MonoBehaviour
 
     [Header("Popup / List")]
     [SerializeField] private UI_AlarmPopupView alarmPopupView;
+    [SerializeField, Tooltip("SimulationTab의 알림 팝업. 같은 내용을 함께 띄운다.")] private UI_AlarmPopupView simulationAlarmPopupView;
+    [SerializeField, Tooltip("SimulationTab의 DeviceStructureContainer 트리. EditorTab 트리와 같은 항목을 함께 보여준다.")] private UI_EditorView simulationTreeView;
     [SerializeField] private UI_ConfirmPopupView confirmPopupView;
     [SerializeField] private UI_JsonFileListView jsonFileListView;
 
@@ -137,6 +139,50 @@ public class UI_MainSceneView : MonoBehaviour
     public event System.Action<Transform> ObjectCreated;
 
     #region Method
+    // 트리는 EditorTab의 UI_EditorView가 기준이고, SimulationTab의 트리(simulationTreeView)에는 같은 변경을 그대로 따라 한다.
+    private void AddContainerNode(ContainerDataModel _container)
+    {
+        editorView?.AddContainer(_container);
+        simulationTreeView?.AddContainer(_container);
+    }
+
+    private void AddPackNode(PackDataModel _pack, Transform _target)
+    {
+        editorView?.AddPack(_pack, _target);
+        simulationTreeView?.AddPack(_pack, _target);
+    }
+
+    private void AddModuleNode(ModuleDataModel _module, PackDataModel _parentPack)
+    {
+        editorView?.AddModule(_module, _parentPack);
+        simulationTreeView?.AddModule(_module, _parentPack);
+    }
+
+    private void AddCellNode(CellDataModel _cell)
+    {
+        editorView?.AddCell(_cell);
+        simulationTreeView?.AddCell(_cell);
+    }
+
+    private void RemoveTreeNode(object _model)
+    {
+        editorView?.RemoveNode(_model);
+        simulationTreeView?.RemoveNode(_model);
+    }
+
+    private void ClearTrees()
+    {
+        editorView?.Clear();
+        simulationTreeView?.Clear();
+    }
+
+    /// <summary>EditorTab과 SimulationTab의 알림 팝업에 같은 내용을 띄운다. 꺼져 있는 탭의 팝업은 보이지 않을 뿐이다.</summary>
+    private void ShowAlarm(string _message)
+    {
+        alarmPopupView?.Show(_message);
+        simulationAlarmPopupView?.Show(_message);
+    }
+
     /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
     public void Init(MainSceneManager _manager)
     {
@@ -255,14 +301,14 @@ public class UI_MainSceneView : MonoBehaviour
 
         if (removed)
         {
-            editorView?.RemoveNode(_model);
+            RemoveTreeNode(_model);
 
             // 마지막 Pack / 단독 Module을 지워 비게 된 Container는 함께 지운다.
             if (parentContainer != null && parentContainer.packsList.Count == 0 && parentContainer.modulesList.Count == 0)
             {
                 ObjectRemoving?.Invoke(parentContainer.containerPosition);
                 packFactory.RemoveContainer(parentContainer);
-                editorView?.RemoveNode(parentContainer);
+                RemoveTreeNode(parentContainer);
             }
 
             DebugLogManager.GenerateLogMessage<UI_MainSceneView>("삭제 완료");
@@ -282,7 +328,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         bool saved = jsonDataController.Save(packFactory, GetPackGrid);
-        alarmPopupView?.Show(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
+        ShowAlarm(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
     }
 
     /// <summary>저장할 _container의 Pack 생성 격자(x 개수, z 줄 수). 패널이 없으면 (0, 0)이라 저장하지 않은 것으로 본다.</summary>
@@ -305,10 +351,16 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>목록에서 Json 파일을 누르면 현재 Pack / Module / Cell을 모두 지우고 그 파일의 내용으로 다시 만든다.</summary>
     private void OnJsonFileClicked(string _path)
     {
+        LoadFromFile(_path);
+    }
+
+    /// <summary>_path의 Json으로 모든 Pack / Module / Cell을 다시 만든다. Editor 탭과 Simulation 탭의 Load가 같이 쓴다.</summary>
+    public void LoadFromFile(string _path)
+    {
         JsonDataController.SaveJson data = JsonDataController.Load(_path);
         if (data == null)
         {
-            alarmPopupView?.Show("Json 파일을 읽지 못했습니다.");
+            ShowAlarm("Json 파일을 읽지 못했습니다.");
             return;
         }
 
@@ -334,7 +386,7 @@ public class UI_MainSceneView : MonoBehaviour
         // 지울 오브젝트가 선택되어 있으면 먼저 선택을 풀어 카메라와 패널을 되돌린다.
         SelectionClearRequested?.Invoke();
 
-        editorView?.Clear();
+        ClearTrees();
         packFactory.Clear();
 
         // newButton으로 만들 때와 같은 여백 설정을 쓴다.
@@ -344,21 +396,21 @@ public class UI_MainSceneView : MonoBehaviour
 
         PackJsonBuilder builder = new PackJsonBuilder(
             packFactory,
-            container => editorView?.AddContainer(container),
+            container => AddContainerNode(container),
             (pack, packTransform) =>
             {
                 HideOrShowCreated(packTransform);
-                editorView?.AddPack(pack, packTransform);
+                AddPackNode(pack, packTransform);
             },
             (module, parentPack) =>
             {
                 HideOrShowCreated(module.modulePosition);
-                editorView?.AddModule(module, parentPack);
+                AddModuleNode(module, parentPack);
             },
             cell =>
             {
                 HideOrShowCreated(cell.cellPosition);
-                editorView?.AddCell(cell);
+                AddCellNode(cell);
             },
             (container, columns, rows) => mainSceneManager?.SetPackGrid(container, columns, rows));
 
@@ -370,7 +422,7 @@ public class UI_MainSceneView : MonoBehaviour
         skippedCount = result.skippedCount;
 
         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.Packs.Count}개, Module {packFactory.Modules.Count}개, 건너뜀 {skippedCount}개");
-        alarmPopupView?.Show(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
+        ShowAlarm(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
     }
 
     private void BuildDropdownOptions()
@@ -449,7 +501,7 @@ public class UI_MainSceneView : MonoBehaviour
                             mainSceneManager.TryGetPackGrid(selectedContainer, out int gridX, out int gridZ);
                             string message = $"Container {selectedContainer.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
                             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(message);
-                            alarmPopupView?.Show(message);
+                            ShowAlarm(message);
                             return false;
                         }
 
@@ -567,7 +619,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        alarmPopupView?.Show(message);
+        ShowAlarm(message);
     }
 
     /// <summary>_container가 있으면 그대로, 없으면 새 Container를 만들어 트리에 추가해 돌려준다.</summary>
@@ -579,7 +631,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         ContainerDataModel container = packFactory.CreateContainer((++containerCount).ToString());
-        editorView?.AddContainer(container);
+        AddContainerNode(container);
         return container;
     }
 
@@ -604,7 +656,7 @@ public class UI_MainSceneView : MonoBehaviour
                     PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container, gridX, gridZ);
                     Transform packTransform = packFactory.GetPackTransform(pack);
                     HideOrShowCreated(packTransform);
-                    editorView?.AddPack(pack, packTransform);
+                    AddPackNode(pack, packTransform);
                     DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Pack 생성 : {pack.packName}");
                     break;
                 }
@@ -617,7 +669,7 @@ public class UI_MainSceneView : MonoBehaviour
                     if (module != null)
                     {
                         HideOrShowCreated(module.modulePosition);
-                        editorView?.AddModule(module, _parentPack);
+                        AddModuleNode(module, _parentPack);
                         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Module 생성 : {module.moduleName}");
                     }
                     else
@@ -634,7 +686,7 @@ public class UI_MainSceneView : MonoBehaviour
                     if (cell != null)
                     {
                         HideOrShowCreated(cell.cellPosition);
-                        editorView?.AddCell(cell);
+                        AddCellNode(cell);
                         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Cell 생성 : {cell.cellName} (Module : {cell.parentModule.moduleName})");
                     }
                     else
