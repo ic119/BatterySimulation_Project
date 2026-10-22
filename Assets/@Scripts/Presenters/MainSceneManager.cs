@@ -24,6 +24,7 @@ namespace Incheol.Presenter
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
         private UI_CreateDeviceCount createCountView;
+        private UI_SimulationControl simulationControl;
 
         private object selectedModel;
         private Transform selectedTarget;
@@ -144,7 +145,9 @@ namespace Incheol.Presenter
             editorView = mainSceneView != null ? mainSceneView.EditorTreeView : null;
             simulationTreeView = mainSceneView != null ? mainSceneView.SimulationTreeView : null;
             createCountView = _root.GetComponentInChildren<UI_CreateDeviceCount>(true);
+            simulationControl = _root.GetComponentInChildren<UI_SimulationControl>(true);
 
+            simulationControl?.Init(this);
             scaleView?.Init(this);
             spacingView?.Init(this);
             createCountView?.Init(this);
@@ -281,7 +284,7 @@ namespace Incheol.Presenter
         }
 
         /// <summary>선택된 항목에 트리가 표시하는 이름. 선택이 없거나 트리 뷰가 없으면 빈 문자열.</summary>
-        private string GetSelectedLabel()
+        public string GetSelectedLabel()
         {
             return editorView != null ? editorView.GetLabel(selectedModel) : string.Empty;
         }
@@ -391,6 +394,8 @@ namespace Incheol.Presenter
         /// </summary>
         private void RefreshName()
         {
+            simulationControl?.RefreshName();
+
             if (nameView == null)
             {
                 return;
