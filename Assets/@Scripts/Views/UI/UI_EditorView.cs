@@ -1,4 +1,5 @@
 ﻿using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Presenter;
 using Incheol.Utils;
@@ -22,7 +23,7 @@ public class UI_EditorView : MonoBehaviour
         public Transform target;
 
         /// <summary>항목 종류. 선택 시 보이는 Renderer 범위가 종류마다 다르다(Cell은 본인만).</summary>
-        public MainSceneManager.TargetKind kind;
+        public DeviceType kind;
     }
 
     #region Variable
@@ -49,7 +50,7 @@ public class UI_EditorView : MonoBehaviour
     public event System.Action TreeChanged;
 
     /// <summary>항목(줄)을 눌렀을 때 발생한다. 인자는 그 항목의 모델, 항목이 가리키는 씬 오브젝트, 종류이다.</summary>
-    public event System.Action<object, Transform, MainSceneManager.TargetKind> ItemClicked;
+    public event System.Action<object, Transform, DeviceType> ItemClicked;
 
     #region LifeCycle
     private void Awake()
@@ -214,7 +215,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition, MainSceneManager.TargetKind.Container);
+        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition, DeviceType.Container);
     }
 
     /// <summary>Pack을 그 Container의 자식으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
@@ -225,7 +226,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target, MainSceneManager.TargetKind.Pack);
+        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target, DeviceType.Pack);
     }
 
     /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 그 Module을 담은 Container의 자식이 된다.</summary>
@@ -237,7 +238,7 @@ public class UI_EditorView : MonoBehaviour
         }
 
         object parentKey = _parentPack != null ? _parentPack : (object)_module.parentContainer;
-        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition, MainSceneManager.TargetKind.Module);
+        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition, DeviceType.Module);
     }
 
     /// <summary>Cell을 추가한다. 부모는 cell.parentModule이다.</summary>
@@ -248,10 +249,10 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition, MainSceneManager.TargetKind.Cell);
+        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition, DeviceType.Cell);
     }
 
-    private void AddNode(object _key, string _label, object _parentKey, Transform _target, MainSceneManager.TargetKind _kind)
+    private void AddNode(object _key, string _label, object _parentKey, Transform _target, DeviceType _kind)
     {
         // 이미 추가된 항목이면 무시한다.
         if (nodeDictionary.ContainsKey(_key))

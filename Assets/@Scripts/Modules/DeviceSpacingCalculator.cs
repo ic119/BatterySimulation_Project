@@ -1,3 +1,5 @@
+using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Presenter;
 using System.Collections.Generic;
 using UnityEngine;
@@ -51,7 +53,7 @@ namespace Incheol.Modules
         /// _axis(0 = x, 1 = y, 2 = z) 방향의 현재 평균 간격과, 몸체를 벗어나지 않는 최대 간격을 구한다.
         /// 층이 2개 미만이거나 몸체가 없으면 false.
         /// </summary>
-        public static bool TryGetSpacing(Transform _target, MainSceneManager.TargetKind _kind, int _axis, out float _current, out float _max)
+        public static bool TryGetSpacing(Transform _target, DeviceType _kind, int _axis, out float _current, out float _max)
         {
             _current = 0.0f;
             _max = 0.0f;
@@ -90,7 +92,7 @@ namespace Incheol.Modules
                 return false;
             }
 
-            MainSceneManager.TargetKind kind = GetParentKind(_parent);
+            DeviceType kind = GetParentKind(_parent);
 
             bool applied = false;
             for (int axis = 0; axis < 3; axis++)
@@ -114,11 +116,11 @@ namespace Incheol.Modules
         }
 
         /// <summary>부모는 Cell일 수 없다. 몸체(Body)가 없는 빈 오브젝트면 Container, 있으면 Pack / Module(탐색 방식은 같다)이다.</summary>
-        private static MainSceneManager.TargetKind GetParentKind(Transform _parent)
+        private static DeviceType GetParentKind(Transform _parent)
         {
-            return DeviceSizeCalculator.TryGetSizeRenderer(_parent, MainSceneManager.TargetKind.Pack, out _)
-                ? MainSceneManager.TargetKind.Pack
-                : MainSceneManager.TargetKind.Container;
+            return DeviceSizeCalculator.TryGetSizeRenderer(_parent, DeviceType.Pack, out _)
+                ? DeviceType.Pack
+                : DeviceType.Container;
         }
 
         /// <summary>
@@ -133,7 +135,7 @@ namespace Incheol.Modules
                 return;
             }
 
-            MainSceneManager.TargetKind kind = GetParentKind(_parent);
+            DeviceType kind = GetParentKind(_parent);
             for (int axis = 0; axis < 3; axis++)
             {
                 if (data.TryGet(axis, out _) && TryGetSpacing(_parent, kind, axis, out float current, out _))
@@ -146,7 +148,7 @@ namespace Incheol.Modules
         /// <summary>
         /// _axis 방향의 층 사이 간격을 _spacing으로 바꾼다. 몸체 밖으로 나가면 바꾸지 않고 false(_max에 허용되는 최대 간격).
         /// </summary>
-        public static bool TrySetSpacing(Transform _target, MainSceneManager.TargetKind _kind, int _axis, float _spacing, out float _max)
+        public static bool TrySetSpacing(Transform _target, DeviceType _kind, int _axis, float _spacing, out float _max)
         {
             _max = 0.0f;
             if (!TryGetSpacing(_target, _kind, _axis, out _, out _max))
@@ -189,12 +191,12 @@ namespace Incheol.Modules
             return true;
         }
 
-        private static bool TryBuildLayers(Transform _target, MainSceneManager.TargetKind _kind, int _axis, out List<Layer> _layerList, out Bounds _body)
+        private static bool TryBuildLayers(Transform _target, DeviceType _kind, int _axis, out List<Layer> _layerList, out Bounds _body)
         {
             _layerList = null;
             _body = default;
             Renderer bodyRenderer = null;
-            bool unbounded = _kind == MainSceneManager.TargetKind.Container;
+            bool unbounded = _kind == DeviceType.Container;
             if (_target == null || (!unbounded && !DeviceSizeCalculator.TryGetSizeRenderer(_target, _kind, out bodyRenderer)))
             {
                 return false;

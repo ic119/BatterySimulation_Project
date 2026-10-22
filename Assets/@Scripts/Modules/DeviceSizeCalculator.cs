@@ -1,3 +1,5 @@
+using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Presenter;
 using UnityEngine;
 
@@ -12,10 +14,10 @@ namespace Incheol.Modules
         private const float Tolerance = 0.001f;
 
         /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
-        public static bool TryGetSizeRenderer(Transform _target, MainSceneManager.TargetKind _kind, out Renderer _renderer)
+        public static bool TryGetSizeRenderer(Transform _target, DeviceType _kind, out Renderer _renderer)
         {
             _renderer = null;
-            if (_kind == MainSceneManager.TargetKind.Cell)
+            if (_kind == DeviceType.Cell)
             {
                 _renderer = _target.GetComponent<Renderer>();
                 return _renderer != null;
@@ -43,7 +45,7 @@ namespace Incheol.Modules
         /// 선택 항목 본인 몸체(Pack / Module은 자식 Body, Cell은 본체)의 월드 크기.
         /// 몸체 Renderer가 없으면 자식 Renderer를 합친 크기로 대신한다.
         /// </summary>
-        public static bool TryGetOwnSize(Transform _target, MainSceneManager.TargetKind _kind, out Vector3 _size)
+        public static bool TryGetOwnSize(Transform _target, DeviceType _kind, out Vector3 _size)
         {
             _size = Vector3.zero;
             if (_target == null)
@@ -131,10 +133,10 @@ namespace Incheol.Modules
         /// _current는 _child 몸체의 현재 bounds. 부모 몸체를 찾을 수 없으면 검사하지 않고 true.
         /// 벗어나면 false이고 _maxSize에는 그 모서리에서 키울 수 있는 최대 크기가 담긴다.
         /// </summary>
-        public static bool FitsInParent(Transform _child, MainSceneManager.TargetKind _kind, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
+        public static bool FitsInParent(Transform _child, DeviceType _kind, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
         {
             _maxSize = _newSize;
-            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, _kind == MainSceneManager.TargetKind.Cell ? MainSceneManager.TargetKind.Module : MainSceneManager.TargetKind.Pack, out Renderer parentBody))
+            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, _kind == DeviceType.Cell ? DeviceType.Module : DeviceType.Pack, out Renderer parentBody))
             {
                 return true;
             }

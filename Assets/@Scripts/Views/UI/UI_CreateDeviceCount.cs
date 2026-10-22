@@ -1,4 +1,5 @@
 ﻿using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Presenter;
 using System.Collections.Generic;
 using System.Globalization;
@@ -138,7 +139,7 @@ public class UI_CreateDeviceCount : MonoBehaviour
 
     private ContainerDataModel GetSelectedContainer()
     {
-        if (mainSceneManager == null || mainSceneManager.SelectedKind != MainSceneManager.TargetKind.Container)
+        if (mainSceneManager == null || mainSceneManager.SelectedKind != DeviceType.Container)
         {
             return null;
         }

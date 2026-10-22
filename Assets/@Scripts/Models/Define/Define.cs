@@ -15,14 +15,21 @@
         UI_JsonFileItem = 7
     }
 
-    /// <summaryㅕㅑ>
-    /// 장비 타입 정의
+    /// <summary>
+    /// 시뮬레이션 타입 정의
     /// </summary>
-    public enum DeviceType
+    public enum SimulationType
     {
-        Pakc = 0,
-        Module = 1,
-        Cell = 2
+        None = 0,
+        Charge = 1,
+        Discharge = 2
     }
 
+    public enum DeviceType
+    {
+        Pack,
+        Module,
+        Cell,
+        Container
+    }
 }

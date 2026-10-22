@@ -1,4 +1,5 @@
 ﻿using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Presenter;
 using Incheol.Utils;
@@ -513,7 +514,7 @@ public class UI_MainSceneView : MonoBehaviour
         Transform selectedTarget = mainSceneManager.SelectedTarget;
         switch (mainSceneManager.SelectedKind)
         {
-            case MainSceneManager.TargetKind.Container:
+            case DeviceType.Container:
                 {
                     ContainerDataModel selectedContainer = packFactory.FindContainer(selectedTarget);
                     if (selectedContainer == null)
@@ -548,7 +549,7 @@ public class UI_MainSceneView : MonoBehaviour
                     DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Container 아래에는 Cell을 직접 만들 수 없습니다. Module을 선택하세요.");
                     return false;
                 }
-            case MainSceneManager.TargetKind.Pack:
+            case DeviceType.Pack:
                 {
                     PackDataModel selectedPack = packFactory.FindPack(selectedTarget);
                     if (selectedPack == null)
@@ -577,7 +578,7 @@ public class UI_MainSceneView : MonoBehaviour
                     DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Pack 아래에는 Pack을 만들 수 없습니다.");
                     return false;
                 }
-            case MainSceneManager.TargetKind.Module:
+            case DeviceType.Module:
                 {
                     ModuleDataModel selectedModule = packFactory.FindModule(selectedTarget);
                     if (selectedModule == null)
@@ -594,7 +595,7 @@ public class UI_MainSceneView : MonoBehaviour
                     DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"Module 아래에는 {_type}을(를) 만들 수 없습니다.");
                     return false;
                 }
-            case MainSceneManager.TargetKind.Cell:
+            case DeviceType.Cell:
                 DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"Cell 아래에는 {_type}을(를) 만들 수 없습니다.");
                 return false;
         }

@@ -1,4 +1,6 @@
-using Incheol.Modules;
+using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
+﻿using Incheol.Modules;
 using Incheol.Presenter;
 using Incheol.Utils;
 using System.Globalization;
@@ -135,22 +137,22 @@ public class UI_DeviceScaleView : MonoBehaviour
     private void OnClickZUp() => ChangeAxis(zAxisInputField, StepAmount);
     private void OnClickZDown() => ChangeAxis(zAxisInputField, -StepAmount);
 
-    /// <summary>입력 필드에 값을 타이핑할 때마다 실시간으로 선택 항목의 크기에 반영한다. 입력 중에는 오류 로그를 남기지 않는다.</summary>
+    /// <summary>
+    /// 입력 필드에 값을 타이핑할 때마다 실시간으로 선택 항목의 크기에 반영 (입력 중에는 오류 로그 X)
+    /// </summary>
     private void OnAxisValueChanged(string _text)
     {
         ApplyScale(false);
     }
 
-    /// <summary>입력을 마치면(Enter / 포커스 이동) 한 번 더 반영하며, 내부 항목 때문에 줄일 수 없는 값은 최소 크기로 되돌리고 알람을 띄운다.</summary>
+    /// <summary>
+    /// 입력을 마치면(Enter / 포커스 이동) 한 번 더 반영 처리, 내부 항목 때문에 줄일 수 없는 값은 최소 크기로 되돌리고 알람 표출
+    /// </summary>
     private void OnAxisEndEdit(string _text)
     {
         ApplyScale(true);
     }
 
-    /// <summary>
-    /// _field에 입력된 값에 _delta를 더해 다시 채우고, 바뀐 값을 선택 항목의 크기에 바로 반영한다.
-    /// 비어 있거나 숫자가 아니면 건드리지 않고, 결과가 0 이하가 되면 바꾸지 않는다.
-    /// </summary>
     private void ChangeAxis(TMP_InputField _field, float _delta)
     {
         if (_field == null)
@@ -173,12 +175,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         SetInput(_field, next);
         ApplyScale(true);
     }
-
-    /// <summary>
-    /// 입력 필드의 x, y, z를 MainSceneManager의 선택 항목 본인의 크기에 바로 반영한다(자식 Module / Cell의 크기와 위치는 그대로).
-    /// 비어 있는 칸은 현재 값을 유지한다. 0 이하이거나 숫자가 아닌 값이 있으면 아무것도 바꾸지 않는다.
-    /// Pack / Module은 몸체(Body)의 좌측 바닥 뒤쪽 모서리를 고정한 채 +x, +y, -z 방향으로 늘이고 줄이며, Cell은 중심을 고정한다.
-    /// _log가 false면(타이핑 중) 값이 맞지 않아도 로그를 남기지 않는다. 입력 필드는 다시 채우지 않는다(입력 중인 글자를 덮어쓰지 않기 위해).
+    
     /// </summary>
     private void ApplyScale(bool _log)
     {
@@ -244,8 +241,8 @@ public class UI_DeviceScaleView : MonoBehaviour
         }
 
         // Cell / Module을 키울 때 부모 Module / Pack 몸체 밖으로 나가면 막는다.
-        MainSceneManager.TargetKind kind = mainSceneManager.SelectedKind;
-        if (kind != MainSceneManager.TargetKind.Pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
+        DeviceType kind = mainSceneManager.SelectedKind;
+        if (kind != DeviceType.Pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
             // 최소 크기 위반과 같이, 타이핑 중에는 아무것도 바꾸지 않고 입력을 끝낼 때 / 버튼을 누를 때 최대 크기로 되돌린다.
             if (!_log)
@@ -253,7 +250,7 @@ public class UI_DeviceScaleView : MonoBehaviour
                 return;
             }
 
-            string parentName = kind == MainSceneManager.TargetKind.Cell ? "Module" : "Pack";
+            string parentName = kind == DeviceType.Cell ? "Module" : "Pack";
             string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
             alarmPopupView?.Show(message);
@@ -274,7 +271,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         }
 
         // Pack은 같은 Container의 다른 Pack / 단독 Module과 겹치면 막는다. 타이핑 중에는 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 현재 크기로 되돌린다.
-        if (kind == MainSceneManager.TargetKind.Pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
+        if (kind == DeviceType.Pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
         {
             if (!_log)
             {
@@ -329,7 +326,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
     private bool TryGetOwnSize(Transform _target, out Vector3 _size)
     {
-        MainSceneManager.TargetKind kind = mainSceneManager != null ? mainSceneManager.SelectedKind : MainSceneManager.TargetKind.Pack;
+        DeviceType kind = mainSceneManager != null ? mainSceneManager.SelectedKind : DeviceType.Pack;
         return DeviceSizeCalculator.TryGetOwnSize(_target, kind, out _size);
     }
     #endregion

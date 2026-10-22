@@ -1,3 +1,5 @@
+using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 ﻿using Incheol.Modules;
 using Incheol.Presenter;
 using Incheol.Utils;
@@ -168,7 +170,7 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
             return;
         }
 
-        MainSceneManager.TargetKind kind = mainSceneManager.SelectedKind;
+        DeviceType kind = mainSceneManager.SelectedKind;
         if (!_value.HasValue || _value.Value < 0.0f)
         {
             if (_value.HasValue)

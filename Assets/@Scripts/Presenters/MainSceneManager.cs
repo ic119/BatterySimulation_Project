@@ -1,4 +1,5 @@
 ﻿using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
 using UnityEngine;
@@ -12,18 +13,6 @@ namespace Incheol.Presenter
     /// </summary>
     public class MainSceneManager : MonoBehaviour
     {
-        /// <summary>
-        /// 선택 대상의 종류
-        /// 종류에 따라 SetVisible이 켜는 Renderer 범위 상이
-        /// </summary>
-        public enum TargetKind
-        {
-            Pack,
-            Module,
-            Cell,
-            Container,
-        }
-
         #region Variable
         private OrbitCameraView cameraView;
         private UI_PropertiesView propertiesView;
@@ -38,7 +27,7 @@ namespace Incheol.Presenter
 
         private object selectedModel;
         private Transform selectedTarget;
-        private TargetKind selectedKind;
+        private DeviceType selectedKind;
         #endregion
 
         #region Property
@@ -56,7 +45,7 @@ namespace Incheol.Presenter
         /// 현재 선택된 항목의 종류(Pack/Module/Cell)
         /// 선택이 없으면 의미 없는 값이므로 SelectedModel이 null이 아닐 경우에만 사용
         /// </summary>
-        public TargetKind SelectedKind => selectedKind; 
+        public DeviceType SelectedKind => selectedKind; 
         #endregion
 
         #region LifeCycle
@@ -109,7 +98,7 @@ namespace Incheol.Presenter
         #endregion
 
         #region Method
-        private void OnItemClicked(object _model, Transform _target, TargetKind _kind)
+        private void OnItemClicked(object _model, Transform _target, DeviceType _kind)
         {
             SelectItem(_model, _target, _kind);
         }
@@ -216,7 +205,7 @@ namespace Incheol.Presenter
         /// 새로 선택한 오브젝트일 경우, 자식(Module의 Cell 등)까지 전부 활성화 후 카메라 추적 실행
         /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 해당 오브젝트 비활성화, 선택된 항목은 없는 상태 처리 (null)
         /// </summary>
-        public void SelectItem(object _model, Transform _target, TargetKind _kind = TargetKind.Pack)
+        public void SelectItem(object _model, Transform _target, DeviceType _kind = DeviceType.Pack)
         {
             if (_model == null || _target == null)
             {
@@ -258,7 +247,7 @@ namespace Incheol.Presenter
         /// </summary>
         public void ShowIfInSelection(Transform _created)
         {
-            if (_created == null || selectedTarget == null || selectedKind == TargetKind.Cell)
+            if (_created == null || selectedTarget == null || selectedKind == DeviceType.Cell)
             {
                 return;
             }
@@ -332,7 +321,7 @@ namespace Incheol.Presenter
             bool hasSelection = selectedModel != null && selectedTarget != null;
 
             // Container는 빈 오브젝트라 몸체 크기가 없으므로 크기 패널은 비워 둔다(자식 Pack 사이의 간격은 간격 패널로 조절한다).
-            bool hasBody = hasSelection && selectedKind != TargetKind.Container;
+            bool hasBody = hasSelection && selectedKind != DeviceType.Container;
 
             if (propertiesView != null)
             {
@@ -461,14 +450,14 @@ namespace Incheol.Presenter
         /// true일 때 Pack / Module은 자식까지 모든 Renderer를 켜고, Cell은 본인의 Renderer만 켜고 같은 루트 아래의 나머지 Renderer는 모두 끈다.
         /// 오브젝트는 비활성화하지 않아 자식만 따로 보여줄 수 있다.
         /// </summary>
-        public static void SetVisible(Transform _target, bool _visible, TargetKind _kind = TargetKind.Pack)
+        public static void SetVisible(Transform _target, bool _visible, DeviceType _kind = DeviceType.Pack)
         {
             if (_target == null)
             {
                 return;
             }
 
-            if (_visible && _kind == TargetKind.Cell)
+            if (_visible && _kind == DeviceType.Cell)
             {
                 Renderer[] allRendererArray = _target.root.GetComponentsInChildren<Renderer>(true);
                 for (int i = 0; i < allRendererArray.Length; i++)
