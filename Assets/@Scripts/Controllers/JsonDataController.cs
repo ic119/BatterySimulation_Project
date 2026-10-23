@@ -5,7 +5,11 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public class JsonDataController : MonoBehaviour
+/// <summary>
+/// 저장 데이터(SaveJson) 형식과 Json 파일 입출력. 멤버가 모두 static이라 씬에 두거나 컴포넌트로 붙일 필요가 없다.
+/// (static class는 DebugLogManager.GenerateLogMessage&lt;T&gt;의 T로 쓸 수 없어 일반 class로 둔다.)
+/// </summary>
+public class JsonDataController
 {
     #region Json Data
     [Serializable]
@@ -236,7 +240,7 @@ public class JsonDataController : MonoBehaviour
     /// _factory가 가진 Pack / Module / Cell(Pack에 속한 것과 단독 Module 모두)의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss_fff다.
     /// 저장할 항목이 하나도 없거나 쓰기에 실패하면 false.
     /// </summary>
-    public bool Save(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
+    public static bool Save(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
     {
         SaveJson data = Build(_factory, _gridProvider);
         if (data.containers.Count == 0)

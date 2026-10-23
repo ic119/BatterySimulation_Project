@@ -14,7 +14,9 @@ namespace Incheol.Presenter
     public class MainSceneManager : MonoBehaviour
     {
         #region Variable
-        private OrbitCameraView cameraView;
+        [Header("Scene References")]
+        [SerializeField, Tooltip("MainScene의 OrbitCamera. 비워 두면 Start에서 씬을 뒤져 찾는다(경고).")] private OrbitCameraView cameraView;
+
         private UI_PropertiesView propertiesView;
         private UI_DeviceScaleView scaleView;
         private UI_SubDeviceSpacingView spacingView;
@@ -32,7 +34,11 @@ namespace Incheol.Presenter
         #region LifeCycle
         private void Start()
         {
-            cameraView = FindAnyObjectByType<OrbitCameraView>();
+            if (cameraView == null)
+            {
+                cameraView = FindAnyObjectByType<OrbitCameraView>();
+                DebugLogManager.GenerateWarningMessage<MainSceneManager>("cameraView가 인스펙터에 지정되지 않아 씬에서 찾았습니다. MainSceneManager에 OrbitCamera를 연결하세요.");
+            }
 
             AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
                 AddressableAssetKey.UI_MainScene.ToString(),
@@ -113,19 +119,19 @@ namespace Incheol.Presenter
         /// </summary>
         private void BindViews(GameObject _root)
         {
-            propertiesView = _root.GetComponentInChildren<UI_PropertiesView>(true);
-            scaleView = _root.GetComponentInChildren<UI_DeviceScaleView>(true);
-            spacingView = _root.GetComponentInChildren<UI_SubDeviceSpacingView>(true);
-            structureView = _root.GetComponentInChildren<UI_DeviceStructureView>(true);
-            nameView = _root.GetComponentInChildren<UI_SelectedDeviceNameView>(true);
+            propertiesView = FindView<UI_PropertiesView>(_root);
+            scaleView = FindView<UI_DeviceScaleView>(_root);
+            spacingView = FindView<UI_SubDeviceSpacingView>(_root);
+            structureView = FindView<UI_DeviceStructureView>(_root);
+            nameView = FindView<UI_SelectedDeviceNameView>(_root);
 
-            mainSceneView = _root.GetComponentInChildren<UI_MainSceneView>(true);
+            mainSceneView = FindView<UI_MainSceneView>(_root);
 
             // 트리 뷰는 탭마다 하나씩 있어서 계층 순서에 기대지 않고 UI_MainSceneView가 가진 것을 쓴다.
             editorView = mainSceneView != null ? mainSceneView.EditorTreeView : null;
             simulationTreeView = mainSceneView != null ? mainSceneView.SimulationTreeView : null;
-            createCountView = _root.GetComponentInChildren<UI_CreateDeviceCount>(true);
-            simulationControl = _root.GetComponentInChildren<UI_SimulationControl>(true);
+            createCountView = FindView<UI_CreateDeviceCount>(_root);
+            simulationControl = FindView<UI_SimulationControl>(_root);
 
             simulationControl?.Init(selection, editorView);
             scaleView?.Init(selection);
@@ -156,6 +162,21 @@ namespace Incheol.Presenter
                 mainSceneView.ObjectCreated += ShowIfInSelection;
                 mainSceneView.ObjectCreated += ApplySpacingToCreated;
             }
+        }
+
+        /// <summary>
+        /// 인스턴스화한 프리팹(_root) 아래에서 T 뷰를 찾는다(비활성 오브젝트 포함). 프리팹은 런타임에 만들어져 씬에서 미리 연결해 둘 수 없으므로 여기서 한 번만 찾는다.
+        /// 찾지 못하면 그 뷰만 조용히 빠진 채 동작하게 되므로 어떤 뷰가 없는지 경고로 알린다.
+        /// </summary>
+        private static T FindView<T>(GameObject _root) where T : Component
+        {
+            T view = _root.GetComponentInChildren<T>(true);
+            if (view == null)
+            {
+                DebugLogManager.GenerateWarningMessage<MainSceneManager>($"UI_MainScene 프리팹에서 {typeof(T).Name}을(를) 찾지 못했습니다. 해당 패널은 갱신되지 않습니다.");
+            }
+
+            return view;
         }
 
         /// <summary>

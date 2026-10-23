@@ -536,6 +536,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07e4e9938ab8bb8439808ee824217a1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Incheol.Presenter.MainSceneManager
+  cameraView: {fileID: 1781088911}
 --- !u!4 &1817229477
 Transform:
   m_ObjectHideFlags: 0

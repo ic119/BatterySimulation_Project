@@ -50,7 +50,6 @@ public class UI_MainSceneView : MonoBehaviour
 
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
     private UI_EditorView editorView;
-    private JsonDataController jsonDataController;
     private DeviceSelection selection;
     private UI_CreateDeviceCount createCountView;
 
@@ -349,16 +348,7 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>saveButton은 지금까지 생성된 Pack / Module / Cell을 Json 파일로 저장하고 결과를 알람 팝업으로 알려준다.</summary>
     private void OnClickSaveButton()
     {
-        if (jsonDataController == null)
-        {
-            jsonDataController = FindAnyObjectByType<JsonDataController>();
-            if (jsonDataController == null)
-            {
-                jsonDataController = gameObject.AddComponent<JsonDataController>();
-            }
-        }
-
-        bool saved = jsonDataController.Save(packFactory, GetPackGrid);
+        bool saved = JsonDataController.Save(packFactory, GetPackGrid);
         ShowAlarm(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
     }
 
