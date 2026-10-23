@@ -181,83 +181,6 @@ public class PackFactory
     }
 
     /// <summary>
-    /// _child를 _parent 아래에 붙이되, 부모의 크기(스케일)가 곱해지지 않게 한다.
-    /// 붙이기 전 _child의 스케일(= 프리팹 본래 크기)이 월드 스케일이 되도록 로컬 스케일을 부모 스케일로 나눠 보정한다.
-    /// </summary>
-    private static void AttachKeepingOwnScale(Transform _child, Transform _parent)
-    {
-        Vector3 ownScale = _child.localScale;
-        _child.SetParent(_parent, false);
-
-        Vector3 parentScale = _parent.lossyScale;
-        _child.localScale = new Vector3(
-            DivideSafe(ownScale.x, parentScale.x),
-            DivideSafe(ownScale.y, parentScale.y),
-            DivideSafe(ownScale.z, parentScale.z));
-    }
-
-    /// <summary>
-    /// _target의 크기를 월드 크기 _size로 바꾼다. 크기의 어느 축이든 0 이하이면(= 지정하지 않음) 아무것도 하지 않는다.
-    /// Pack / Module처럼 자식 Body가 크기를 가지면 Body의 좌측 바닥 뒤쪽 모서리(min.x, min.y, max.z)를 고정한 채 +x, +y, -z 방향으로 바꾸고(Scale 패널과 같은 규칙),
-    /// Cell처럼 본인이 몸체면 중심을 유지한 채 스케일을 바꾼다. 몸체는 단위 크기 메시(Cube 등)라는 전제다.
-    /// </summary>
-    private static void ResizeBody(Transform _target, Vector3 _size)
-    {
-        if (_target == null || _size.x <= 0.0f || _size.y <= 0.0f || _size.z <= 0.0f)
-        {
-            return;
-        }
-
-        Transform body = _target.Find("Body");
-        if (body != null && body.TryGetComponent(out Renderer bodyRenderer))
-        {
-            Bounds current = bodyRenderer.bounds;
-            Vector3 parentScale = _target.lossyScale;
-            body.localScale = new Vector3(
-                DivideSafe(_size.x, parentScale.x),
-                DivideSafe(_size.y, parentScale.y),
-                DivideSafe(_size.z, parentScale.z));
-            body.position = new Vector3(
-                current.min.x + _size.x * 0.5f,
-                current.min.y + _size.y * 0.5f,
-                current.max.z - _size.z * 0.5f);
-            return;
-        }
-
-        if (_target.TryGetComponent(out Renderer ownRenderer))
-        {
-            Bounds current = ownRenderer.bounds;
-            Vector3 scale = _target.localScale;
-            _target.localScale = new Vector3(
-                current.size.x > 0.0f ? scale.x * _size.x / current.size.x : scale.x,
-                current.size.y > 0.0f ? scale.y * _size.y / current.size.y : scale.y,
-                current.size.z > 0.0f ? scale.z * _size.z / current.size.z : scale.z);
-            _target.position += current.center - ownRenderer.bounds.center;
-        }
-    }
-
-    /// <summary>
-    /// _target의 몸체(Pack / Module은 자식 Body, Cell은 본인의 Renderer) 중심이 월드 좌표 _center에 오도록 _target 전체를 옮긴다.
-    /// 몸체 Renderer를 찾지 못하면 아무것도 하지 않는다.
-    /// </summary>
-    private static void AlignBodyCenter(Transform _target, Vector3 _center)
-    {
-        Transform body = _target.Find("Body");
-        Renderer bodyRenderer = null;
-        if ((body == null || !body.TryGetComponent(out bodyRenderer)) && !_target.TryGetComponent(out bodyRenderer))
-        {
-            return;
-        }
-
-        _target.position += _center - bodyRenderer.bounds.center;
-    }
-
-    private static float DivideSafe(float _value, float _divisor)
-    {
-        return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
-    }
-
-    /// <summary>
     /// 새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.
     /// _columns(x) / _rows(z)를 주면 Container 안의 격자에서 가장 먼저 나오는 빈 칸(_slotColumn / _slotRow가 비어 있으면 그 칸)에 놓는다. 주지 않으면 x 방향으로 빈자리를 찾는다.
     /// </summary>
@@ -275,9 +198,9 @@ public class PackFactory
 
         // PackDataModel에는 Transform 필드가 없으므로 Module이 매달릴 부모 GameObject를 따로 들고 있는다.
         GameObject packObject = Spawn(_prefab, $"Pack_{_packName}");
-        AttachKeepingOwnScale(packObject.transform, container.containerPosition);
+        DeviceBody.AttachKeepingOwnScale(packObject.transform, container.containerPosition);
         packObject.transform.position = Vector3.zero;
-        ResizeBody(packObject.transform, _size);
+        DeviceBody.Resize(packObject.transform, _size);
 
         bool placed = _columns > 0 && _rows > 0 && placer.PlaceInSlot(pack, packObject.transform, container, _columns, _rows, _slotColumn, _slotRow, packPadding);
         if (!placed)
@@ -288,7 +211,7 @@ public class PackFactory
         // 저장된 몸체 중심이 주어지면(저장된 파일을 불러올 때) 칸 위치 대신 저장 당시 자리에 그대로 둔다.
         if (_bodyCenter.HasValue)
         {
-            AlignBodyCenter(packObject.transform, _bodyCenter.Value);
+            DeviceBody.AlignCenter(packObject.transform, _bodyCenter.Value);
         }
 
         registry.AddPack(pack, packObject.transform);
@@ -327,15 +250,15 @@ public class PackFactory
             standaloneContainer = _container != null ? _container : CreateContainer(_moduleName);
         }
 
-        AttachKeepingOwnScale(moduleObject.transform, parent != null ? parent : standaloneContainer.containerPosition);
+        DeviceBody.AttachKeepingOwnScale(moduleObject.transform, parent != null ? parent : standaloneContainer.containerPosition);
 
         // 크기가 주어지면 칸을 찾기 전에 먼저 그 크기로 맞춘다(저장된 파일을 불러올 때).
-        ResizeBody(moduleObject.transform, _size);
+        DeviceBody.Resize(moduleObject.transform, _size);
 
         if (_bodyCenter.HasValue)
         {
             // 저장된 몸체 중심이 주어지면(저장된 파일을 불러올 때) 칸을 찾지 않고 저장 당시 자리에 그대로 둔다.
-            AlignBodyCenter(moduleObject.transform, _bodyCenter.Value);
+            DeviceBody.AlignCenter(moduleObject.transform, _bodyCenter.Value);
         }
         else if (_pack != null)
         {
@@ -410,16 +333,16 @@ public class PackFactory
         bool hasInner = PackLayout.TryGetModuleInnerBounds(_module, out Bounds inner);
 
         GameObject cellObject = Spawn(_prefab, $"Cell_{_cellName}");
-        AttachKeepingOwnScale(cellObject.transform, _module.modulePosition);
+        DeviceBody.AttachKeepingOwnScale(cellObject.transform, _module.modulePosition);
 
         // 크기가 주어지면 칸을 찾기 전에 먼저 그 크기로 맞춘다(저장된 파일을 불러올 때).
-        ResizeBody(cellObject.transform, _size);
+        DeviceBody.Resize(cellObject.transform, _size);
 
         Renderer cellRenderer = cellObject.GetComponentInChildren<Renderer>();
         if (_bodyCenter.HasValue)
         {
             // 저장된 몸체 중심이 주어지면(저장된 파일을 불러올 때) 칸을 찾지 않고 저장 당시 자리에 그대로 둔다.
-            AlignBodyCenter(cellObject.transform, _bodyCenter.Value);
+            DeviceBody.AlignCenter(cellObject.transform, _bodyCenter.Value);
         }
         else if (hasInner && cellRenderer != null)
         {

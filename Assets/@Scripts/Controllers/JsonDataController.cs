@@ -394,15 +394,9 @@ public class JsonDataController
     /// </summary>
     private static Bounds GetBodyBounds(Transform _target)
     {
-        Transform body = _target.Find("Body");
-        if (body != null && body.TryGetComponent(out Renderer bodyRenderer))
+        if (DeviceBody.TryGetRenderer(_target, out Renderer bodyRenderer))
         {
             return bodyRenderer.bounds;
-        }
-
-        if (_target.TryGetComponent(out Renderer ownRenderer))
-        {
-            return ownRenderer.bounds;
         }
 
         Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
