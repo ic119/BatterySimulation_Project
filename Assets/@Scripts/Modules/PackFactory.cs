@@ -181,6 +181,21 @@ public class PackFactory
     }
 
     /// <summary>
+    /// _space 안에서 _occupied와 겹치지 않는 첫 빈 칸을 찾아 _item의 몸체 중심을 그 칸 중심에 맞춘다(pivot이 Renderer 중심과 다를 수 있어 pivot을 보정한다).
+    /// 빈 칸이 없으면 아무것도 건드리지 않고 false를 돌려준다. 로그와 안내 문구, _item 정리는 부르는 쪽이 한다.
+    /// </summary>
+    private static bool TryPlaceInFreeSlot(Transform _item, Renderer _itemRenderer, Bounds _space, float _padding, List<Bounds> _occupied, Transform _parent, out int _capacity)
+    {
+        if (!PackLayout.TryFindFreeSlot(_space, _itemRenderer.bounds.size, _padding, _occupied, _parent, out Vector3 slotCenter, out _capacity))
+        {
+            return false;
+        }
+
+        _item.position += slotCenter - _itemRenderer.bounds.center;
+        return true;
+    }
+
+    /// <summary>
     /// 새 Pack을 만들고 등록한다. _prefab(PackPrefab)을 주면 그것을 인스턴스화한다.
     /// _columns(x) / _rows(z)를 주면 Container 안의 격자에서 가장 먼저 나오는 빈 칸(_slotColumn / _slotRow가 비어 있으면 그 칸)에 놓는다. 주지 않으면 x 방향으로 빈자리를 찾는다.
     /// </summary>
@@ -267,18 +282,13 @@ public class PackFactory
             {
                 // Pack 크기는 그대로 두고, Cell과 같은 규칙으로 Pack 내부 공간의 칸에 놓는다.
                 // Pack 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Module과 겹치지 않는 첫 빈 칸을 찾는다.
-                if (!PackLayout.TryFindFreeSlot(packBody.bounds, moduleRenderer.bounds.size, modulePadding, PackLayout.GetOccupiedBounds(_pack), parent, out Vector3 slotCenter, out int capacity))
+                if (!TryPlaceInFreeSlot(moduleObject.transform, moduleRenderer, packBody.bounds, modulePadding, PackLayout.GetOccupiedBounds(_pack), parent, out int capacity))
                 {
                     DebugLogManager.GenerateErrorMessage<PackFactory>($"Pack에 Module을 놓을 공간이 없습니다. Module : {_moduleName}, Pack : {_pack.packName}, 용량 : {capacity}개, 현재 : {_pack.modulesList.Count}개");
                     LastFullMessage = $"Pack {_pack.packName}에 더 이상 Module을 추가할 수 없습니다.";
-                    moduleObject.transform.SetParent(null);
-                    moduleObject.SetActive(false);
-                    Object.Destroy(moduleObject);
+                    PackRemover.DestroyDetached(moduleObject.transform);
                     return null;
                 }
-
-                // pivot이 Renderer 중심과 다를 수 있어 중심이 칸 중심에 오도록 pivot을 보정한다.
-                moduleObject.transform.position += slotCenter - moduleRenderer.bounds.center;
             }
             else
             {
@@ -347,18 +357,13 @@ public class PackFactory
         else if (hasInner && cellRenderer != null)
         {
             // Module 크기를 바꾼 뒤에는 칸 배열이 달라져 개수만으로는 위치를 알 수 없으므로, 이미 놓인 Cell과 겹치지 않는 첫 빈 칸을 찾는다.
-            if (!PackLayout.TryFindFreeSlot(inner, cellRenderer.bounds.size, cellPadding, PackLayout.GetOccupiedBounds(_module), _module.modulePosition, out Vector3 slotCenter, out int capacity))
+            if (!TryPlaceInFreeSlot(cellObject.transform, cellRenderer, inner, cellPadding, PackLayout.GetOccupiedBounds(_module), _module.modulePosition, out int capacity))
             {
                 DebugLogManager.GenerateErrorMessage<PackFactory>($"Module에 Cell을 놓을 공간이 없습니다. Cell : {_cellName}, Module : {_module.moduleName}, 용량 : {capacity}개, 현재 : {_module.cellsList.Count}개");
                 LastFullMessage = $"Module {_module.moduleName}에 더 이상 Cell을 추가할 수 없습니다.";
-                cellObject.transform.SetParent(null);
-                cellObject.SetActive(false);
-                Object.Destroy(cellObject);
+                PackRemover.DestroyDetached(cellObject.transform);
                 return null;
             }
-
-            // pivot이 Renderer 중심과 다를 수 있어 중심이 칸 중심에 오도록 pivot을 보정한다.
-            cellObject.transform.position += slotCenter - cellRenderer.bounds.center;
         }
         else
         {

@@ -87,7 +87,7 @@ public class PackRemover
     }
 
     /// <summary>Destroy는 프레임 끝에야 반영되므로, 같은 프레임의 Bounds 계산에 섞이지 않게 먼저 떼어 내고 꺼 둔다.</summary>
-    private static void DestroyDetached(Transform _target)
+    public static void DestroyDetached(Transform _target)
     {
         if (_target == null)
         {
