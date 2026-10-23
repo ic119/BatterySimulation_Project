@@ -1,9 +1,10 @@
-using Incheol.Modules;
+﻿using Incheol.Modules;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Container 바로 아래에 놓이는 항목(Pack, 단독 Module)의 자리를 정한다. 씬 오브젝트를 만들거나 지우지 않고 이미 만들어진 _target을 옮기기만 한다.
+/// Container 바로 아래에 놓이는 항목(Pack, 단독 Module)의 자리를 정한다. 
+/// 씬 오브젝트를 만들거나 지우지 않고 이미 만들어진 _target을 옮기기만 한다.
 /// - PlaceInSlot: Container의 x * z 격자 칸에 놓고 칸(열, 줄)을 Pack에 기록한다.
 /// - PlaceInContainer: 격자가 없을 때, 이미 놓인 항목과 겹치지 않는 첫 자리로 옮긴다.
 /// </summary>

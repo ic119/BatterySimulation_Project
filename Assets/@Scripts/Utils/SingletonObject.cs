@@ -1,9 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Incheol.Utils
 {
     /// <summary>
-    /// 씬에 두지 않아도 처음 Instance를 부를 때 스스로 만들어지는(lazy) 싱글톤의 기반 클래스. 이 프로젝트의 매니저들은 BootstrapScene에 미리 두지 않고 이 방식으로 만든다.
+    /// 씬에 두지 않아도 처음 Instance를 부를 때 스스로 만들어지는(lazy) 싱글톤의 기반 클래스. 
+    /// 이 프로젝트의 매니저들은 BootstrapScene에 미리 두지 않고 이 방식으로 만든다.
     /// T는 반드시 자기 자신(class Foo : SingletonObject&lt;Foo&gt;)이어야 한다. 제약으로 컴파일 때 막으므로 Awake의 `this as T`가 조용히 null이 되는 일은 없다.
     /// </summary>
     public class SingletonObject<T> : MonoBehaviour where T : SingletonObject<T>
