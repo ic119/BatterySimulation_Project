@@ -15,18 +15,22 @@ public class PackFactory
     private const float ModuleSpacing = 3.0f;
     private const float CellSpacing = 1.0f;
 
-    private readonly List<PackDataModel> packs = new List<PackDataModel>();
-    private readonly List<ModuleDataModel> allModules = new List<ModuleDataModel>();
-    private readonly Dictionary<PackDataModel, Transform> packTransforms = new Dictionary<PackDataModel, Transform>();
-    private readonly List<ContainerDataModel> containerList = new List<ContainerDataModel>();
+    // 만든 항목의 목록과 조회는 registry가, 지우기는 remover가 맡는다. 이 클래스는 만들고 놓는 일에 집중한다.
+    private readonly PackRegistry registry = new PackRegistry();
+    private readonly PackRemover remover;
     private Transform root;
     private float packPadding;
     private float modulePadding;
     private float cellPadding;
 
-    public IReadOnlyList<PackDataModel> Packs => packs;
-    public IReadOnlyList<ModuleDataModel> Modules => allModules;
-    public IReadOnlyList<ContainerDataModel> Containers => containerList;
+    public PackFactory()
+    {
+        remover = new PackRemover(registry);
+    }
+
+    public IReadOnlyList<PackDataModel> Packs => registry.Packs;
+    public IReadOnlyList<ModuleDataModel> Modules => registry.Modules;
+    public IReadOnlyList<ContainerDataModel> Containers => registry.Containers;
 
     /// <summary>같은 Container 안에서 Pack 사이의 가로(x) 여백. 0 미만은 0으로 본다.</summary>
     public float PackPadding
@@ -50,16 +54,16 @@ public class PackFactory
     }
 
     /// <summary>Cell 생성 가능 여부. 생성된 Module이 하나라도 있어야 true.</summary>
-    public bool CanCreateCell => allModules.Count > 0;
+    public bool CanCreateCell => registry.Modules.Count > 0;
 
     /// <summary>가장 최근의 CreateModule / CreateCell이 "더 이상 놓을 공간이 없어서" 실패했을 때의 안내 문구. 그 밖의 경우(성공 포함)에는 빈 문자열.</summary>
     public string LastFullMessage { get; private set; } = string.Empty;
 
     /// <summary>가장 최근에 생성된 Module. 없으면 null.</summary>
-    public ModuleDataModel LastModule => allModules.Count > 0 ? allModules[allModules.Count - 1] : null;
+    public ModuleDataModel LastModule => registry.LastModule;
 
     /// <summary>가장 최근에 생성된 Pack. 없으면 null.</summary>
-    public PackDataModel LastPack => packs.Count > 0 ? packs[packs.Count - 1] : null;
+    public PackDataModel LastPack => registry.LastPack;
 
     /// <summary>모든 Pack/Module/Cell GameObject가 매달리는 루트. 처음 필요할 때 만든다.</summary>
     public Transform Root
@@ -84,77 +88,43 @@ public class PackFactory
             root = null;
         }
 
-        packs.Clear();
-        allModules.Clear();
-        packTransforms.Clear();
-        containerList.Clear();
+        registry.Clear();
         LastFullMessage = string.Empty;
     }
 
     /// <summary>Pack을 그 안의 Module / Cell과 함께 지운다(데이터 모델과 씬 오브젝트 모두). 이 팩토리가 만든 Pack이 아니면 false.</summary>
     public bool RemovePack(PackDataModel _pack)
     {
-        if (_pack == null || !packs.Remove(_pack))
-        {
-            return false;
-        }
-
-        for (int i = 0; i < _pack.modulesList.Count; i++)
-        {
-            allModules.Remove(_pack.modulesList[i]);
-        }
-
-        if (packTransforms.TryGetValue(_pack, out Transform packTransform))
-        {
-            packTransforms.Remove(_pack);
-            DestroyDetached(packTransform);
-        }
-
-        _pack.parentContainer?.packsList.Remove(_pack);
-
-        LastFullMessage = string.Empty;
-        return true;
+        return AfterRemove(remover.RemovePack(_pack));
     }
 
     /// <summary>Module을 그 안의 Cell과 함께 지운다. 속한 Pack이 있으면 그 목록에서도 뺀다. 이 팩토리가 만든 Module이 아니면 false.</summary>
     public bool RemoveModule(ModuleDataModel _module)
     {
-        if (_module == null || !allModules.Remove(_module))
-        {
-            return false;
-        }
-
-        _module.parentPack?.modulesList.Remove(_module);
-        _module.parentContainer?.modulesList.Remove(_module);
-        DestroyDetached(_module.modulePosition);
-        LastFullMessage = string.Empty;
-        return true;
+        return AfterRemove(remover.RemoveModule(_module));
     }
 
     /// <summary>Cell을 지운다. 속한 Module의 목록에서도 뺀다. 이미 지워진 Cell이면 false.</summary>
     public bool RemoveCell(CellDataModel _cell)
     {
-        if (_cell == null || _cell.parentModule == null || !_cell.parentModule.cellsList.Remove(_cell))
-        {
-            return false;
-        }
-
-        DestroyDetached(_cell.cellPosition);
-        LastFullMessage = string.Empty;
-        return true;
+        return AfterRemove(remover.RemoveCell(_cell));
     }
 
-    /// <summary>Destroy는 프레임 끝에야 반영되므로, 같은 프레임의 Bounds 계산에 섞이지 않게 먼저 떼어 내고 꺼 둔다.</summary>
-    private static void DestroyDetached(Transform _target)
+    /// <summary>Container를 그 안의 Pack / 단독 Module / Cell과 함께 지운다. 이 팩토리가 만든 Container가 아니면 false.</summary>
+    public bool RemoveContainer(ContainerDataModel _container)
     {
-        if (_target == null)
+        return AfterRemove(remover.RemoveContainer(_container));
+    }
+
+    /// <summary>무언가 지워졌으면 "공간이 없다"는 이전 안내 문구는 더 이상 맞지 않으므로 비운다.</summary>
+    private bool AfterRemove(bool _removed)
+    {
+        if (_removed)
         {
-            return;
+            LastFullMessage = string.Empty;
         }
 
-        _target.SetParent(null);
-        _target.gameObject.SetActive(false);
-        Object.Destroy(_target.gameObject);
+        return _removed;
     }
 
     /// <summary>Root 아래에 Pack과 단독 Module을 담을 빈 Container를 만든다. 사용자가 직접 만들지 않고 Pack / 단독 Module을 만들 때 쓴다.</summary>
@@ -172,96 +142,32 @@ public class PackFactory
             containerPosition = containerObject.transform,
         };
 
-        containerList.Add(container);
+        registry.AddContainer(container);
         return container;
-    }
-
-    /// <summary>Container를 그 안의 Pack / 단독 Module / Cell과 함께 지운다. 이 팩토리가 만든 Container가 아니면 false.</summary>
-    public bool RemoveContainer(ContainerDataModel _container)
-    {
-        if (_container == null || !containerList.Contains(_container))
-        {
-            return false;
-        }
-
-        // 지우는 동안 목록이 바뀌므로 복사해서 돈다.
-        foreach (PackDataModel pack in new List<PackDataModel>(_container.packsList))
-        {
-            RemovePack(pack);
-        }
-
-        foreach (ModuleDataModel module in new List<ModuleDataModel>(_container.modulesList))
-        {
-            RemoveModule(module);
-        }
-
-        containerList.Remove(_container);
-        DestroyDetached(_container.containerPosition);
-        LastFullMessage = string.Empty;
-        return true;
     }
 
     /// <summary>씬 Transform으로 Container를 찾는다. 이 팩토리가 만든 Container가 아니면 null.</summary>
     public ContainerDataModel FindContainer(Transform _containerTransform)
     {
-        if (_containerTransform == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < containerList.Count; i++)
-        {
-            if (containerList[i].containerPosition == _containerTransform)
-            {
-                return containerList[i];
-            }
-        }
-
-        return null;
+        return registry.FindContainer(_containerTransform);
     }
 
-    /// <summary>Pack의 씬 Transform. PackDataModel에는 Transform 필드가 없어 따로 들고 있는 것을 꺼낸다. 없으면 null.</summary>
+    /// <summary>Pack의 씬 Transform. PackDataModel에는 Transform 필드가 없어 등록부가 따로 들고 있는 것을 꺼낸다. 없으면 null.</summary>
     public Transform GetPackTransform(PackDataModel _pack)
     {
-        return _pack != null && packTransforms.TryGetValue(_pack, out Transform packTransform) ? packTransform : null;
+        return registry.GetPackTransform(_pack);
     }
 
     /// <summary>씬 Transform으로 Pack을 찾는다. 이 팩토리가 만든 Pack이 아니면 null.</summary>
     public PackDataModel FindPack(Transform _packTransform)
     {
-        if (_packTransform == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < packs.Count; i++)
-        {
-            if (packTransforms.TryGetValue(packs[i], out Transform packTransform) && packTransform == _packTransform)
-            {
-                return packs[i];
-            }
-        }
-
-        return null;
+        return registry.FindPack(_packTransform);
     }
 
     /// <summary>씬 Transform으로 Module을 찾는다. 이 팩토리가 만든 Module이 아니면 null.</summary>
     public ModuleDataModel FindModule(Transform _moduleTransform)
     {
-        if (_moduleTransform == null)
-        {
-            return null;
-        }
-
-        for (int i = 0; i < allModules.Count; i++)
-        {
-            if (allModules[i].modulePosition == _moduleTransform)
-            {
-                return allModules[i];
-            }
-        }
-
-        return null;
+        return registry.FindModule(_moduleTransform);
     }
 
     /// <summary>_prefab이 있으면 인스턴스화하고, 없으면 빈 GameObject를 만든다.</summary>
@@ -624,8 +530,7 @@ public class PackFactory
             AlignBodyCenter(packObject.transform, _bodyCenter.Value);
         }
 
-        packs.Add(pack);
-        packTransforms[pack] = packObject.transform;
+        registry.AddPack(pack, packObject.transform);
 
         return pack;
     }
@@ -643,7 +548,7 @@ public class PackFactory
 
         if (_pack != null)
         {
-            if (!packTransforms.TryGetValue(_pack, out parent))
+            if (!registry.TryGetPackTransform(_pack, out parent))
             {
                 DebugLogManager.GenerateErrorMessage<PackFactory>($"등록되지 않은 Pack입니다. Module : {_moduleName}");
                 return null;
@@ -714,7 +619,7 @@ public class PackFactory
 
         _pack?.modulesList.Add(module);
         standaloneContainer?.modulesList.Add(module);
-        allModules.Add(module);
+        registry.AddModule(module);
 
         return module;
     }
@@ -734,7 +639,7 @@ public class PackFactory
             return null;
         }
 
-        if (!allModules.Contains(_module) || _module.modulePosition == null)
+        if (!registry.ContainsModule(_module) || _module.modulePosition == null)
         {
             DebugLogManager.GenerateErrorMessage<PackFactory>($"생성되지 않았거나 이미 제거된 Module입니다. Module : {_module.moduleName}, Cell : {_cellName}");
             return null;
