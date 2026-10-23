@@ -26,27 +26,7 @@ namespace Incheol.Presenter
         private UI_CreateDeviceCount createCountView;
         private UI_SimulationControl simulationControl;
 
-        private object selectedModel;
-        private Transform selectedTarget;
-        private DeviceType selectedKind;
-        #endregion
-
-        #region Property
-        /// <summary>
-        /// 현재 선택된 트리 항목의 모델(PackDataModel / ModuleDataModel / CellDataModel) (없을 경우 null)
-        /// </summary>
-        public object SelectedModel => selectedModel;
-
-        /// <summary>
-        /// 현재 선택된 항목이 가리키는 오브젝트(Pack/Module/Cell) (없을 경우 null)
-        /// </summary>
-        public Transform SelectedTarget => selectedTarget;
-
-        /// <summary>
-        /// 현재 선택된 항목의 종류(Pack/Module/Cell)
-        /// 선택이 없으면 의미 없는 값이므로 SelectedModel이 null이 아닐 경우에만 사용
-        /// </summary>
-        public DeviceType SelectedKind => selectedKind; 
+        private readonly DeviceSelection selection = new DeviceSelection();
         #endregion
 
         #region LifeCycle
@@ -99,9 +79,9 @@ namespace Incheol.Presenter
         #endregion
 
         #region Method
-        private void OnItemClicked(object _model, Transform _target, DeviceType _kind)
+        private void OnItemClicked(IDeviceNode _model, Transform _target)
         {
-            SelectItem(_model, _target, _kind);
+            SelectItem(_model, _target);
         }
 
         private void OnTreeChanged()
@@ -113,7 +93,7 @@ namespace Incheol.Presenter
         /// <summary>선택된 항목이 지워질 _removed 안에 있으면 선택을 푼다.</summary>
         private void OnObjectRemoving(Transform _removed)
         {
-            if (selectedTarget != null && selectedTarget.IsChildOf(_removed))
+            if (selection.Target != null && selection.Target.IsChildOf(_removed))
             {
                 DeselectItem();
             }
@@ -121,14 +101,14 @@ namespace Incheol.Presenter
 
         private void OnSelectionClearRequested()
         {
-            if (selectedModel != null)
+            if (selection.Model != null)
             {
                 DeselectItem();
             }
         }
 
         /// <summary>
-        /// 인스턴스화한 UI_MainScene 안의 뷰를 한 번만 모아 두고, 뷰가 알리는 이벤트를 받는다. 선택 정보를 읽는 뷰에는 자신을 넘겨준다.
+        /// 인스턴스화한 UI_MainScene 안의 뷰를 한 번만 모아 두고, 뷰가 알리는 이벤트를 받는다. 선택 정보를 읽는 뷰에는 DeviceSelection을 넘겨준다.
         /// 프리팹이 만들어지기 전에는 각 필드가 null이므로 사용하는 쪽은 null이면 건너뛴다.
         /// </summary>
         private void BindViews(GameObject _root)
@@ -147,11 +127,11 @@ namespace Incheol.Presenter
             createCountView = _root.GetComponentInChildren<UI_CreateDeviceCount>(true);
             simulationControl = _root.GetComponentInChildren<UI_SimulationControl>(true);
 
-            simulationControl?.Init(this);
-            scaleView?.Init(this);
-            spacingView?.Init(this);
-            createCountView?.Init(this);
-            mainSceneView?.Init(this);
+            simulationControl?.Init(selection, editorView);
+            scaleView?.Init(selection);
+            spacingView?.Init(selection);
+            createCountView?.Init(selection);
+            mainSceneView?.Init(selection, createCountView);
 
             if (editorView != null)
             {
@@ -190,7 +170,7 @@ namespace Incheol.Presenter
             }
 
             Transform parent = _created.parent;
-            if (DeviceSpacingCalculator.ApplyStored(parent, out int failedAxis) && parent == selectedTarget)
+            if (DeviceSpacingCalculator.ApplyStored(parent, out int failedAxis) && parent == selection.Target)
             {
                 RefreshProperties();
             }
@@ -204,35 +184,33 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// _item을 선택 (항상 1개뿐이라 이전 선택은 해제하고 그 오브젝트는 비활성화)
+        /// _model을 선택 (항상 1개뿐이라 이전 선택은 해제하고 그 오브젝트는 비활성화)
         /// 새로 선택한 오브젝트일 경우, 자식(Module의 Cell 등)까지 전부 활성화 후 카메라 추적 실행
         /// 이미 선택된 항목을 다시 누르면 선택이 취소되어 해당 오브젝트 비활성화, 선택된 항목은 없는 상태 처리 (null)
         /// </summary>
-        public void SelectItem(object _model, Transform _target, DeviceType _kind = DeviceType.Pack)
+        public void SelectItem(IDeviceNode _model, Transform _target)
         {
             if (_model == null || _target == null)
             {
                 return;
             }
 
-            if (selectedModel == _model)
+            if (selection.Model == _model)
             {
                 DeselectItem();
                 return;
             }
 
-            if (selectedModel != null)
+            if (selection.Model != null)
             {
-                SetVisible(selectedTarget, false);
+                DeviceVisibility.SetVisible(selection.Target, false);
             }
 
-            selectedModel = _model;
-            selectedTarget = _target;
-            selectedKind = _kind;
+            selection.Set(_model, _target);
 
-            editorView?.SetSelected(selectedModel);
-            simulationTreeView?.SetSelected(selectedModel);
-            SetVisible(selectedTarget, true, _kind);
+            editorView?.SetSelected(selection.Model);
+            simulationTreeView?.SetSelected(selection.Model);
+            DeviceVisibility.SetVisible(selection.Target, true, selection.Kind);
             RefreshGraph();
             RefreshProperties();
             RefreshName();
@@ -240,7 +218,7 @@ namespace Incheol.Presenter
 
             if (cameraView != null)
             {
-                cameraView.Track(selectedTarget, selectedTarget.root);
+                cameraView.Track(selection.Target, selection.Target.root);
             }
         }
 
@@ -250,17 +228,17 @@ namespace Incheol.Presenter
         /// </summary>
         public void ShowIfInSelection(Transform _created)
         {
-            if (_created == null || selectedTarget == null || selectedKind == DeviceType.Cell)
+            if (_created == null || selection.Target == null || selection.Kind == DeviceType.Cell)
             {
                 return;
             }
 
-            if (!_created.IsChildOf(selectedTarget))
+            if (!_created.IsChildOf(selection.Target))
             {
                 return;
             }
 
-            SetVisible(_created, true);
+            DeviceVisibility.SetVisible(_created, true);
 
             if (cameraView != null)
             {
@@ -269,38 +247,38 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// SelectedModel이 null이면 모든 축 그래프를 숨기고, null이 아니면 그 항목(SelectedTarget)의 그래프만 보이게 한다.
+        /// 선택이 없으면 모든 축 그래프를 숨기고, 있으면 그 항목(selection.Target)의 그래프만 보이게 한다.
         /// 그래프는 DeviceAxisGraphManager가 선택된 항목에서만 만들고 그린다.
         /// </summary>
         private void RefreshGraph()
         {
-            if (SelectedModel == null)
+            if (selection.Model == null)
             {
                 DeviceAxisGraphManager.SetSelectedOwner(null);
                 return;
             }
 
-            DeviceAxisGraphManager.SetSelectedOwner(SelectedTarget);
+            DeviceAxisGraphManager.SetSelectedOwner(selection.Target);
         }
 
         /// <summary>선택된 항목에 트리가 표시하는 이름. 선택이 없거나 트리 뷰가 없으면 빈 문자열.</summary>
-        public string GetSelectedLabel()
+        private string GetSelectedLabel()
         {
-            return editorView != null ? editorView.GetLabel(selectedModel) : string.Empty;
+            return editorView != null ? editorView.GetLabel(selection.Model) : string.Empty;
         }
 
         /// <summary>
         /// 선택된 항목 본인의 자식 구조(Pack이면 Module / Cell, Module이면 Cell)를 구조 패널에 보여준다. 선택이 없으면 패널을 비운다.
         /// 선택한 항목 아래에 새 자식이 생길 때도 UI_EditorView가 호출해 갱신한다. 패널과 트리 뷰는 비동기로 생성되므로 필요할 때 찾는다.
         /// </summary>
-        public void RefreshStructure()
+        private void RefreshStructure()
         {
             if (structureView == null)
             {
                 return;
             }
 
-            if (selectedModel == null)
+            if (selection.Model == null)
             {
                 structureView.Clear();
                 return;
@@ -312,25 +290,25 @@ namespace Incheol.Presenter
                 return;
             }
 
-            structureView.Show(editorView.GetLabel(selectedModel), editorView.GetChildStructure(selectedModel));
+            structureView.Show(editorView.GetLabel(selection.Model), editorView.GetChildStructure(selection.Model));
         }
 
         /// <summary>
         /// 선택된 항목의 이름과 위치를 속성 패널에, 실제 크기를 크기 패널에 반영한다. 선택이 없으면 패널을 비운다.
-        /// 선택한 항목 아래에 자식이 생겨 크기가 변할 수 있어 UI_EditorView도 생성 후 호출한다.
+        /// 선택한 항목 아래에 자식이 생겨 크기가 변할 수 있어 TreeChanged를 받을 때도 호출한다.
         /// </summary>
-        public void RefreshProperties()
+        private void RefreshProperties()
         {
-            bool hasSelection = selectedModel != null && selectedTarget != null;
+            bool hasSelection = selection.HasSelection;
 
             // Container는 빈 오브젝트라 몸체 크기가 없으므로 크기 패널은 비워 둔다(자식 Pack 사이의 간격은 간격 패널로 조절한다).
-            bool hasBody = hasSelection && selectedKind != DeviceType.Container;
+            bool hasBody = hasSelection && selection.Kind != DeviceType.Container;
 
             if (propertiesView != null)
             {
                 if (hasSelection)
                 {
-                    propertiesView.ShowSelected(GetSelectedLabel(), selectedTarget.position);
+                    propertiesView.ShowSelected(GetSelectedLabel(), selection.Target.position);
                 }
                 else
                 {
@@ -342,7 +320,7 @@ namespace Incheol.Presenter
             {
                 if (hasBody)
                 {
-                    scaleView.ShowSelected(selectedTarget);
+                    scaleView.ShowSelected(selection.Target);
                 }
                 else
                 {
@@ -354,7 +332,7 @@ namespace Incheol.Presenter
             {
                 if (hasSelection)
                 {
-                    spacingView.ShowSelected(selectedTarget);
+                    spacingView.ShowSelected(selection.Target);
                 }
                 else
                 {
@@ -367,29 +345,7 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// _container 안에 Pack을 하나 더 만들 수 있는지. 수량을 설정하지 않은 Container는 1개까지(패널이 없으면 항상 true).
-        /// </summary>
-        public bool CanCreatePack(ContainerDataModel _container)
-        {
-            return createCountView == null || _container == null || createCountView.CanCreatePack(_container, _container.packsList.Count);
-        }
-
-        /// <summary>_container의 Pack 격자 크기를 정한다(저장된 파일을 불러올 때). 패널이 없으면 아무것도 하지 않는다.</summary>
-        public void SetPackGrid(ContainerDataModel _container, int _x, int _z)
-        {
-            createCountView?.SetCount(_container, _x, _z);
-        }
-
-        /// <summary>_container의 Pack 격자 크기(x축 방향 개수, z축 방향 줄 수. 설정하지 않았으면 1, 1). 패널이 없으면 false.</summary>
-        public bool TryGetPackGrid(ContainerDataModel _container, out int _x, out int _z)
-        {
-            _x = 0;
-            _z = 0;
-            return createCountView != null && createCountView.TryGetPackGrid(_container, out _x, out _z);
-        }
-
-        /// <summary>
-        /// SelectedModel이 null이면 이름 변경 입력을 비우고 막고, null이 아니면 그 항목의 이름을 changeNameInputField에 채운다.
+        /// 선택이 없으면 이름 변경 입력을 비우고 막고, 있으면 그 항목의 이름을 changeNameInputField에 채운다.
         /// 입력 중인 글자를 덮어쓰지 않도록 선택이 바뀔 때와 이름을 바꾼 뒤에만 호출한다.
         /// </summary>
         private void RefreshName()
@@ -401,7 +357,7 @@ namespace Incheol.Presenter
                 return;
             }
 
-            if (selectedModel == null)
+            if (selection.Model == null)
             {
                 nameView.Clear();
                 return;
@@ -416,14 +372,14 @@ namespace Incheol.Presenter
         /// </summary>
         public void RenameSelected(string _newName)
         {
-            if (selectedModel == null)
+            if (selection.Model == null)
             {
                 return;
             }
 
-            if (editorView != null && editorView.Rename(selectedModel, _newName))
+            if (editorView != null && editorView.Rename(selection.Model, _newName))
             {
-                simulationTreeView?.Rename(selectedModel, _newName);
+                simulationTreeView?.Rename(selection.Model, _newName);
                 RefreshProperties();
             }
 
@@ -433,11 +389,10 @@ namespace Incheol.Presenter
         /// <summary>현재 선택을 취소한다. 항목의 강조를 끄고 그 오브젝트(와 자식)를 다시 숨긴다.</summary>
         public void DeselectItem()
         {
-            SetVisible(selectedTarget, false);
-            selectedModel = null;
+            DeviceVisibility.SetVisible(selection.Target, false);
+            selection.Clear();
             editorView?.SetSelected(null);
             simulationTreeView?.SetSelected(null);
-            selectedTarget = null;
             RefreshGraph();
             RefreshProperties();
             RefreshName();
@@ -447,37 +402,6 @@ namespace Incheol.Presenter
             if (cameraView != null)
             {
                 cameraView.ResetView();
-            }
-        }
-
-        /// <summary>
-        /// _visible이 false면 _target과 그 자식들의 모든 Renderer를 끈다.
-        /// true일 때 Pack / Module은 자식까지 모든 Renderer를 켜고, Cell은 본인의 Renderer만 켜고 같은 루트 아래의 나머지 Renderer는 모두 끈다.
-        /// 오브젝트는 비활성화하지 않아 자식만 따로 보여줄 수 있다.
-        /// </summary>
-        public static void SetVisible(Transform _target, bool _visible, DeviceType _kind = DeviceType.Pack)
-        {
-            if (_target == null)
-            {
-                return;
-            }
-
-            if (_visible && _kind == DeviceType.Cell)
-            {
-                Renderer[] allRendererArray = _target.root.GetComponentsInChildren<Renderer>(true);
-                for (int i = 0; i < allRendererArray.Length; i++)
-                {
-                    // IsChildOf는 자기 자신도 포함하므로 Cell 본인(과 Cell 아래)만 켜진다.
-                    allRendererArray[i].enabled = allRendererArray[i].transform.IsChildOf(_target);
-                }
-
-                return;
-            }
-
-            Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < rendererArray.Length; i++)
-            {
-                rendererArray[i].enabled = _visible;
             }
         }
         #endregion

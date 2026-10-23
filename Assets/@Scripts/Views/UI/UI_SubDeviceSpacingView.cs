@@ -31,7 +31,7 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
     private const float StepAmount = 1.0f;
     private static readonly string[] AxisNames = { "x", "y", "z" };
 
-    private MainSceneManager mainSceneManager;
+    private DeviceSelection selection;
     #endregion
 
     #region LifeCycle
@@ -65,10 +65,10 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
     #endregion
 
     #region Method
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(MainSceneManager _manager)
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태(DeviceSelection)를 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(DeviceSelection _selection)
     {
-        mainSceneManager = _manager;
+        selection = _selection;
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
     /// </summary>
     public void ShowSelected(Transform _target)
     {
-        if (_target == null || mainSceneManager == null)
+        if (_target == null || selection == null)
         {
             Clear();
             return;
@@ -104,7 +104,7 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
 
     private void RefreshAxis(Transform _target, int _axis, TMP_InputField _field)
     {
-        if (DeviceSpacingCalculator.TryGetSpacing(_target, mainSceneManager.SelectedKind, _axis, out float current, out _))
+        if (DeviceSpacingCalculator.TryGetSpacing(_target, selection.Kind, _axis, out float current, out _))
         {
             SetInput(_field, current);
         }
@@ -164,13 +164,13 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
     /// </summary>
     private void ApplyAxis(int _axis, TMP_InputField _field, float? _value)
     {
-        Transform target = mainSceneManager != null ? mainSceneManager.SelectedTarget : null;
+        Transform target = selection != null ? selection.Target : null;
         if (target == null)
         {
             return;
         }
 
-        DeviceType kind = mainSceneManager.SelectedKind;
+        DeviceType kind = selection.Kind;
         if (!_value.HasValue || _value.Value < 0.0f)
         {
             if (_value.HasValue)

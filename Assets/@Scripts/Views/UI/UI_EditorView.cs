@@ -11,7 +11,7 @@ public class UI_EditorView : MonoBehaviour
     private class TreeNode
     {
         /// <summary>이 노드가 가리키는 Pack / Module / Cell 모델. 항목을 구분하는 키로도 쓴다.</summary>
-        public object model;
+        public IDeviceNode model;
 
         public string label;
         public int depth;
@@ -21,9 +21,6 @@ public class UI_EditorView : MonoBehaviour
 
         /// <summary>이 항목이 가리키는 씬 오브젝트(Pack/Module/Cell). 선택하면 이것이 보이게 된다.</summary>
         public Transform target;
-
-        /// <summary>항목 종류. 선택 시 보이는 Renderer 범위가 종류마다 다르다(Cell은 본인만).</summary>
-        public DeviceType kind;
     }
 
     #region Variable
@@ -32,7 +29,7 @@ public class UI_EditorView : MonoBehaviour
     [SerializeField, Min(1.0f), Tooltip("트리 한 줄의 높이. UI_TreeNodeItem 프리팹의 높이와 같아야 한다.")] private float rowHeight = 28.0f;
 
     private readonly List<TreeNode> rootNodeList = new List<TreeNode>();
-    private readonly Dictionary<object, TreeNode> nodeDictionary = new Dictionary<object, TreeNode>();
+    private readonly Dictionary<IDeviceNode, TreeNode> nodeDictionary = new Dictionary<IDeviceNode, TreeNode>();
 
     // 접힌 부모 아래를 뺀, 지금 트리에 보여야 하는 노드를 위에서 아래 순서로 담는다. 목록의 n번째 항목이 이 목록의 n번째 노드다.
     private readonly List<TreeNode> visibleNodeList = new List<TreeNode>();
@@ -44,13 +41,13 @@ public class UI_EditorView : MonoBehaviour
     #endregion
 
     /// <summary>줄의 삭제 버튼이 눌렸을 때 발생한다. 인자는 그 줄의 모델(PackDataModel / ModuleDataModel / CellDataModel)이다.</summary>
-    public event System.Action<object> DeleteRequested;
+    public event System.Action<IDeviceNode> DeleteRequested;
 
     /// <summary>줄이 추가되거나 지워져 트리 구조가 바뀌었을 때 발생한다. 선택된 항목의 자식 구조와 크기 표시를 새로 그리게 한다.</summary>
     public event System.Action TreeChanged;
 
-    /// <summary>항목(줄)을 눌렀을 때 발생한다. 인자는 그 항목의 모델, 항목이 가리키는 씬 오브젝트, 종류이다.</summary>
-    public event System.Action<object, Transform, DeviceType> ItemClicked;
+    /// <summary>항목(줄)을 눌렀을 때 발생한다. 인자는 그 항목의 모델(종류는 model.Kind), 항목이 가리키는 씬 오브젝트이다.</summary>
+    public event System.Action<IDeviceNode, Transform> ItemClicked;
 
     #region LifeCycle
     private void Awake()
@@ -78,13 +75,13 @@ public class UI_EditorView : MonoBehaviour
 
     #region Method
     /// <summary>_model 항목에 표시되는 이름(예: "Pack 1"). 트리에 없으면 빈 문자열.</summary>
-    public string GetLabel(object _model)
+    public string GetLabel(IDeviceNode _model)
     {
         return _model != null && nodeDictionary.TryGetValue(_model, out TreeNode node) ? node.label : string.Empty;
     }
 
     /// <summary>_model 항목을 선택된 모습(강조)으로 보여준다. null이면 강조를 모두 끈다. 화면 밖의 항목도 보이게 되면 강조된 채로 나타난다.</summary>
-    public void SetSelected(object _model)
+    public void SetSelected(IDeviceNode _model)
     {
         selectedNode = _model != null && nodeDictionary.TryGetValue(_model, out TreeNode node) ? node : null;
         list?.Refresh();
@@ -95,7 +92,7 @@ public class UI_EditorView : MonoBehaviour
     /// 모델 이름과 씬 오브젝트 이름에는 앞에 종류 접두어가 있으면 그것을 뺀 값을 쓴다(저장 후 불러올 때 접두어가 다시 붙기 때문).
     /// 앞뒤 공백을 뺀 이름이 비어 있거나 트리에 없는 항목이면 바꾸지 않고 false를 반환한다.
     /// </summary>
-    public bool Rename(object _model, string _newName)
+    public bool Rename(IDeviceNode _model, string _newName)
     {
         string newName = _newName != null ? _newName.Trim() : string.Empty;
         if (newName.Length == 0 || _model == null || !nodeDictionary.TryGetValue(_model, out TreeNode node))
@@ -103,24 +100,8 @@ public class UI_EditorView : MonoBehaviour
             return false;
         }
 
-        string prefix;
-        switch (_model)
-        {
-            case ContainerDataModel _:
-                prefix = "Container";
-                break;
-            case PackDataModel _:
-                prefix = "Pack";
-                break;
-            case ModuleDataModel _:
-                prefix = "Module";
-                break;
-            case CellDataModel _:
-                prefix = "Cell";
-                break;
-            default:
-                return false;
-        }
+        // 접두어는 종류 이름(Container / Pack / Module / Cell)과 같다.
+        string prefix = _model.Kind.ToString();
 
         string modelName = newName;
         string prefixWithSpace = prefix + " ";
@@ -129,21 +110,7 @@ public class UI_EditorView : MonoBehaviour
             modelName = newName.Substring(prefixWithSpace.Length).Trim();
         }
 
-        switch (_model)
-        {
-            case ContainerDataModel container:
-                container.containerName = modelName;
-                break;
-            case PackDataModel pack:
-                pack.packName = modelName;
-                break;
-            case ModuleDataModel module:
-                module.moduleName = modelName;
-                break;
-            case CellDataModel cell:
-                cell.cellName = modelName;
-                break;
-        }
+        _model.Name = modelName;
 
         if (node.target != null)
         {
@@ -159,7 +126,7 @@ public class UI_EditorView : MonoBehaviour
     /// _model(Pack / Module / Cell 모델)의 줄과 그 아래 모든 자식 줄을 트리에서 지운다. 씬 오브젝트와 모델은 건드리지 않는다.
     /// 트리에 없는 모델이면 아무 것도 하지 않는다.
     /// </summary>
-    public void RemoveNode(object _model)
+    public void RemoveNode(IDeviceNode _model)
     {
         if (_model == null || !nodeDictionary.TryGetValue(_model, out TreeNode node))
         {
@@ -215,7 +182,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition, DeviceType.Container);
+        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition);
     }
 
     /// <summary>Pack을 그 Container의 자식으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
@@ -226,7 +193,7 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target, DeviceType.Pack);
+        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target);
     }
 
     /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 그 Module을 담은 Container의 자식이 된다.</summary>
@@ -237,8 +204,8 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        object parentKey = _parentPack != null ? _parentPack : (object)_module.parentContainer;
-        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition, DeviceType.Module);
+        IDeviceNode parentKey = _parentPack != null ? (IDeviceNode)_parentPack : _module.parentContainer;
+        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition);
     }
 
     /// <summary>Cell을 추가한다. 부모는 cell.parentModule이다.</summary>
@@ -249,10 +216,10 @@ public class UI_EditorView : MonoBehaviour
             return;
         }
 
-        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition, DeviceType.Cell);
+        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition);
     }
 
-    private void AddNode(object _key, string _label, object _parentKey, Transform _target, DeviceType _kind)
+    private void AddNode(IDeviceNode _key, string _label, IDeviceNode _parentKey, Transform _target)
     {
         // 이미 추가된 항목이면 무시한다.
         if (nodeDictionary.ContainsKey(_key))
@@ -273,7 +240,6 @@ public class UI_EditorView : MonoBehaviour
             depth = parent != null ? parent.depth + 1 : 0,
             parent = parent,
             target = _target,
-            kind = _kind,
         };
 
         nodeDictionary[_key] = node;
@@ -296,7 +262,7 @@ public class UI_EditorView : MonoBehaviour
     }
 
     /// <summary>_model 본인을 빼는 자식 구조를 트리 순서대로 (이름, 깊이) 목록으로 돌려준다. 깊이 0이 _model의 직접 자식이다. 트리에 없는 항목이면 빈 목록.</summary>
-    public List<(string label, int depth)> GetChildStructure(object _model)
+    public List<(string label, int depth)> GetChildStructure(IDeviceNode _model)
     {
         List<(string label, int depth)> lineList = new List<(string label, int depth)>();
         if (_model != null && nodeDictionary.TryGetValue(_model, out TreeNode node))
@@ -319,7 +285,7 @@ public class UI_EditorView : MonoBehaviour
     /// <summary>항목(줄)을 누르면 선택을 알린다. 선택된 오브젝트만 씬에 보이게 되는 것은 받는 쪽이 정한다.</summary>
     private void OnClickItem(TreeNode _node)
     {
-        ItemClicked?.Invoke(_node.model, _node.target, _node.kind);
+        ItemClicked?.Invoke(_node.model, _node.target);
     }
 
     private void OnClickArrow(TreeNode _node)

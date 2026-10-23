@@ -30,7 +30,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
     private const float StepAmount = 1.0f;
 
-    private MainSceneManager mainSceneManager;
+    private DeviceSelection selection;
     #endregion
 
     #region LifeCycle
@@ -64,10 +64,10 @@ public class UI_DeviceScaleView : MonoBehaviour
     #endregion
 
     #region Method
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(MainSceneManager _manager)
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태(DeviceSelection)를 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(DeviceSelection _selection)
     {
-        mainSceneManager = _manager;
+        selection = _selection;
     }
 
     /// <summary>
@@ -179,13 +179,13 @@ public class UI_DeviceScaleView : MonoBehaviour
     /// </summary>
     private void ApplyScale(bool _log)
     {
-        Transform target = mainSceneManager != null ? mainSceneManager.SelectedTarget : null;
+        Transform target = selection != null ? selection.Target : null;
         if (target == null)
         {
             return;
         }
 
-        if (!DeviceSizeCalculator.TryGetSizeRenderer(target, mainSceneManager.SelectedKind, out Renderer sizeRenderer))
+        if (!DeviceSizeCalculator.TryGetSizeRenderer(target, selection.Kind, out Renderer sizeRenderer))
         {
             if (_log)
             {
@@ -241,7 +241,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         }
 
         // Cell / Module을 키울 때 부모 Module / Pack 몸체 밖으로 나가면 막는다.
-        DeviceType kind = mainSceneManager.SelectedKind;
+        DeviceType kind = selection.Kind;
         if (kind != DeviceType.Pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
             // 최소 크기 위반과 같이, 타이핑 중에는 아무것도 바꾸지 않고 입력을 끝낼 때 / 버튼을 누를 때 최대 크기로 되돌린다.
@@ -326,7 +326,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
     private bool TryGetOwnSize(Transform _target, out Vector3 _size)
     {
-        DeviceType kind = mainSceneManager != null ? mainSceneManager.SelectedKind : DeviceType.Pack;
+        DeviceType kind = selection != null ? selection.Kind : DeviceType.Pack;
         return DeviceSizeCalculator.TryGetOwnSize(_target, kind, out _size);
     }
     #endregion

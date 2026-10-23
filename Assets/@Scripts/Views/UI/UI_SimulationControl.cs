@@ -1,4 +1,4 @@
-﻿using Incheol.Presenter;
+using Incheol.Modules;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -21,7 +21,8 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Simulation Step Text")]
     [SerializeField] private TextMeshProUGUI simulationStepText;
 
-    private MainSceneManager mainSceneManager;
+    private DeviceSelection selection;
+    private UI_EditorView treeView;
     #endregion
 
     #region LifeCycle
@@ -37,9 +38,10 @@ public class UI_SimulationControl : MonoBehaviour
     #endregion
 
     #region Method
-    public void Init(MainSceneManager _manager)
+    public void Init(DeviceSelection _selection, UI_EditorView _treeView)
     {
-        mainSceneManager = _manager;
+        selection = _selection;
+        treeView = _treeView;
         RefreshName();
     }
 
@@ -54,13 +56,13 @@ public class UI_SimulationControl : MonoBehaviour
             return;
         }
 
-        if (!isActiveAndEnabled || mainSceneManager == null || mainSceneManager.SelectedModel == null)
+        if (!isActiveAndEnabled || selection == null || treeView == null || selection.Model == null)
         {
             ClearName();
             return;
         }
 
-        nameLabel.text = mainSceneManager.GetSelectedLabel();
+        nameLabel.text = treeView.GetLabel(selection.Model);
     }
 
     private void ClearName()

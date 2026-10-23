@@ -1,6 +1,6 @@
 ﻿using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
-using Incheol.Presenter;
+using Incheol.Modules;
 using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
@@ -29,7 +29,7 @@ public class UI_CreateDeviceCount : MonoBehaviour
     // Container마다 x * z개까지만 Pack을 만들 수 있다. 설정한 적 없는 Container는 1 * 1이다.
     private readonly Dictionary<ContainerDataModel, Vector2Int> countDictionary = new Dictionary<ContainerDataModel, Vector2Int>();
 
-    private MainSceneManager mainSceneManager;
+    private DeviceSelection selection;
     #endregion
 
     #region LifeCycle
@@ -57,10 +57,10 @@ public class UI_CreateDeviceCount : MonoBehaviour
     #endregion
 
     #region Method
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(MainSceneManager _manager)
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태(DeviceSelection)를 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(DeviceSelection _selection)
     {
-        mainSceneManager = _manager;
+        selection = _selection;
         Refresh();
     }
 
@@ -139,12 +139,12 @@ public class UI_CreateDeviceCount : MonoBehaviour
 
     private ContainerDataModel GetSelectedContainer()
     {
-        if (mainSceneManager == null || mainSceneManager.SelectedKind != DeviceType.Container)
+        if (selection == null || selection.Kind != DeviceType.Container)
         {
             return null;
         }
 
-        return mainSceneManager.SelectedModel as ContainerDataModel;
+        return selection.Model as ContainerDataModel;
     }
 
     private static void AddStepListener(Button _button, UnityAction _action)

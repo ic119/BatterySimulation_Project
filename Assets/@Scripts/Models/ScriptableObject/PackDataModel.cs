@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 
 [Serializable]
-public class PackDataModel
+public class PackDataModel : IDeviceNode
 {
     public string packName;
     public List<ModuleDataModel> modulesList;
+
+    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.Pack;
+    public string Name { get => packName; set => packName = value; }
 
     /// <summary>이 Pack을 담은 Container. 순환 참조라 직렬화하지 않는다.</summary>
     [NonSerialized] public ContainerDataModel parentContainer;

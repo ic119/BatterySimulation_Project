@@ -51,7 +51,8 @@ public class UI_MainSceneView : MonoBehaviour
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
     private UI_EditorView editorView;
     private JsonDataController jsonDataController;
-    private MainSceneManager mainSceneManager;
+    private DeviceSelection selection;
+    private UI_CreateDeviceCount createCountView;
 
     private int containerCount;
     private int packCount;
@@ -182,7 +183,7 @@ public class UI_MainSceneView : MonoBehaviour
         simulationTreeView?.AddCell(_cell);
     }
 
-    private void RemoveTreeNode(object _model)
+    private void RemoveTreeNode(IDeviceNode _model)
     {
         editorView?.RemoveNode(_model);
         simulationTreeView?.RemoveNode(_model);
@@ -201,10 +202,11 @@ public class UI_MainSceneView : MonoBehaviour
         simulationAlarmPopupView?.Show(_message);
     }
 
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 자신을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(MainSceneManager _manager)
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태와 Pack 수량 패널을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(DeviceSelection _selection, UI_CreateDeviceCount _createCountView)
     {
-        mainSceneManager = _manager;
+        selection = _selection;
+        createCountView = _createCountView;
     }
 
     /// <summary>
@@ -240,18 +242,18 @@ public class UI_MainSceneView : MonoBehaviour
     /// 지우는 대상이나 그 하위가 선택되어 있으면 먼저 선택을 풀어 카메라 / 패널 / 축 그래프가 파괴된 오브젝트를 가리키지 않게 한다.
     /// 번호 카운터는 줄이지 않는다(이름이 겹치지 않도록).
     /// </summary>
-    private void OnDeleteRequested(object _model)
+    private void OnDeleteRequested(IDeviceNode _model)
     {
         RequestDelete(_model, confirmPopupView);
     }
 
     /// <summary>SimulationTab 트리의 삭제 버튼. 확인 팝업은 SimulationTab의 것을 쓴다(꺼진 탭의 팝업은 보이지 않으므로).</summary>
-    private void OnSimulationDeleteRequested(object _model)
+    private void OnSimulationDeleteRequested(IDeviceNode _model)
     {
         RequestDelete(_model, simulationConfirmPopupView);
     }
 
-    private void RequestDelete(object _model, UI_ConfirmPopupView _confirmPopup)
+    private void RequestDelete(IDeviceNode _model, UI_ConfirmPopupView _confirmPopup)
     {
         string description;
         switch (_model)
@@ -282,7 +284,7 @@ public class UI_MainSceneView : MonoBehaviour
         _confirmPopup.Show($"{description} 삭제하시겠습니까?\n삭제하면 되돌릴 수 없습니다.", () => DeleteModel(_model));
     }
 
-    private void DeleteModel(object _model)
+    private void DeleteModel(IDeviceNode _model)
     {
         Transform removedTransform = null;
         ContainerDataModel parentContainer = null;
@@ -363,7 +365,7 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>저장할 _container의 Pack 생성 격자(x 개수, z 줄 수). 패널이 없으면 (0, 0)이라 저장하지 않은 것으로 본다.</summary>
     private Vector2Int GetPackGrid(ContainerDataModel _container)
     {
-        if (mainSceneManager != null && mainSceneManager.TryGetPackGrid(_container, out int gridX, out int gridZ))
+        if (createCountView != null && createCountView.TryGetPackGrid(_container, out int gridX, out int gridZ))
         {
             return new Vector2Int(gridX, gridZ);
         }
@@ -441,7 +443,7 @@ public class UI_MainSceneView : MonoBehaviour
                 HideOrShowCreated(cell.cellPosition);
                 AddCellNode(cell);
             },
-            (container, columns, rows) => mainSceneManager?.SetPackGrid(container, columns, rows));
+            (container, columns, rows) => createCountView?.SetCount(container, columns, rows));
 
         PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
         containerCount = result.containerCount;
@@ -506,13 +508,13 @@ public class UI_MainSceneView : MonoBehaviour
         _parentModule = packFactory.LastModule;
         _parentContainer = null;
 
-        if (mainSceneManager == null || mainSceneManager.SelectedModel == null || mainSceneManager.SelectedTarget == null)
+        if (selection == null || !selection.HasSelection)
         {
             return true;
         }
 
-        Transform selectedTarget = mainSceneManager.SelectedTarget;
-        switch (mainSceneManager.SelectedKind)
+        Transform selectedTarget = selection.Target;
+        switch (selection.Kind)
         {
             case DeviceType.Container:
                 {
@@ -525,9 +527,9 @@ public class UI_MainSceneView : MonoBehaviour
                     // 선택한 Container 안에 Pack을, Module은 하위 Pack 안에(Pack이 없으면 Pack 없는 Module로) 만든다.
                     if (_type == CreateType.Pack)
                     {
-                        if (mainSceneManager != null && !mainSceneManager.CanCreatePack(selectedContainer))
+                        if (createCountView != null && !createCountView.CanCreatePack(selectedContainer, selectedContainer.packsList.Count))
                         {
-                            mainSceneManager.TryGetPackGrid(selectedContainer, out int gridX, out int gridZ);
+                            createCountView.TryGetPackGrid(selectedContainer, out int gridX, out int gridZ);
                             string message = $"Container {selectedContainer.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
                             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(message);
                             ShowAlarm(message);
@@ -634,7 +636,7 @@ public class UI_MainSceneView : MonoBehaviour
     /// </summary>
     private void HideOrShowCreated(Transform _created)
     {
-        MainSceneManager.SetVisible(_created, false);
+        DeviceVisibility.SetVisible(_created, false);
 
         ObjectCreated?.Invoke(_created);
     }
@@ -677,9 +679,9 @@ public class UI_MainSceneView : MonoBehaviour
                     // 선택한 Container의 x * z 격자에 맞춰 x 방향으로 채운 뒤 z 방향 다음 줄에 놓는다(새 Container나 패널이 없으면 기존처럼 x 방향).
                     int gridX = 0;
                     int gridZ = 0;
-                    if (_parentContainer != null && mainSceneManager != null)
+                    if (_parentContainer != null && createCountView != null)
                     {
-                        mainSceneManager.TryGetPackGrid(_parentContainer, out gridX, out gridZ);
+                        createCountView.TryGetPackGrid(_parentContainer, out gridX, out gridZ);
                     }
 
                     PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container, gridX, gridZ);
