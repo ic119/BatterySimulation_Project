@@ -89,14 +89,27 @@ public class JsonDataController : MonoBehaviour
     [Serializable]
     public class SaveJson
     {
+        /// <summary>
+        /// 저장 형식의 버전. 이 값이 없던 예전 파일은 0으로 읽힌다. 새로 저장할 때는 항상 CurrentVersion을 쓴다.
+        /// 불러올 때 JsonDataMigration이 현재 버전의 구조로 바꾸고, CurrentVersion보다 높은 파일(더 새로운 프로그램이 저장한 것)은 읽지 않는다.
+        /// </summary>
+        public int version;
+
         public List<ContainerJson> containers = new List<ContainerJson>();
 
-        /// <summary>Container가 없던 예전 파일의 Pack. 새로 저장할 때는 쓰지 않고, 불러올 때만 읽어 Pack마다 새 Container에 담는다.</summary>
+        /// <summary>Container가 없던 예전(버전 0) 파일의 Pack. 새로 저장할 때는 쓰지 않고, 불러올 때 JsonDataMigration이 Pack마다 새 Container에 옮겨 담고 비운다.</summary>
         public List<PackJson> packs = new List<PackJson>();
 
-        /// <summary>Container가 없던 예전 파일의 단독 Module. 불러올 때만 읽는다.</summary>
+        /// <summary>Container가 없던 예전(버전 0) 파일의 단독 Module. 불러올 때 JsonDataMigration이 새 Container에 옮겨 담고 비운다.</summary>
         public List<ModuleJson> standaloneModules = new List<ModuleJson>();
     }
+
+    /// <summary>
+    /// 저장 형식의 현재 버전.
+    /// 0: 버전 필드가 없던 파일(Container가 없던 가장 오래된 형식부터 Container가 있던 중간 형식까지. 몸체 중심, 칸, 격자는 있는 파일도 있고 없는 파일도 있다).
+    /// 1: 항상 containers 아래에 담긴다. 형식을 바꿀 때는 이 값을 올리고 JsonDataMigration에 이전 버전에서 올리는 단계를 추가한다.
+    /// </summary>
+    public const int CurrentVersion = 1;
     #endregion
 
     #region Method
@@ -142,7 +155,10 @@ public class JsonDataController : MonoBehaviour
         }
     }
 
-    /// <summary>_path의 Json 파일을 읽어 저장 데이터로 돌려준다. 파일이 없거나 형식이 맞지 않으면 null.</summary>
+    /// <summary>
+    /// _path의 Json 파일을 읽어 저장 데이터로 돌려준다. 예전 버전 파일은 현재 버전의 구조로 바꿔서 돌려준다.
+    /// 파일이 없거나 형식이 맞지 않거나, 이 프로그램보다 새로운 버전으로 저장된 파일이면 null.
+    /// </summary>
     public static SaveJson Load(string _path)
     {
         try
@@ -151,6 +167,13 @@ public class JsonDataController : MonoBehaviour
             if (data == null)
             {
                 DebugLogManager.GenerateErrorMessage<JsonDataController>($"Json 내용이 비어 있습니다 : {_path}");
+                return null;
+            }
+
+            if (!JsonDataMigration.TryMigrate(data))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataController>($"Json을 읽을 수 없는 버전입니다 : {_path}");
+                return null;
             }
 
             return data;
@@ -240,7 +263,7 @@ public class JsonDataController : MonoBehaviour
     /// <param name="_gridProvider">Container의 Pack 생성 격자(x 개수, z 줄 수). 없으면 격자를 저장하지 않는다.</param>
     public static SaveJson Build(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
     {
-        SaveJson data = new SaveJson();
+        SaveJson data = new SaveJson { version = CurrentVersion };
         if (_factory == null)
         {
             return data;

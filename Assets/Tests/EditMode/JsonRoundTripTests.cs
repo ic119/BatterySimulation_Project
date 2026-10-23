@@ -62,6 +62,7 @@ namespace Incheol.Tests
 
         private static void AssertSameSave(JsonDataController.SaveJson _expected, JsonDataController.SaveJson _actual)
         {
+            Assert.AreEqual(_expected.version, _actual.version, "version");
             Assert.AreEqual(_expected.containers.Count, _actual.containers.Count, "container count");
             for (int c = 0; c < _expected.containers.Count; c++)
             {

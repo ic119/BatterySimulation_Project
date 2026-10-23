@@ -48,10 +48,18 @@ public class PackJsonBuilder
         cellCreated = _cellCreated;
     }
 
-    /// <summary>_data의 Pack과 단독 Module을 차례로 만든다. 이미 있는 것은 지우지 않으므로 호출하기 전에 비워 둔다.</summary>
+    /// <summary>
+    /// _data의 Container와 그 안의 Pack, 단독 Module을 차례로 만든다. 이미 있는 것은 지우지 않으므로 호출하기 전에 비워 둔다.
+    /// 예전 버전의 _data는 먼저 현재 버전의 구조로 바꾼다(Load로 읽었다면 이미 바뀌어 있다). 읽을 수 없는 버전이면 아무것도 만들지 않는다.
+    /// </summary>
     public Result Build(JsonDataController.SaveJson _data, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
     {
         result = default;
+
+        if (!JsonDataMigration.TryMigrate(_data))
+        {
+            return result;
+        }
 
         for (int c = 0; c < _data.containers.Count; c++)
         {
@@ -62,19 +70,6 @@ public class PackJsonBuilder
 
             // 간격은 자식을 모두 저장 당시 자리에 놓은 뒤에 기억시킨다. 먼저 기억시키면 자식이 생길 때마다 간격을 다시 적용해 저장 당시 자리가 달라질 수 있다.
             RestoreSpacing(container.containerPosition, containerJson.spacing, containerJson.spacingApplied);
-        }
-
-        // Container가 없던 예전 파일: Pack과 단독 Module마다 새 Container에 담는다.
-        for (int i = 0; i < _data.packs.Count; i++)
-        {
-            ContainerDataModel container = NewContainer((result.containerCount + 1).ToString());
-            BuildContents(container, new System.Collections.Generic.List<JsonDataController.PackJson> { _data.packs[i] }, null, _packPrefab, _modulePrefab, _cellPrefab);
-        }
-
-        for (int i = 0; i < _data.standaloneModules.Count; i++)
-        {
-            ContainerDataModel container = NewContainer((result.containerCount + 1).ToString());
-            BuildContents(container, null, new System.Collections.Generic.List<JsonDataController.ModuleJson> { _data.standaloneModules[i] }, _packPrefab, _modulePrefab, _cellPrefab);
         }
 
         return result;
