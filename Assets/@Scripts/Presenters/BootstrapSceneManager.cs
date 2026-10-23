@@ -1,4 +1,4 @@
-using Incheol.Modules;
+﻿using Incheol.Modules;
 using Incheol.Utils;
 using System.Threading;
 using UnityEngine;
@@ -16,7 +16,7 @@ namespace Incheol.Presenter
 
         private class AddressableAssetManage : ISequenceStep
         {
-            public string StepName => "어드레서블 에셋 초기화";
+            public string StepName => "Initialize Addressable Assets";
 
             public async Awaitable<bool> Execute(CancellationToken _cancellationToken)
             {
@@ -36,7 +36,7 @@ namespace Incheol.Presenter
 
         private class LoadingBarManage : ISequenceStep
         {
-            public string StepName => "로딩바 생성";
+            public string StepName => "Create Loading Bar";
 
             public async Awaitable<bool> Execute(CancellationToken _cancellationToken)
             {
@@ -46,19 +46,7 @@ namespace Incheol.Presenter
                     return false;
                 }
 
-                bool isDone = false;
-                bool isSuccess = false;
-
-                LoadingBarManager.Instance.Init(success =>
-                {
-                    isSuccess = success;
-                    isDone = true;
-                });
-
-                while (!isDone)
-                {
-                    await Awaitable.NextFrameAsync(_cancellationToken);
-                }
+                bool isSuccess = await AwaitableCallback.WaitAsync(onComplete => LoadingBarManager.Instance.Init(onComplete), _cancellationToken);
 
                 if (!isSuccess)
                 {
@@ -74,7 +62,7 @@ namespace Incheol.Presenter
 
         private class LoadSceneManage : ISequenceStep
         {
-            public string StepName => "씬 로드 매니저 초기화";
+            public string StepName => "Initialize Scene Load Manager";
 
             public async Awaitable<bool> Execute(CancellationToken _cancellationToken)
             {
@@ -84,19 +72,7 @@ namespace Incheol.Presenter
                     return false;
                 }
 
-                bool isDone = false;
-                bool isSuccess = false;
-
-                SceneLoadManager.Instance.Init(success =>
-                {
-                    isSuccess = success;
-                    isDone = true;
-                });
-
-                while (!isDone)
-                {
-                    await Awaitable.NextFrameAsync(_cancellationToken);
-                }
+                bool isSuccess = await AwaitableCallback.WaitAsync(onComplete => SceneLoadManager.Instance.Init(onComplete), _cancellationToken);
 
                 if (!isSuccess)
                 {
@@ -116,7 +92,7 @@ namespace Incheol.Presenter
                 sceneTag = _sceneTag;
             }
 
-            public string StepName => "첫 씬으로 전환";
+            public string StepName => "Switch to Main Scene";
 
             public async Awaitable<bool> Execute(CancellationToken _cancellationToken)
             {
