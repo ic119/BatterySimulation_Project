@@ -122,8 +122,8 @@ public class JsonDataController : MonoBehaviour
     }
 
     /// <summary>
-    /// 저장된 Json 파일의 전체 경로 목록. 파일 이름이 저장 시각(yyyyMMdd_HHmmss)이라 이름 내림차순이면 최신 파일이 맨 앞이다.
-    /// 예전 형식(yyyyMMddHHmmss)의 파일과 섞여도 순서가 맞도록 '_'를 뺀 이름으로 견준다. 저장 폴더가 없거나 읽기에 실패하면 빈 배열.
+    /// 저장된 Json 파일의 전체 경로 목록. 파일 이름이 저장 시각(yyyyMMdd_HHmmss_fff)이라 이름 내림차순이면 최신 파일이 맨 앞이다.
+    /// 예전 형식(yyyyMMddHHmmss, yyyyMMdd_HHmmss)의 파일과 섞여도 순서가 맞도록 '_'를 뺀 이름으로 견준다. 저장 폴더가 없거나 읽기에 실패하면 빈 배열.
     /// </summary>
     public static string[] GetSavedFilePaths()
     {
@@ -162,14 +162,55 @@ public class JsonDataController : MonoBehaviour
         }
     }
 
-    /// <summary>저장하는 시점의 연도월일_시분초(yyyyMMdd_HHmmss)를 파일 이름으로 하는 전체 경로. 같은 초에 다시 저장하면 같은 이름이 되어 덮어쓴다.</summary>
+    /// <summary>
+    /// 저장하는 시점의 연도월일_시분초_밀리초(yyyyMMdd_HHmmss_fff)를 파일 이름으로 하는 전체 경로.
+    /// 이미 같은 이름의 파일이 있으면 1ms씩 늦춘 이름을 써서 덮어쓰지 않는다(이름 순서가 곧 저장 순서라 최신순 정렬도 유지된다).
+    /// </summary>
     private static string BuildSavePath()
     {
-        return Path.Combine(Application.persistentDataPath, $"{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        DateTime now = DateTime.Now;
+        string path = Path.Combine(Application.persistentDataPath, $"{now:yyyyMMdd_HHmmss_fff}.json");
+        while (File.Exists(path))
+        {
+            now = now.AddMilliseconds(1);
+            path = Path.Combine(Application.persistentDataPath, $"{now:yyyyMMdd_HHmmss_fff}.json");
+        }
+
+        return path;
     }
 
     /// <summary>
-    /// _factory가 가진 Pack / Module / Cell(Pack에 속한 것과 단독 Module 모두)의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss다.
+    /// _path에 _content를 안전하게 쓴다. 임시 파일(.tmp)에 먼저 다 쓴 뒤 이름을 바꿔 완성하므로, 쓰는 도중 앱이 종료돼도 깨진 .json이 남지 않는다.
+    /// 실패하면 임시 파일을 지우고 예외를 그대로 던진다.
+    /// </summary>
+    private static void WriteAllTextAtomic(string _path, string _content)
+    {
+        string tempPath = _path + ".tmp";
+        try
+        {
+            File.WriteAllText(tempPath, _content);
+            File.Move(tempPath, _path);
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch (Exception)
+            {
+                // 임시 파일 정리 실패는 원래 예외를 가리지 않도록 무시한다.
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// _factory가 가진 Pack / Module / Cell(Pack에 속한 것과 단독 Module 모두)의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss_fff다.
     /// 저장할 항목이 하나도 없거나 쓰기에 실패하면 false.
     /// </summary>
     public bool Save(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
@@ -184,7 +225,7 @@ public class JsonDataController : MonoBehaviour
         string savePath = BuildSavePath();
         try
         {
-            File.WriteAllText(savePath, JsonUtility.ToJson(data, true));
+            WriteAllTextAtomic(savePath, JsonUtility.ToJson(data, true));
         }
         catch (Exception exception)
         {
