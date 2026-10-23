@@ -1,5 +1,6 @@
 ﻿using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
+using System;
 using UnityEngine;
 
 namespace Incheol.Modules
@@ -31,16 +32,29 @@ namespace Incheol.Modules
         /// </summary>
         public bool HasSelection => Model != null && Target != null;
 
+        /// <summary>
+        /// 선택이 바뀐 뒤(Set / Clear 직후)에 발생. 받는 쪽에서는 이미 새 선택이 반영되어 있다.
+        /// 선택은 그대로이고 이름 / 크기 같은 내용만 바뀐 경우에는 발생하지 않는다.
+        /// </summary>
+        public event Action Changed;
+
         public void Set(IDeviceNode _model, Transform _target)
         {
             Model = _model;
             Target = _target;
+            Changed?.Invoke();
         }
 
         public void Clear()
         {
+            if (Model == null && Target == null)
+            {
+                return;
+            }
+
             Model = null;
             Target = null;
+            Changed?.Invoke();
         }
     }
 }

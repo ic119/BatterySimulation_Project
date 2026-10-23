@@ -56,6 +56,8 @@ namespace Incheol.Presenter
 
         private void OnDestroy()
         {
+            selection.Changed -= OnSelectionChanged;
+
             if (editorView != null)
             {
                 editorView.ItemClicked -= OnItemClicked;
@@ -88,6 +90,15 @@ namespace Incheol.Presenter
         private void OnItemClicked(IDeviceNode _model, Transform _target)
         {
             SelectItem(_model, _target);
+        }
+
+        /// <summary>선택이 바뀌었을 때(선택 / 해제) 선택에 따라 달라지는 패널을 모두 갱신한다.</summary>
+        private void OnSelectionChanged()
+        {
+            RefreshGraph();
+            RefreshProperties();
+            RefreshName();
+            RefreshStructure();
         }
 
         private void OnTreeChanged()
@@ -132,6 +143,8 @@ namespace Incheol.Presenter
             simulationTreeView = mainSceneView != null ? mainSceneView.SimulationTreeView : null;
             createCountView = FindView<UI_CreateDeviceCount>(_root);
             simulationControl = FindView<UI_SimulationControl>(_root);
+
+            selection.Changed += OnSelectionChanged;
 
             simulationControl?.Init(selection, editorView);
             scaleView?.Init(selection);
@@ -227,19 +240,15 @@ namespace Incheol.Presenter
                 DeviceVisibility.SetVisible(selection.Target, false);
             }
 
+            // 패널 갱신은 selection.Set이 알리는 Changed(OnSelectionChanged)에서 하므로, 트리 강조와 표시 상태를 먼저 맞춰 둔다.
+            editorView?.SetSelected(_model);
+            simulationTreeView?.SetSelected(_model);
+            DeviceVisibility.SetVisible(_target, true, _model.Kind);
             selection.Set(_model, _target);
-
-            editorView?.SetSelected(selection.Model);
-            simulationTreeView?.SetSelected(selection.Model);
-            DeviceVisibility.SetVisible(selection.Target, true, selection.Kind);
-            RefreshGraph();
-            RefreshProperties();
-            RefreshName();
-            RefreshStructure();
 
             if (cameraView != null)
             {
-                cameraView.Track(selection.Target, selection.Target.root);
+                cameraView.Track(_target, _target.root);
             }
         }
 
@@ -411,13 +420,9 @@ namespace Incheol.Presenter
         public void DeselectItem()
         {
             DeviceVisibility.SetVisible(selection.Target, false);
-            selection.Clear();
             editorView?.SetSelected(null);
             simulationTreeView?.SetSelected(null);
-            RefreshGraph();
-            RefreshProperties();
-            RefreshName();
-            RefreshStructure();
+            selection.Clear();
 
             // 선택이 없으면 카메라를 처음 시점으로 되돌린다.
             if (cameraView != null)
