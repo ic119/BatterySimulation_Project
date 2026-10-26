@@ -58,15 +58,6 @@ public class UI_EditorView : MonoBehaviour
         }
     }
 
-    private void OnEnable()
-    {
-        // 꺼진 탭에 있는 트리는 항목이 추가되는 동안 줄을 그리지 못했으므로, 켜질 때 쌓인 항목을 다시 그린다.
-        if (rootNodeList.Count > 0)
-        {
-            RefreshTree();
-        }
-    }
-
     private void OnDestroy()
     {
         list?.Dispose();
@@ -74,6 +65,31 @@ public class UI_EditorView : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>
+    /// 트리에 그려진 줄(Item) 오브젝트를 모두 지우고 항목 수를 0으로 둔다. 항목(노드)과 선택 상태는 그대로 두지만,
+    /// 이 뷰가 다시 켜져도 줄을 다시 그리지 않는다(OnEnable에서 그리지 않는다). 이후 항목이 추가 / 삭제되거나 접힘이 바뀌어
+    /// RefreshTree가 불릴 때에야 보이는 줄을 다시 만든다. 탭이 닫힐 때 그 탭의 트리 줄을 정리하는 데 쓴다.
+    /// </summary>
+    public void ClearItems()
+    {
+        if (list == null)
+        {
+            return;
+        }
+
+        list.ClearRows();
+        list.SetCount(0);
+    }
+
+    /// <summary>켜져 있을 때만 보이는 줄의 내용을 다시 채운다. 꺼진 탭에서는 줄을 만들지 않는다.</summary>
+    private void RefreshRows()
+    {
+        if (isActiveAndEnabled)
+        {
+            list?.Refresh();
+        }
+    }
+
     /// <summary>_model 항목에 표시되는 이름(예: "Pack 1"). 트리에 없으면 빈 문자열.</summary>
     public string GetLabel(IDeviceNode _model)
     {
@@ -84,7 +100,7 @@ public class UI_EditorView : MonoBehaviour
     public void SetSelected(IDeviceNode _model)
     {
         selectedNode = _model != null && nodeDictionary.TryGetValue(_model, out TreeNode node) ? node : null;
-        list?.Refresh();
+        RefreshRows();
     }
 
     /// <summary>
@@ -118,7 +134,7 @@ public class UI_EditorView : MonoBehaviour
         }
 
         node.label = newName;
-        list?.Refresh();
+        RefreshRows();
         return true;
     }
 
@@ -309,7 +325,12 @@ public class UI_EditorView : MonoBehaviour
         }
 
         EnsurePrefab();
-        list?.SetCount(visibleNodeList.Count);
+
+        // 꺼진 탭의 트리는 줄 오브젝트를 만들지 않는다(ClearItems로 지운 줄이 다시 생기지 않게).
+        if (isActiveAndEnabled)
+        {
+            list?.SetCount(visibleNodeList.Count);
+        }
     }
 
     private void CollectVisible(TreeNode _node)
@@ -349,7 +370,7 @@ public class UI_EditorView : MonoBehaviour
                 }
 
                 treeItemPrefab = prefab;
-                list?.Refresh();
+                RefreshRows();
             },
             () =>
             {

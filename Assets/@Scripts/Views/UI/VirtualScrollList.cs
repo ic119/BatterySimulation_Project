@@ -84,16 +84,27 @@ public class VirtualScrollList<TRow> where TRow : Component
             watcher.Resized -= Refresh;
         }
 
+        ClearRows();
+    }
+
+    /// <summary>
+    /// 줄 오브젝트를 모두 지운다. 항목 수와 이벤트 연결은 그대로 두므로, 나중에 SetCount / Refresh를 부르면 보이는 줄을 새로 만든다.
+    /// Destroy는 프레임 끝에 처리되므로 먼저 Content에서 떼어, 바로 이어서 다시 그려도 옛 줄이 남아 있지 않게 한다.
+    /// </summary>
+    public void ClearRows()
+    {
         for (int i = 0; i < rowList.Count; i++)
         {
             if (rowList[i] != null)
             {
+                rowList[i].transform.SetParent(null, false);
                 UnityEngine.Object.Destroy(rowList[i].gameObject);
             }
         }
 
         rowList.Clear();
         boundIndexList.Clear();
+        dirty = true;
     }
 
     private void ConfigureContent()
