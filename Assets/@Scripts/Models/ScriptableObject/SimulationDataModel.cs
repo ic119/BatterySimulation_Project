@@ -59,6 +59,15 @@ public class SimulationDataModel
         return true;
     }
 
+    /// <summary>
+    /// _step을 지운다(뒤의 작업은 앞으로 당겨져 stepList의 순서가 다시 정렬된다). stepList에 없으면 false.
+    /// 화면의 줄이 만들어진 뒤 stepList가 바뀌어 인덱스가 어긋나도 엉뚱한 작업을 지우지 않도록, 인덱스 대신 작업 자체로 찾는다.
+    /// </summary>
+    public bool RemoveStep(SimulationStepModel _step)
+    {
+        return RemoveStepAt(stepList.IndexOf(_step));
+    }
+
     /// <summary>작업을 모두 지운다.</summary>
     public void ClearSteps()
     {
