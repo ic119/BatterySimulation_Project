@@ -141,6 +141,8 @@ public class UI_SimulationControl : MonoBehaviour
             data = holder != null ? holder.Model : null;
         }
 
+        RefreshStepText(data);
+
         if (data == null)
         {
             simulationDropdown.SetValueWithoutNotify((int)SimulationType.None);
@@ -193,8 +195,24 @@ public class UI_SimulationControl : MonoBehaviour
         data.deviceType = selection.Kind;
         data.simulationType = (SimulationType)simulationDropdown.value;
         data.duringTime = duringTime;
+        RefreshStepText(data);
 
         alarmPopupView?.Show("저장되었습니다.");
+    }
+
+    /// <summary>
+    /// 선택된 항목에 저장된 시뮬레이션 설정이 있으면 "SimulationType (n초)" 형식으로 simulationStepText에 표시하고, 없으면 비운다.
+    /// </summary>
+    private void RefreshStepText(SimulationDataModel _data)
+    {
+        if (simulationStepText == null)
+        {
+            return;
+        }
+
+        simulationStepText.text = _data != null
+            ? $"{_data.simulationType} ({_data.duringTime.ToString(CultureInfo.InvariantCulture)}초)"
+            : string.Empty;
     }
 
     private void ShowAlarm(string _message)
