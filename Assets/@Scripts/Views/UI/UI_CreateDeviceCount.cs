@@ -119,6 +119,13 @@ public class UI_CreateDeviceCount : MonoBehaviour
         return true;
     }
 
+    /// <summary>저장해 둔 모든 Container의 x / z 수량을 지운다(모든 Container를 지우고 처음 상태로 돌릴 때).</summary>
+    public void ClearCounts()
+    {
+        countDictionary.Clear();
+        Refresh();
+    }
+
     /// <summary>_container의 x / z 수량을 입력 필드를 거치지 않고 정한다(저장된 파일을 불러올 때). 0보다 작은 값은 0으로 본다.</summary>
     public void SetCount(ContainerDataModel _container, int _x, int _z)
     {

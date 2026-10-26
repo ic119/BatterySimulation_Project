@@ -22,7 +22,14 @@ public class UI_TabBarView : MonoBehaviour
     private TMP_Text simulationLabel;
     private Color editorLabelColor;
     private Color simulationLabelColor;
+
+    // 각 탭 안의 트리 뷰. 탭이 닫힐 때 그 트리에 그려진 줄(Item)을 지우기 위해 Awake에서 찾아 둔다.
+    private UI_EditorView editorTreeView;
+    private UI_EditorView simulationTreeView;
     #endregion
+
+    /// <summary>사용자가 버튼을 눌러 탭이 바뀐 뒤 발생한다. 인자가 true면 editorTab이, false면 simulationTab이 열린 것이다. 시작할 때 editorTab을 여는 것은 알리지 않는다.</summary>
+    public event System.Action<bool> TabChanged;
 
     #region LifeCycle
     private void Awake()
@@ -32,6 +39,8 @@ public class UI_TabBarView : MonoBehaviour
 
         editorLabel = editorButton != null ? editorButton.GetComponentInChildren<TMP_Text>(true) : null;
         simulationLabel = simulationButton != null ? simulationButton.GetComponentInChildren<TMP_Text>(true) : null;
+        editorTreeView = editorTab != null ? editorTab.GetComponentInChildren<UI_EditorView>(true) : null;
+        simulationTreeView = simulationTab != null ? simulationTab.GetComponentInChildren<UI_EditorView>(true) : null;
         editorLabelColor = editorLabel != null ? editorLabel.color : Color.white;
         simulationLabelColor = simulationLabel != null ? simulationLabel.color : Color.white;
 
@@ -68,12 +77,14 @@ public class UI_TabBarView : MonoBehaviour
     private void OnClickEditorButton()
     {
         ShowEditorTab();
+        TabChanged?.Invoke(true);
     }
 
     /// <summary>simulationButton을 누르면 simulationTab을 켜고 editorTab을 끈다.</summary>
     private void OnClickSimulationButton()
     {
         ShowSimulationTab();
+        TabChanged?.Invoke(false);
     }
 
     private void ShowEditorTab()
@@ -120,6 +131,16 @@ public class UI_TabBarView : MonoBehaviour
         if (simulationLabel != null)
         {
             simulationLabel.color = _editorActive ? simulationLabelColor : selectedTextColor;
+        }
+
+        // 닫히는 탭의 트리 줄은 먼저 지운다. 다시 열려도 줄을 다시 그리지 않는다.
+        if (_editorActive)
+        {
+            simulationTreeView?.ClearItems();
+        }
+        else
+        {
+            editorTreeView?.ClearItems();
         }
 
         if (editorTab != null)

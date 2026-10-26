@@ -21,6 +21,7 @@ namespace Incheol.Presenter
         private UI_EditorView simulationTreeView;
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
+        private UI_TabBarView tabBarView;
 
         private readonly DeviceSelection selection = new DeviceSelection();
         private SelectionPanels panels;
@@ -74,6 +75,11 @@ namespace Incheol.Presenter
                 nameView.RenameRequested -= panels.RenameSelected;
             }
 
+            if (tabBarView != null)
+            {
+                tabBarView.TabChanged -= OnTabChanged;
+            }
+
             if (mainSceneView != null)
             {
                 mainSceneView.ObjectRemoving -= OnObjectRemoving;
@@ -87,6 +93,15 @@ namespace Incheol.Presenter
         #endregion
 
         #region Method
+        /// <summary>
+        /// 탭이 바뀌면 만들어 둔 오브젝트, 두 탭의 트리, 선택(DeviceSelection)을 모두 처음 상태로 되돌린다.
+        /// 선택 해제와 카메라 복귀는 mainSceneView.ResetAll이 알리는 SelectionClearRequested에서 처리한다.
+        /// </summary>
+        private void OnTabChanged(bool _editorActive)
+        {
+            mainSceneView?.ResetAll();
+        }
+
         private void OnItemClicked(IDeviceNode _model, Transform _target)
         {
             SelectItem(_model, _target);
@@ -133,6 +148,7 @@ namespace Incheol.Presenter
             nameView = FindView<UI_SelectedDeviceNameView>(_root);
 
             mainSceneView = FindView<UI_MainSceneView>(_root);
+            tabBarView = FindView<UI_TabBarView>(_root);
 
             // 트리 뷰는 탭마다 하나씩 있어서 계층 순서에 기대지 않고 UI_MainSceneView가 가진 것을 쓴다.
             editorView = mainSceneView != null ? mainSceneView.EditorTreeView : null;
@@ -163,6 +179,11 @@ namespace Incheol.Presenter
             if (nameView != null)
             {
                 nameView.RenameRequested += panels.RenameSelected;
+            }
+
+            if (tabBarView != null)
+            {
+                tabBarView.TabChanged += OnTabChanged;
             }
 
             if (mainSceneView != null)

@@ -188,6 +188,27 @@ public class UI_MainSceneView : MonoBehaviour
         simulationTreeView?.RemoveNode(_model);
     }
 
+    /// <summary>
+    /// 만들어 둔 Container / Pack / Module / Cell(씬 오브젝트와 모델), 두 탭의 트리, 선택, 번호 이어 붙이기, Container별 수량을 모두 처음 상태로 되돌린다.
+    /// 탭을 바꿀 때 쓴다. 저장하지 않은 내용은 사라진다.
+    /// </summary>
+    public void ResetAll()
+    {
+        // 지울 오브젝트가 선택되어 있으면 먼저 선택을 풀어 카메라와 패널을 되돌린다.
+        SelectionClearRequested?.Invoke();
+
+        ClearTrees();
+        packFactory.Clear();
+
+        containerCount = 0;
+        packCount = 0;
+        moduleCount = 0;
+        cellCount = 0;
+        skippedCount = 0;
+
+        createCountView?.ClearCounts();
+    }
+
     private void ClearTrees()
     {
         editorView?.Clear();
