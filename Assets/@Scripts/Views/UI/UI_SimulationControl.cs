@@ -193,6 +193,8 @@ public class UI_SimulationControl : MonoBehaviour
         data.deviceType = selection.Kind;
         data.simulationType = (SimulationType)simulationDropdown.value;
         data.duringTime = duringTime;
+
+        alarmPopupView?.Show("저장되었습니다.");
     }
 
     private void ShowAlarm(string _message)
