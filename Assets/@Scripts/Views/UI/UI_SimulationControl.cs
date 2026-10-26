@@ -6,11 +6,15 @@ using Incheol.Utils;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using SimulationType = Incheol.Models.Define.SimulationType;
 
 public class UI_SimulationControl : MonoBehaviour
 {
     #region Variable
+    [Header("Simulation Area Container")]
+    [SerializeField] private GameObject simulationRoot;
+
     [Header("Selected Device NameLabel")]
     [SerializeField] private TextMeshProUGUI nameLabel;
 
@@ -23,9 +27,6 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Setting Apply Button")]
     [SerializeField] private Button applyButton;
 
-    [Header("Simulation Step Text")]
-    [SerializeField] private TextMeshProUGUI simulationStepText;
-
     [Header("Alarm")]
     [SerializeField, Tooltip("SimulationTab의 알림 팝업. 저장할 값이 비어 있을 때 알린다.")] private UI_AlarmPopupView alarmPopupView;
 
@@ -36,8 +37,7 @@ public class UI_SimulationControl : MonoBehaviour
     #region LifeCycle
     private void OnEnable()
     {
-        RefreshName();
-        RefreshSettings();
+        Refresh();
     }
 
     private void OnDisable()
@@ -49,7 +49,7 @@ public class UI_SimulationControl : MonoBehaviour
     {
         if (selection != null)
         {
-            selection.Changed -= RefreshSettings;
+            selection.Changed -= Refresh;
         }
 
         if (applyButton != null)
@@ -64,12 +64,12 @@ public class UI_SimulationControl : MonoBehaviour
     {
         if (selection != null)
         {
-            selection.Changed -= RefreshSettings;
+            selection.Changed -= Refresh;
         }
 
         selection = _selection;
         treeView = _treeView;
-        selection.Changed += RefreshSettings;
+        selection.Changed += Refresh;
 
         if (applyButton != null)
         {
@@ -78,8 +78,32 @@ public class UI_SimulationControl : MonoBehaviour
         }
 
         BuildDropdownOptions();
+        Refresh();
+    }
+
+    /// <summary>
+    /// 선택에 맞춰 simulationRoot의 활성 상태, nameLabel, 입력(dropdown / inputField)을 모두 갱신한다.
+    /// 선택이 바뀔 때와 탭이 켜질 때 호출한다.
+    /// </summary>
+    private void Refresh()
+    {
+        RefreshRoot();
         RefreshName();
-        RefreshSettings();
+        ResetInput();
+    }
+
+    /// <summary>
+    /// 선택된 항목이 있고 Container일 때만 simulationRoot를 켠다. 그 외에는 끈다.
+    /// </summary>
+    private void RefreshRoot()
+    {
+        if (simulationRoot == null)
+        {
+            return;
+        }
+
+        bool isContainerSelected = selection != null && selection.Model != null && selection.Kind == DeviceType.Container;
+        simulationRoot.SetActive(isContainerSelected);
     }
 
     /// <summary>
@@ -124,34 +148,19 @@ public class UI_SimulationControl : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택된 항목의 오브젝트에 저장된 SimulationDataModel을 dropdown / inputField에 채운다.
-    /// 저장된 값이 없거나 선택이 없으면 기본값(None, 빈 입력)으로 되돌린다. 선택이 바뀔 때와 탭이 켜질 때 호출한다.
+    /// dropdown / inputField를 기본값(None, 빈 입력)으로 되돌려 다음 작업을 입력할 수 있게 한다. 선택이 바뀔 때와 탭이 켜질 때 호출한다.
     /// </summary>
-    private void RefreshSettings()
+    private void ResetInput()
     {
-        if (simulationDropdown == null || duringTimeInputField == null)
-        {
-            return;
-        }
-
-        SimulationDataModel data = null;
-        if (selection != null && selection.HasSelection)
-        {
-            SimulationData holder = selection.Target.GetComponent<SimulationData>();
-            data = holder != null ? holder.Model : null;
-        }
-
-        RefreshStepText(data);
-
-        if (data == null)
+        if (simulationDropdown != null)
         {
             simulationDropdown.SetValueWithoutNotify((int)SimulationType.None);
-            duringTimeInputField.SetTextWithoutNotify(string.Empty);
-            return;
         }
 
-        simulationDropdown.SetValueWithoutNotify((int)data.simulationType);
-        duringTimeInputField.SetTextWithoutNotify(data.duringTime.ToString(CultureInfo.InvariantCulture));
+        if (duringTimeInputField != null)
+        {
+            duringTimeInputField.SetTextWithoutNotify(string.Empty);
+        }
     }
 
     /// <summary>
@@ -193,26 +202,9 @@ public class UI_SimulationControl : MonoBehaviour
         SimulationDataModel data = holder.Model;
         data.deviceName = treeView.GetLabel(selection.Model);
         data.deviceType = selection.Kind;
-        data.simulationType = (SimulationType)simulationDropdown.value;
-        data.duringTime = duringTime;
-        RefreshStepText(data);
+        data.AddStep((SimulationType)simulationDropdown.value, duringTime);
 
         alarmPopupView?.Show("저장되었습니다.");
-    }
-
-    /// <summary>
-    /// 선택된 항목에 저장된 시뮬레이션 설정이 있으면 "SimulationType (n초)" 형식으로 simulationStepText에 표시하고, 없으면 비운다.
-    /// </summary>
-    private void RefreshStepText(SimulationDataModel _data)
-    {
-        if (simulationStepText == null)
-        {
-            return;
-        }
-
-        simulationStepText.text = _data != null
-            ? $"{_data.simulationType} ({_data.duringTime.ToString(CultureInfo.InvariantCulture)}초)"
-            : string.Empty;
     }
 
     private void ShowAlarm(string _message)

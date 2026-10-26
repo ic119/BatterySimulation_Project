@@ -12786,6 +12786,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cfd07dab97184148b32e885c2292075, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_SimulationControl
+  simulationRoot: {fileID: 2206971943416457653}
   nameLabel: {fileID: 3484496366033430740}
   simulationDropdown: {fileID: 2690477836175160473}
   duringTimeInputField: {fileID: 8428323363522236731}
