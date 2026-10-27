@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Incheol.Modules;
@@ -28,8 +28,18 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Setting Apply Button")]
     [SerializeField] private Button applyButton;
 
+    [Header("Simulation Start Button")]
+    [SerializeField] private Button startButton;
+
     [Header("SimulationProcess ScrollView")]
     [SerializeField] private RectTransform contentRect;
+
+    [Header("Pack CustomShader")]
+    [SerializeField] private Shader customOutline;
+    [SerializeField] private Material packPrefabOutLine;
+    [SerializeField] private Shader electricChargeFlow;
+    [SerializeField] private Material electricChargeFlowMaterial;
+
 
     [Header("Alarm")]
     [SerializeField, Tooltip("SimulationTab의 알림 팝업. 저장할 값이 비어 있을 때 알린다.")] private UI_AlarmPopupView alarmPopupView;
@@ -222,6 +232,8 @@ public class UI_SimulationControl : MonoBehaviour
     /// </summary>
     private void RefreshItems()
     {
+        RefreshStartButton();
+
         if (contentRect == null)
         {
             return;
@@ -247,6 +259,26 @@ public class UI_SimulationControl : MonoBehaviour
             key,
             prefab => CreateItems(prefab, data, version),
             () => DebugLogManager.GenerateErrorMessage<UI_SimulationControl>($"{key} 로드 실패"));
+    }
+
+    /// <summary>
+    /// 선택된 Container의 SimulationDataModel에 stepList가 1개 이상일 때만 startButton을 활성화하고, 그 외(선택 없음, 데이터 없음, 0개)에는 비활성화한다.
+    /// </summary>
+    private void RefreshStartButton()
+    {
+        if (startButton == null)
+        {
+            return;
+        }
+
+        bool hasStep = false;
+        if (selection != null && selection.HasSelection && selection.Kind == DeviceType.Container
+            && selection.Target.TryGetComponent(out SimulationData holder))
+        {
+            hasStep = holder.Model.StepCount != 0;
+        }
+
+        startButton.interactable = hasStep;
     }
 
     /// <summary>
