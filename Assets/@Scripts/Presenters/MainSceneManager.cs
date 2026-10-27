@@ -155,11 +155,12 @@ namespace Incheol.Presenter
             simulationTreeView = mainSceneView != null ? mainSceneView.SimulationTreeView : null;
             UI_CreateDeviceCount createCountView = FindView<UI_CreateDeviceCount>(_root);
             UI_SimulationControl simulationControl = FindView<UI_SimulationControl>(_root);
+            UI_SimulationResultView simulationResultView = FindView<UI_SimulationResultView>(_root);
 
             panels.Bind(propertiesView, scaleView, spacingView, structureView, nameView, createCountView, simulationControl, editorView, simulationTreeView);
             selection.Changed += OnSelectionChanged;
 
-            simulationControl?.Init(selection, editorView, mainSceneView != null ? mainSceneView.PackFactory : null);
+            simulationControl?.Init(selection, editorView, mainSceneView != null ? mainSceneView.PackFactory : null, simulationResultView);
             scaleView?.Init(selection);
             spacingView?.Init(selection);
             createCountView?.Init(selection);

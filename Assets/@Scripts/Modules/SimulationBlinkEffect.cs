@@ -46,6 +46,12 @@ namespace Incheol.Modules
         private readonly List<BlinkTarget> activeTargets = new List<BlinkTarget>();
         private readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
 
+        /// <summary>마지막 Begin()에서 점멸 대상으로 뽑힌 Module 개수. Stop() / Clear()를 부르면 0으로 돌아간다.</summary>
+        public int AbnormalModuleCount { get; private set; }
+
+        /// <summary>마지막 Begin()에서 점멸 대상으로 뽑힌 Cell 개수. Stop() / Clear()를 부르면 0으로 돌아간다.</summary>
+        public int AbnormalCellCount { get; private set; }
+
         private Tween blinkTween;
         private float blend;
 
@@ -102,8 +108,8 @@ namespace Incheol.Modules
         {
             Stop();
 
-            AddRandomTargets(moduleRenderers, ModuleBlinkColor, ModuleOutlineBlinkColor);
-            AddRandomTargets(cellRenderers, CellBlinkColor, CellOutlineBlinkColor);
+            AbnormalModuleCount = AddRandomTargets(moduleRenderers, ModuleBlinkColor, ModuleOutlineBlinkColor);
+            AbnormalCellCount = AddRandomTargets(cellRenderers, CellBlinkColor, CellOutlineBlinkColor);
 
             if (activeTargets.Count == 0)
             {
@@ -139,6 +145,8 @@ namespace Incheol.Modules
             }
 
             activeTargets.Clear();
+            AbnormalModuleCount = 0;
+            AbnormalCellCount = 0;
         }
 
         /// <summary>점멸을 멈추고 원복한 뒤, 모아 둔 대상도 비운다.</summary>
@@ -157,12 +165,15 @@ namespace Incheol.Modules
             }
         }
 
-        private void AddRandomTargets(List<Renderer> _renderers, Color _baseBlinkColor, Color _outlineBlinkColor)
+        /// <summary>_renderers에서 무작위로 점멸 대상을 골라 activeTargets에 추가하고, 실제로 추가한 개수를 돌려준다.</summary>
+        private int AddRandomTargets(List<Renderer> _renderers, Color _baseBlinkColor, Color _outlineBlinkColor)
         {
             if (_renderers.Count == 0)
             {
-                return;
+                return 0;
             }
+
+            int addedCount = 0;
 
             // 앞에서부터 _count개를 무작위로 뽑는 부분 셔플. 원본 목록은 바꾸지 않도록 인덱스만 섞는다.
             int maxCount = Mathf.Max(1, Mathf.FloorToInt(_renderers.Count * MaxBlinkRatio));
@@ -206,8 +217,11 @@ namespace Incheol.Modules
                 if (target.hasBaseColor || target.hasOutlineColor)
                 {
                     activeTargets.Add(target);
+                    addedCount++;
                 }
             }
+
+            return addedCount;
         }
 
         /// <summary>blend(0 = 원래 색, 1 = 빨강)에 맞춰 점멸 중인 Renderer의 색(알파 포함)을 PropertyBlock으로 바꾼다.</summary>

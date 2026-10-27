@@ -13,7 +13,8 @@
         CellPrefab = 5,
         UI_TreeNodeItem = 6,
         UI_JsonFileItem = 7,
-        SimulationItem = 8
+        SimulationItem = 8,
+        ResultListItem = 9
     }
 
     /// <summary>

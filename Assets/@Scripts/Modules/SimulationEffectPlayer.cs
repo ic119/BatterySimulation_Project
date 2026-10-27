@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Incheol.Utils;
 using UnityEngine;
 using SimulationType = Incheol.Models.Define.SimulationType;
@@ -26,6 +27,12 @@ namespace Incheol.Modules
 
         // Charge / Discharge 연출 중 Container 안의 Module / Cell을 무작위로 빨갛게 점멸시킨다.
         private readonly SimulationBlinkEffect blinkEffect = new SimulationBlinkEffect();
+
+        // 이번 실행에서 끝난 작업 수. 결과의 실행 순서 번호로 쓴다.
+        private int completedStepCount;
+
+        /// <summary>작업 1개가 끝났을 때(연출 정리 직전) 그 작업의 결과와 함께 호출된다.</summary>
+        public event Action<SimulationStepResult> StepResultReady;
 
         /// <summary>연출을 입힐 대상(선택된 Container). SetContainer로 지정한다.</summary>
         public ContainerDataModel Container { get; private set; }
@@ -78,6 +85,7 @@ namespace Incheol.Modules
         {
             blinkEffect.Clear();
             RestoreMaterials();
+            completedStepCount = 0;
             Container = null;
             packBodies.Clear();
         }
@@ -117,6 +125,9 @@ namespace Incheol.Modules
 
         private void OnStepEnded(SimulationStepModel _step)
         {
+            // 점멸을 멈추면 이상 수량이 0으로 돌아가므로, 결과는 연출을 정리하기 전에 만든다.
+            RaiseStepResult(_step);
+
             switch (_step.simulationType)
             {
                 case SimulationType.Charge:
@@ -131,6 +142,46 @@ namespace Incheol.Modules
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// 끝난 작업의 결과(Container의 Pack / Module / Cell 전체 수량 + 연출이 진행된 Module / Cell 수량)를 만들어 StepResultReady로 알린다.
+        /// </summary>
+        private void RaiseStepResult(SimulationStepModel _step)
+        {
+            if (Container == null || Container.packsList == null)
+            {
+                return;
+            }
+
+            SimulationStepResult result = new SimulationStepResult
+            {
+                stepNumber = ++completedStepCount,
+                simulationType = _step.simulationType,
+                duringTime = _step.duringTime,
+                packCount = Container.packsList.Count,
+                abnormalModuleCount = blinkEffect.AbnormalModuleCount,
+                abnormalCellCount = blinkEffect.AbnormalCellCount,
+            };
+
+            foreach (PackDataModel pack in Container.packsList)
+            {
+                if (pack == null || pack.modulesList == null)
+                {
+                    continue;
+                }
+
+                result.moduleCount += pack.modulesList.Count;
+                foreach (ModuleDataModel module in pack.modulesList)
+                {
+                    if (module != null && module.cellsList != null)
+                    {
+                        result.cellCount += module.cellsList.Count;
+                    }
+                }
+            }
+
+            StepResultReady?.Invoke(result);
         }
 
         /// <summary>

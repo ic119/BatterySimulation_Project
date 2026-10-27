@@ -47,6 +47,11 @@ public class UI_SimulationControl : MonoBehaviour
     private DeviceSelection selection;
     private UI_EditorView treeView;
     private PackFactory packFactory;
+    private UI_SimulationResultView resultView;
+
+    // 결과 목록이 속한 Container. 다른 항목이 선택되면 결과 목록을 비운다.
+    // ContainerDataModel은 Module <-> Cell이 서로를 가리키는 순환 구조라, 스크립트 리로드 때 직렬화되지 않게 제외한다.
+    [System.NonSerialized] private ContainerDataModel resultOwner;
 
     private UI_SimulationStepList stepList;
     private SimulationRunner runner;
@@ -72,6 +77,7 @@ public class UI_SimulationControl : MonoBehaviour
         runner.Stop();
         effectPlayer.Clear();
         ClearCurrentText();
+        ClearResults();
         RefreshStartButton();
         ClearName();
     }
@@ -113,12 +119,13 @@ public class UI_SimulationControl : MonoBehaviour
         runner.StepBegan += OnStepBegan;
         runner.StepProgressed += OnStepProgressed;
         effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
+        effectPlayer.StepResultReady += OnStepResultReady;
 
         // 재생 중이 아닐 때는 꺼 둔다.
         ClearCurrentText();
     }
 
-    public void Init(DeviceSelection _selection, UI_EditorView _treeView, PackFactory _packFactory)
+    public void Init(DeviceSelection _selection, UI_EditorView _treeView, PackFactory _packFactory, UI_SimulationResultView _resultView = null)
     {
         EnsureCreated();
 
@@ -130,6 +137,7 @@ public class UI_SimulationControl : MonoBehaviour
         selection = _selection;
         treeView = _treeView;
         packFactory = _packFactory;
+        resultView = _resultView;
         selection.Changed += Refresh;
 
         if (applyButton != null)
@@ -160,6 +168,12 @@ public class UI_SimulationControl : MonoBehaviour
             runner.Stop();
             effectPlayer.Clear();
             ClearCurrentText();
+        }
+
+        // 결과 목록은 시뮬레이션을 돌린 Container의 것이므로, 다른 항목이 선택되면 비운다.
+        if (resultOwner != null && !ReferenceEquals(selection != null ? selection.Model : null, resultOwner))
+        {
+            ClearResults();
         }
 
         RefreshRoot();
@@ -314,6 +328,24 @@ public class UI_SimulationControl : MonoBehaviour
         startButton.interactable = hasStep && !runner.IsRunning;
     }
 
+    private void OnStepResultReady(SimulationStepResult _result)
+    {
+        if (resultView != null)
+        {
+            resultView.AddResult(_result);
+        }
+    }
+
+    private void ClearResults()
+    {
+        resultOwner = null;
+
+        if (resultView != null)
+        {
+            resultView.Clear();
+        }
+    }
+
     private void OnStepBegan(SimulationStepModel _step)
     {
         if (curSimulationContainer != null)
@@ -377,6 +409,10 @@ public class UI_SimulationControl : MonoBehaviour
         if (selection != null && !runner.IsRunning && selection.Model is ContainerDataModel container)
         {
             effectPlayer.SetContainer(container, packFactory);
+
+            // 새 실행의 결과가 이전 결과 아래에 쌓이지 않도록 목록을 비우고 결과의 주인을 정한다.
+            ClearResults();
+            resultOwner = container;
         }
 
         if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container
