@@ -14,7 +14,8 @@ Material:
   m_ValidKeywords:
   - _OUTLINEMODE_POSITIONEXTRUSION
   - _SURFACE_TYPE_TRANSPARENT
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _COORDS_UVSPACE
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -32,9 +33,25 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _ChargeAxisMax: 0.5
+    - _ChargeAxisMin: -0.5
+    - _ChargeEdgeIntensity: 3.84
+    - _ChargeEdgePulseSpeed: 8
+    - _ChargeEdgeWidth: 0.0232
+    - _ChargeProgress: 0.65
+    - _ChargedGlowIntensity: 1.2
+    - _Coords: 2
     - _Cull: 2
     - _DstBlend: 10
+    - _FlowInUncharged: 0.05
+    - _FlowIntensity: 3
+    - _FlowPulseSharpness: 5
+    - _FlowSpeed: 2.5
+    - _FlowTiling: 2.07
     - _Metallic: 0
+    - _NoiseScale: 8
+    - _NoiseSpeed: 5.12
+    - _NoiseStrength: 0.054
     - _OutlineMode: 0
     - _OutlineWidth: 0.246
     - _OutlineZOffset: 0.001
@@ -49,7 +66,13 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0, g: 1, b: 0.070367455, a: 0.34509805}
     - _CenterOffset: {r: 0, g: 0, b: 0, a: 0}
+    - _ChargeDirection: {r: 1, g: 0, b: 0, a: 0}
+    - _ChargeEdgeColor: {r: 1, g: 0.95, b: 0.3, a: 1}
+    - _ChargedColor: {r: 0, g: 0.9, b: 0.45, a: 1}
+    - _FlowColor: {r: 0, g: 0.85, b: 1, a: 1}
+    - _FlowDirection: {r: 0, g: 0, b: 0, a: 0}
     - _OutlineColor: {r: 1, g: 0.85, b: 0, a: 1}
-    - _RimColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor: {r: 1, g: 0, b: 0, a: 1}
+    - _UnchargedColor: {r: 0.02, g: 0.03, b: 0.049999982, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
