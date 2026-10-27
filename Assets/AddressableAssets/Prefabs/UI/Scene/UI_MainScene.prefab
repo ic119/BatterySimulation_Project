@@ -3832,8 +3832,8 @@ MonoBehaviour:
   simulationConfirmPopupView: {fileID: 17792642078659434}
   jsonFileListView: {fileID: 7690577549963674945}
   packPadding: 0
-  modulePadding: 0
-  cellPadding: 0
+  modulePadding: 0.05
+  cellPadding: 0.05
 --- !u!114 &4901821463160712549
 MonoBehaviour:
   m_ObjectHideFlags: 0
