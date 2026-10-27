@@ -97,12 +97,12 @@ namespace Incheol.Modules
                 case SimulationType.Charge:
                     EnsureChargeMaterial();
                     SetChargeProgress(0f);
-                    blinkEffect.Begin();
+                    blinkEffect.Begin(_step.duringTime);
                     break;
                 case SimulationType.Discharge:
                     EnsureChargeMaterial();
                     SetChargeProgress(1f);
-                    blinkEffect.Begin();
+                    blinkEffect.Begin(_step.duringTime);
                     break;
                 case SimulationType.None:
                 default:
