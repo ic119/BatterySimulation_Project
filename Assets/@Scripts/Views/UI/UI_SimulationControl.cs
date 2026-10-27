@@ -126,9 +126,10 @@ public class UI_SimulationControl : MonoBehaviour
     /// </summary>
     private void Refresh()
     {
-        // 끝난 시뮬레이션의 마지막 연출이 다른 선택에 남지 않게 되돌린다. 실행 중에는 그대로 진행한다.
-        if (!runner.IsRunning)
+        // 연출 중인 Container가 아닌 다른 항목이 선택되면, 진행 중이던 시뮬레이션을 멈추고 Pack의 머티리얼을 되돌린다.
+        if (effectPlayer.Container != null && !ReferenceEquals(selection != null ? selection.Model : null, effectPlayer.Container))
         {
+            runner.Stop();
             effectPlayer.Clear();
         }
 

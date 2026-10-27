@@ -38,6 +38,7 @@ namespace Incheol.Modules
             _runner.StepBegan += OnStepBegan;
             _runner.StepProgressed += OnStepProgressed;
             _runner.StepEnded += OnStepEnded;
+            _runner.Finished += Clear;
         }
 
         /// <summary>
@@ -65,8 +66,8 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// 연출이 바꾼 Body를 원래 머티리얼로 되돌리고 대상을 비운다.
-        /// 작업이 모두 끝나도 마지막 모습은 남겨 두므로, 다음 실행을 시작할 때(SetContainer), 선택이 바뀌었을 때,
+        /// 연출 중인 Body(electricChargeFlowMaterial)를 packPrefabOutLine으로 바꾸고 대상을 비운다. packPrefabOutLine이 없으면 연출 전 머티리얼로 되돌린다.
+        /// 모든 작업이 끝났을 때(Finished), 다른 Container가 선택되었을 때, 다음 실행을 시작할 때(SetContainer),
         /// Runner가 중간에 중단되었을 때(StepEnded가 오지 않으므로) 호출한다.
         /// </summary>
         public void Clear()
@@ -203,20 +204,36 @@ namespace Incheol.Modules
 
         private void RestoreMaterials()
         {
-            foreach (KeyValuePair<Renderer, Material[]> pair in originalMaterials)
-            {
-                if (pair.Key != null)
-                {
-                    pair.Key.sharedMaterials = pair.Value;
-                }
-            }
-
-            // 원래부터 electricChargeFlowMaterial이던 Body는 되돌릴 머티리얼이 없으니 PropertyBlock만 지운다.
             foreach (Renderer bodyRenderer in packBodies)
             {
-                if (bodyRenderer != null)
+                if (bodyRenderer == null)
                 {
-                    bodyRenderer.SetPropertyBlock(null);
+                    continue;
+                }
+
+                // 연출에 쓰이지 않은 Body(electricChargeFlowMaterial이 아닌 것)는 머티리얼을 건드리지 않는다.
+                Material[] currentMaterials = bodyRenderer.sharedMaterials;
+                bool isEffectBody = originalMaterials.ContainsKey(bodyRenderer) || IsAllChargeMaterial(currentMaterials);
+                if (!isEffectBody)
+                {
+                    continue;
+                }
+
+                bodyRenderer.SetPropertyBlock(null);
+
+                if (packPrefabOutLine != null)
+                {
+                    Material[] materials = new Material[currentMaterials.Length];
+                    for (int i = 0; i < materials.Length; i++)
+                    {
+                        materials[i] = packPrefabOutLine;
+                    }
+
+                    bodyRenderer.sharedMaterials = materials;
+                }
+                else if (originalMaterials.TryGetValue(bodyRenderer, out Material[] original))
+                {
+                    bodyRenderer.sharedMaterials = original;
                 }
             }
 
