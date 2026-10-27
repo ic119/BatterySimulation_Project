@@ -53,10 +53,7 @@ public class UI_SimulationControl : MonoBehaviour
     #region LifeCycle
     private void Awake()
     {
-        stepList = new UI_SimulationStepList(contentRect, RefreshStartButton);
-        runner = new SimulationRunner(this);
-        runner.Finished += RefreshStartButton;
-        effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
+        EnsureCreated();
     }
 
     private void OnEnable()
@@ -92,8 +89,26 @@ public class UI_SimulationControl : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>
+    /// stepList / runner / effectPlayer를 한 번만 만든다. 탭이 꺼진 채로 Init이 먼저 불리면 Awake가 아직 실행되지 않았으므로 Init에서도 호출한다.
+    /// </summary>
+    private void EnsureCreated()
+    {
+        if (runner != null)
+        {
+            return;
+        }
+
+        stepList = new UI_SimulationStepList(contentRect, RefreshStartButton);
+        runner = new SimulationRunner(this);
+        runner.Finished += RefreshStartButton;
+        effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
+    }
+
     public void Init(DeviceSelection _selection, UI_EditorView _treeView, PackFactory _packFactory)
     {
+        EnsureCreated();
+
         if (selection != null)
         {
             selection.Changed -= Refresh;
