@@ -1,0 +1,114 @@
+====================================================================
+Pack / Module / Cell 겹침 지직거림(z-fighting) 개선 작업 기록
+작성일: 2026-10-27
+프로젝트: BatterySimulation_Project (Unity 6000.4.8f1, URP)
+====================================================================
+
+1. 증상
+--------------------------------------------------------------------
+- Pack / Module / Cell이 겹치는 부분, 특히 Cell(원통) 윗면에 별/부채꼴 모양의
+  얼룩이 보이고 카메라를 움직이면 지직거리는 현상이 있었다.
+
+2. 작업 전 확인한 렌더 설정
+--------------------------------------------------------------------
+- Pack  (M_PackPrefab_Outline)   : 투명, ZWrite Off, 큐 3000, 윤곽선 두께 0.246
+- Module(M_ModulePrefab_Outline) : 투명, ZWrite Off, 큐 3000, 윤곽선 0.05
+- Cell  (M_CellPrefab_Outline)   : 불투명, ZWrite On, 큐 2000, 윤곽선 0.05
+- 충전 연출(M_ElectricChargeFlow): 투명, ZWrite Off, 큐 3000
+- CustomOutline 셰이더의 윤곽선은 "뒤집힌 껍질(Cull Front)" 방식이다.
+- 카메라 near 0.1 / far 5000, MSAA 꺼짐, 렌더러에 SSAO 기능이 있다.
+
+3. 1차 개선 (이전 작업)
+--------------------------------------------------------------------
+(1) Module / Cell 가로 여백
+    - UI_MainScene.prefab > UI_MainSceneView
+      modulePadding 0 -> 0.05, cellPadding 0 -> 0.05
+    - 안쪽 오브젝트의 옆면이 바깥 벽과 같은 깊이에 놓이지 않게 한다.
+    - 새로 만드는 Module / Cell의 배치에만 적용된다(저장된 JSON은 저장 당시 배치).
+(2) 투명 머티리얼 렌더 큐 분리 (그리는 순서 고정)
+    - M_ModulePrefab_Outline : 3000 (유지)
+    - M_PackPrefab_Outline   : 3000 -> 3001
+    - M_ElectricChargeFlow   : 3000 -> 3001 (충전 연출 때 Pack 몸체가 쓰는 머티리얼)
+    - Cell은 불투명이라 가장 먼저 그려진다.
+    - 결과: Module -> Pack 순서로 고정(겉에서 볼 때 앞쪽 Pack 벽이 Module 위에 얹힘).
+    - 이것만으로는 Cell 윗면 얼룩이 해결되지 않았다.
+
+4. 2차 개선 - 원인 분석 (Play 중 실험)
+--------------------------------------------------------------------
+Play 상태에서 임시 카메라와 런타임 값 변경으로 요인을 하나씩 껐다 켜며 비교했다.
+
+  실험                              결과
+  --------------------------------  ----------------------------------
+  Cell 그림자 수신/투영 끄기        얼룩 그대로 (원인 아님)
+  방향광 그림자 전체 끄기           얼룩 그대로 (원인 아님)
+  SSAO 기능 끄기                    얼룩 그대로 (원인 아님)
+  Cell 윤곽선 패스 끄기             윤곽선만 사라지고 얼룩 그대로
+  Cell 높이를 2% 줄이기             얼룩 완전히 사라짐
+  Module 몸체 숨기기                옅은 번짐은 사라지나 얼룩은 일부 남음
+  Module + Pack 몸체 모두 숨기기    얼룩 완전히 사라짐
+
+원인 확정:
+- Cell은 높이 4짜리 두 층으로 놓여 있다.
+    윗면 y=4  인 Cell 60개 -> Module 윗면(y=4)과 정확히 같은 높이
+    윗면 y=10 인 Cell 64개 -> Pack   윗면(y=10)과 정확히 같은 높이
+- 같은 깊이에 겹친 두 면이 깊이 버퍼에서 서로 다투어(z-fighting)
+  원통 윗면의 부채꼴 삼각형 단위로 얼룩이 나타났다.
+- 코드상 원인: PackLayout.TryGetSlotCenter()가 높이(y) 칸을 항목 높이 그대로 잡는다
+  (slotY = _itemSize.y, "높이는 여백을 두지 않는다" 주석 참고).
+  그래서 Cell이 부모(Module)의 위/아래 면에 정확히 맞닿는다.
+  y에 여백을 더하면 항목 높이 = 부모 높이일 때 수용 개수가 0이 되고,
+  사용자가 크기를 다시 조절하면 같은 높이가 또 생기므로 배치 로직은 건드리지 않았다.
+
+주의(실험 중 오류):
+- 윤곽선 실험에서 Cell의 c.material을 건드려 Cell별 머티리얼 복사본이 생겼고,
+  그 뒤에 에셋에 넣은 오프셋 값이 Cell에 반영되지 않는 무효 실험이 있었다.
+  복사본을 원래 공유 머티리얼로 되돌린 뒤 다시 검증했고, 아래 결과만 채택했다.
+
+5. 2차 개선 - 적용한 수정 (렌더링에서 해결)
+--------------------------------------------------------------------
+(1) Assets/@Graphics/Shaders/CustomOutline.shader
+    - 프로퍼티 추가
+        _DepthOffsetFactor("Depth Offset Factor", Range(-5, 5)) = 0
+        _DepthOffsetUnits ("Depth Offset Units",  Range(-5, 5)) = 0
+    - UnityPerMaterial CBUFFER에 두 값을 추가(SRP Batcher 호환 유지)
+    - ForwardLit 패스에 추가:  Offset [_DepthOffsetFactor], [_DepthOffsetUnits]
+    - 값이 음수일수록 카메라 쪽으로 당겨져 겹친 면에서 이긴다.
+(2) 머티리얼 값 (안쪽 오브젝트일수록 더 음수)
+        M_CellPrefab_Outline    Factor -2 / Units -2
+        M_ModulePrefab_Outline  Factor -1 / Units -1
+        M_PackPrefab_Outline    Factor  0 / Units  0
+(3) Assets/@Graphics/Shaders/Editor/CustomOutlineGUI.cs
+    - 머티리얼 인스펙터에 "Depth Offset Factor / Units (겹침 방지)" 필드 노출
+      (ZWrite 아래). 에디터 스크립트라 Play 종료 후 컴파일되어 반영된다.
+
+6. 오프셋 값 검증 결과
+--------------------------------------------------------------------
+  Cell -2/-2, Module -1/-1, Pack 0/0   -> 얼룩 사라짐 (채택)
+  Cell -8/-8, Module -4/-4, Pack 0/0   -> 얼룩 사라짐 (더 큰 값, 필요 이상)
+  Cell  0/-6, Module  0/-3, Pack 0/0   -> 얼룩이 다시 나타남
+  => 기울기에 비례하는 Factor가 핵심이다(Units만으로는 부족).
+  => 큰 Factor는 기울어진 면의 깊이를 크게 당길 수 있어 필요한 최소 값(-2/-1)으로 정했다.
+  - 확대 카메라로도 Cell 윗면이 깨끗한 것을 확인했다.
+
+7. 변경 파일 목록
+--------------------------------------------------------------------
+  Assets/@Graphics/Shaders/CustomOutline.shader
+  Assets/@Graphics/Shaders/Editor/CustomOutlineGUI.cs
+  Assets/@Graphics/Materials/M_CellPrefab_Outline.mat      (오프셋 -2/-2)
+  Assets/@Graphics/Materials/M_ModulePrefab_Outline.mat    (오프셋 -1/-1)
+  Assets/@Graphics/Materials/M_PackPrefab_Outline.mat      (오프셋 0/0, 큐 3001)
+  Assets/@Graphics/Materials/M_ElectricChargeFlow.mat      (큐 3001)
+  Assets/AddressableAssets/Prefabs/UI/Scene/UI_MainScene.prefab (여백 0.05, 1차 개선)
+
+8. 알아둘 점
+--------------------------------------------------------------------
+- 충전 연출 중 Pack 몸체는 ElectricChargeFlow 셰이더를 쓰므로 이 오프셋이 없다.
+  (Pack과 같은 0이라 Module 대비 우선순위는 동일하게 유지된다.)
+- 새 Cell / Module을 같은 높이로 배치해도 오프셋이 적용된 머티리얼을 쓰면 겹침이 방지된다.
+- 이후 다른 셰이더로 Cell / Module 머티리얼을 바꾸면 같은 오프셋을 다시 지정해야 한다.
+- 추가 개선 후보(필요할 때):
+    * _OutlineZOffset(윤곽선 깊이 보정)을 0.001에서 0.005~0.02로 키우기
+    * Cell / Module을 부모보다 약간(0.5%) 작게 만들어 면이 맞닿지 않게 하기
+    * MSAA(PC_RPAsset) 2x~4x (가장자리 지글거림 완화, 비용 증가)
+- 실험에 쓴 임시 변경(렌더러 숨김, 그림자, SSAO, 임시 카메라, 머티리얼 복사본)은 모두 원복했다.
+====================================================================

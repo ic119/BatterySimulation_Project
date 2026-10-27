@@ -17,7 +17,7 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: 3001
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses:
@@ -32,7 +32,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BaseAlpha: 0.35
+    - _BaseAlpha: 0.499
     - _ChargeAxisMax: 0.5
     - _ChargeAxisMin: -0.5
     - _ChargeEdgeIntensity: 2.54
@@ -60,7 +60,7 @@ Material:
     - _SparkAlpha: 0.75
     - _SrcBlend: 5
     - _Surface: 1
-    - _UnchargedAlpha: 0.152
+    - _UnchargedAlpha: 0.455
     - _UseRim: 0
     - _ZWrite: 0
     m_Colors:
@@ -71,6 +71,6 @@ Material:
     - _FlowColor: {r: 2.305134, g: 2.3300898, b: 0.4762761, a: 0.39215687}
     - _FlowDirection: {r: 1, g: 0, b: 0, a: 0}
     - _RimColor: {r: 0.094695546, g: 0.30726352, b: 0.47798735, a: 1}
-    - _UnchargedColor: {r: 0, g: 0, b: 0, a: 0.39215687}
+    - _UnchargedColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -20,6 +20,8 @@ public class CustomOutlineGUI : ShaderGUI
         MaterialProperty dstBlendProp = FindProperty("_DstBlend", properties, false);
         MaterialProperty zwriteProp = FindProperty("_ZWrite", properties, false);
         MaterialProperty cullProp = FindProperty("_Cull", properties, false);
+        MaterialProperty depthOffsetFactorProp = FindProperty("_DepthOffsetFactor", properties, false);
+        MaterialProperty depthOffsetUnitsProp = FindProperty("_DepthOffsetUnits", properties, false);
 
         MaterialProperty baseMapProp = FindProperty("_BaseMap", properties, false);
         MaterialProperty baseColorProp = FindProperty("_BaseColor", properties, false);
@@ -61,6 +63,17 @@ public class CustomOutlineGUI : ShaderGUI
         if (zwriteProp != null)
         {
             materialEditor.ShaderProperty(zwriteProp, "ZWrite");
+        }
+
+        // 부모 / 자식 오브젝트의 면이 같은 높이에 겹칠 때 생기는 깊이 다툼(얼룩)을 막는다. 안쪽 오브젝트일수록 더 음수로 둔다.
+        if (depthOffsetFactorProp != null)
+        {
+            materialEditor.ShaderProperty(depthOffsetFactorProp, "Depth Offset Factor (겹침 방지)");
+        }
+
+        if (depthOffsetUnitsProp != null)
+        {
+            materialEditor.ShaderProperty(depthOffsetUnitsProp, "Depth Offset Units (겹침 방지)");
         }
 
         // Show warning if user set low alpha but surface is still Opaque

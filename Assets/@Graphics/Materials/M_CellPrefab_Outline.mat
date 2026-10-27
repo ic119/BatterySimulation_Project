@@ -31,6 +31,8 @@ Material:
     m_Ints: []
     m_Floats:
     - _Cull: 2
+    - _DepthOffsetFactor: -2
+    - _DepthOffsetUnits: -2
     - _DstBlend: 0
     - _Metallic: 0
     - _OutlineMode: 0

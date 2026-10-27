@@ -9,6 +9,12 @@ Shader "Custom/CustomOutline"
         [Enum(Off, 0, On, 1)] _ZWrite("ZWrite", Float) = 1.0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull Mode", Float) = 2.0
 
+        [Header(Depth Offset)]
+        // 부모 / 자식 오브젝트의 면이 같은 높이에 겹칠 때(Cell 윗면과 Module 윗면 등) 깊이가 서로 다투어 얼룩이 생기는 것을 막는다.
+        // 음수일수록 카메라 쪽으로 당겨져 겹친 면에서 이긴다. 안쪽 오브젝트일수록 더 작은(더 음수인) 값을 준다.
+        _DepthOffsetFactor("Depth Offset Factor", Range(-5.0, 5.0)) = 0.0
+        _DepthOffsetUnits("Depth Offset Units", Range(-5.0, 5.0)) = 0.0
+
         [Header(Surface Properties)]
         _BaseMap("Base Map (Albedo)", 2D) = "white" {}
         _BaseColor("Base Color", Color) = (1.0, 1.0, 1.0, 1.0)
@@ -52,6 +58,8 @@ Shader "Custom/CustomOutline"
             float _DstBlend;
             float _ZWrite;
             float _Cull;
+            float _DepthOffsetFactor;
+            float _DepthOffsetUnits;
             float _Metallic;
             float _Smoothness;
             float _OutlineWidth;
@@ -78,6 +86,7 @@ Shader "Custom/CustomOutline"
             Cull [_Cull]
             ZWrite [_ZWrite]
             ZTest LEqual
+            Offset [_DepthOffsetFactor], [_DepthOffsetUnits]
             Blend [_SrcBlend] [_DstBlend]
 
             Stencil
