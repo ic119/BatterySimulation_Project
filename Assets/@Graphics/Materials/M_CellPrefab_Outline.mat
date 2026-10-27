@@ -34,7 +34,7 @@ Material:
     - _DstBlend: 0
     - _Metallic: 0
     - _OutlineMode: 0
-    - _OutlineWidth: 0.163
+    - _OutlineWidth: 0.05
     - _OutlineZOffset: 0.001
     - _RimIntensity: 1
     - _RimPower: 3

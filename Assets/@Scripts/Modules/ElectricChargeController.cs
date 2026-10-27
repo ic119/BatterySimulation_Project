@@ -33,6 +33,23 @@ namespace BatterySimulation.Modules
         [ColorUsage(true, true)]
         [SerializeField] private Color _edgeSparkColor = new Color(1f, 0.95f, 0.3f, 1f);
 
+        [Header("Transparency & Interior Visibility")]
+        [Tooltip("기본 표면 불투명도 (0.0: 완전 투명 ~ 1.0: 불투명)")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _baseAlpha = 0.35f;
+
+        [Tooltip("미충전 영역 불투명도 (낮을수록 내부가 훤히 투과됨)")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _unchargedAlpha = 0.1f;
+
+        [Tooltip("충전 완료 영역 불투명도")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _chargedAlpha = 0.45f;
+
+        [Tooltip("외곽 실루엣 투명도 (Fresnel)")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _fresnelAlpha = 0.5f;
+
         [Header("Optimization")]
         [Tooltip("MaterialPropertyBlock을 사용하여 여러 배터리 객체의 개별 제어 및 드로우콜 최적화를 지원합니다.")]
         [SerializeField] private bool _usePropertyBlock = true;
@@ -49,6 +66,34 @@ namespace BatterySimulation.Modules
         private static readonly int ChargedColorId = Shader.PropertyToID("_ChargedColor");
         private static readonly int UnchargedColorId = Shader.PropertyToID("_UnchargedColor");
         private static readonly int ChargeEdgeColorId = Shader.PropertyToID("_ChargeEdgeColor");
+        private static readonly int BaseAlphaId = Shader.PropertyToID("_BaseAlpha");
+        private static readonly int UnchargedAlphaId = Shader.PropertyToID("_UnchargedAlpha");
+        private static readonly int ChargedAlphaId = Shader.PropertyToID("_ChargedAlpha");
+        private static readonly int FresnelAlphaId = Shader.PropertyToID("_FresnelAlpha");
+
+        public float BaseAlpha
+        {
+            get => _baseAlpha;
+            set { _baseAlpha = Mathf.Clamp01(value); ApplyProperties(); }
+        }
+
+        public float UnchargedAlpha
+        {
+            get => _unchargedAlpha;
+            set { _unchargedAlpha = Mathf.Clamp01(value); ApplyProperties(); }
+        }
+
+        public float ChargedAlpha
+        {
+            get => _chargedAlpha;
+            set { _chargedAlpha = Mathf.Clamp01(value); ApplyProperties(); }
+        }
+
+        public float FresnelAlpha
+        {
+            get => _fresnelAlpha;
+            set { _fresnelAlpha = Mathf.Clamp01(value); ApplyProperties(); }
+        }
 
         public float ChargeProgress
         {
@@ -179,6 +224,20 @@ namespace BatterySimulation.Modules
         }
 
         /// <summary>
+        /// 투명도 및 내부 투과도를 설정합니다.
+        /// </summary>
+        /// <param name="baseAlpha">기본 표면 불투명도 (0.0 ~ 1.0)</param>
+        /// <param name="unchargedAlpha">미충전 영역 불투명도 (낮을수록 내부가 훤히 투과됨)</param>
+        /// <param name="chargedAlpha">충전 완료 영역 불투명도</param>
+        public void SetTransparency(float baseAlpha, float unchargedAlpha, float chargedAlpha)
+        {
+            _baseAlpha = Mathf.Clamp01(baseAlpha);
+            _unchargedAlpha = Mathf.Clamp01(unchargedAlpha);
+            _chargedAlpha = Mathf.Clamp01(chargedAlpha);
+            ApplyProperties();
+        }
+
+        /// <summary>
         /// 셰이더 프로퍼티를 렌더러에 적용합니다.
         /// </summary>
         public void ApplyProperties()
@@ -207,6 +266,10 @@ namespace BatterySimulation.Modules
                 _propBlock.SetColor(ChargedColorId, _chargedColor);
                 _propBlock.SetColor(UnchargedColorId, _unchargedColor);
                 _propBlock.SetColor(ChargeEdgeColorId, _edgeSparkColor);
+                _propBlock.SetFloat(BaseAlphaId, _baseAlpha);
+                _propBlock.SetFloat(UnchargedAlphaId, _unchargedAlpha);
+                _propBlock.SetFloat(ChargedAlphaId, _chargedAlpha);
+                _propBlock.SetFloat(FresnelAlphaId, _fresnelAlpha);
                 _renderer.SetPropertyBlock(_propBlock);
             }
             else
@@ -222,6 +285,10 @@ namespace BatterySimulation.Modules
                     mat.SetColor(ChargedColorId, _chargedColor);
                     mat.SetColor(UnchargedColorId, _unchargedColor);
                     mat.SetColor(ChargeEdgeColorId, _edgeSparkColor);
+                    mat.SetFloat(BaseAlphaId, _baseAlpha);
+                    mat.SetFloat(UnchargedAlphaId, _unchargedAlpha);
+                    mat.SetFloat(ChargedAlphaId, _chargedAlpha);
+                    mat.SetFloat(FresnelAlphaId, _fresnelAlpha);
                 }
             }
         }

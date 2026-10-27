@@ -1,8 +1,16 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class ElectricChargeFlowGUI : ShaderGUI
 {
+    public enum SurfaceType
+    {
+        Opaque = 0,
+        Transparent = 1
+    }
+
+    private static bool _showTransparencyGroup = true;
     private static bool _showChargeGroup = true;
     private static bool _showFlowGroup = true;
     private static bool _showCoordsGroup = true;
@@ -16,7 +24,67 @@ public class ElectricChargeFlowGUI : ShaderGUI
 
         EditorGUI.BeginChangeCheck();
 
-        // 1. Battery Charge Status Group
+        // 1. Transparency & Interior Visibility Group
+        _showTransparencyGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showTransparencyGroup, "🔮 투명도 및 내부 투과 설정 (Transparency & Interior)");
+        if (_showTransparencyGroup)
+        {
+            EditorGUILayout.HelpBox("오브젝트 내부(배터리 셀, 모듈 등)가 비쳐보이도록 투명도와 블렌딩을 제어합니다.", MessageType.Info);
+
+            MaterialProperty surfaceProp = FindProperty("_Surface", properties);
+            SurfaceType currentSurface = (SurfaceType)(int)surfaceProp.floatValue;
+            SurfaceType newSurface = (SurfaceType)EditorGUILayout.EnumPopup("표면 모드 (Surface Type)", currentSurface);
+            if (newSurface != currentSurface)
+            {
+                surfaceProp.floatValue = (float)newSurface;
+                ApplySurfaceType(material, newSurface);
+            }
+
+            if (newSurface == SurfaceType.Transparent)
+            {
+                MaterialProperty baseAlpha = FindProperty("_BaseAlpha", properties);
+                MaterialProperty unchargedAlpha = FindProperty("_UnchargedAlpha", properties);
+                MaterialProperty chargedAlpha = FindProperty("_ChargedAlpha", properties);
+                MaterialProperty fresnelAlpha = FindProperty("_FresnelAlpha", properties);
+                MaterialProperty sparkAlpha = FindProperty("_SparkAlpha", properties);
+
+                materialEditor.ShaderProperty(baseAlpha, "기본 표면 불투명도 (Base Opacity)");
+                materialEditor.ShaderProperty(unchargedAlpha, "미충전 영역 불투명도 (낮을수록 내부가 훤히 투과)");
+                materialEditor.ShaderProperty(chargedAlpha, "충전 완료 영역 불투명도 (에너지 참)");
+                materialEditor.ShaderProperty(fresnelAlpha, "외곽 실루엣 투명도 (Fresnel Silhouette)");
+                materialEditor.ShaderProperty(sparkAlpha, "전류/스파크 투명도 부스트 (Glow Boost)");
+
+                EditorGUILayout.Space(4);
+                EditorGUILayout.LabelField("블렌딩 프리셋 (Blend Presets)", EditorStyles.miniBoldLabel);
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("일반 알파 투명 (Alpha Blend)", EditorStyles.miniButtonLeft))
+                {
+                    material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                    material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+                }
+                if (GUILayout.Button("네온 가산 투명 (Additive)", EditorStyles.miniButtonMid))
+                {
+                    material.SetFloat("_SrcBlend", (float)BlendMode.One);
+                    material.SetFloat("_DstBlend", (float)BlendMode.One);
+                }
+                if (GUILayout.Button("프리멀티플라이 (Premultiply)", EditorStyles.miniButtonRight))
+                {
+                    material.SetFloat("_SrcBlend", (float)BlendMode.One);
+                    material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(2);
+                MaterialProperty cullProp = FindProperty("_Cull", properties);
+                materialEditor.ShaderProperty(cullProp, "컬링 모드 (Back: 앞면만 / Off: 양면 투과)");
+
+                MaterialProperty zwriteProp = FindProperty("_ZWrite", properties);
+                materialEditor.ShaderProperty(zwriteProp, "ZWrite (깊이 버퍼 쓰기)");
+            }
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
+        EditorGUILayout.Space(8);
+
+        // 2. Battery Charge Status Group
         _showChargeGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showChargeGroup, "🔋 배터리 충전 상태 (Charge Status)");
         if (_showChargeGroup)
         {
@@ -63,7 +131,7 @@ public class ElectricChargeFlowGUI : ShaderGUI
         EditorGUILayout.EndFoldoutHeaderGroup();
         EditorGUILayout.Space(8);
 
-        // 2. Electric Current Flow Group
+        // 3. Electric Current Flow Group
         _showFlowGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showFlowGroup, "⚡ 전류 흐름 설정 (Electric Flow)");
         if (_showFlowGroup)
         {
@@ -101,7 +169,7 @@ public class ElectricChargeFlowGUI : ShaderGUI
         EditorGUILayout.EndFoldoutHeaderGroup();
         EditorGUILayout.Space(8);
 
-        // 3. Coordinate System
+        // 4. Coordinate System
         _showCoordsGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showCoordsGroup, "📐 좌표계 설정 (Coordinate Space)");
         if (_showCoordsGroup)
         {
@@ -112,7 +180,7 @@ public class ElectricChargeFlowGUI : ShaderGUI
         EditorGUILayout.EndFoldoutHeaderGroup();
         EditorGUILayout.Space(8);
 
-        // 4. Base Surface
+        // 5. Base Surface
         _showBaseGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showBaseGroup, "🎨 기본 표면 (Base Surface)");
         if (_showBaseGroup)
         {
@@ -122,17 +190,14 @@ public class ElectricChargeFlowGUI : ShaderGUI
             MaterialProperty smoothness = FindProperty("_Smoothness", properties);
 
             materialEditor.ShaderProperty(baseMap, "베이스 텍스처");
-            materialEditor.ShaderProperty(baseColor, "베이스 색상");
+            materialEditor.ShaderProperty(baseColor, "베이스 색상 (Alpha 조절 가능)");
             materialEditor.ShaderProperty(metallic, "메탈릭 (Metallic)");
             materialEditor.ShaderProperty(smoothness, "스무스니스 (Smoothness)");
-
-            MaterialProperty surface = FindProperty("_Surface", properties);
-            materialEditor.ShaderProperty(surface, "표면 모드 (Opaque / Transparent)");
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
         EditorGUILayout.Space(8);
 
-        // 5. Rim Fresnel Glow
+        // 6. Rim Fresnel Glow
         _showRimGroup = EditorGUILayout.BeginFoldoutHeaderGroup(_showRimGroup, "✨ 외곽 림 라이트 (Rim Glow)");
         if (_showRimGroup)
         {
@@ -152,9 +217,38 @@ public class ElectricChargeFlowGUI : ShaderGUI
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
 
+        EditorGUILayout.Space(8);
+        EditorGUILayout.LabelField("고급 설정 (Advanced Options)", EditorStyles.boldLabel);
+        materialEditor.RenderQueueField();
+
         if (EditorGUI.EndChangeCheck())
         {
             materialEditor.PropertiesChanged();
+            EditorUtility.SetDirty(material);
+        }
+    }
+
+    public static void ApplySurfaceType(Material material, SurfaceType surfaceType)
+    {
+        if (surfaceType == SurfaceType.Transparent)
+        {
+            material.SetFloat("_Surface", 1.0f);
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0.0f);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.renderQueue = (int)RenderQueue.Transparent;
+            material.SetShaderPassEnabled("ShadowCaster", false);
+        }
+        else
+        {
+            material.SetFloat("_Surface", 0.0f);
+            material.SetFloat("_SrcBlend", (float)BlendMode.One);
+            material.SetFloat("_DstBlend", (float)BlendMode.Zero);
+            material.SetFloat("_ZWrite", 1.0f);
+            material.SetOverrideTag("RenderType", "Opaque");
+            material.renderQueue = (int)RenderQueue.Geometry;
+            material.SetShaderPassEnabled("ShadowCaster", true);
         }
     }
 
@@ -181,3 +275,4 @@ public class ElectricChargeFlowGUI : ShaderGUI
         EditorGUILayout.EndHorizontal();
     }
 }
+

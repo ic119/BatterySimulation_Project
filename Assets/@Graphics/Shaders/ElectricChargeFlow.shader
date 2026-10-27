@@ -3,15 +3,22 @@ Shader "Custom/ElectricChargeFlow"
     Properties
     {
         [Header(Rendering Mode)]
-        [Enum(Opaque, 0, Transparent, 1)] _Surface("Surface Type", Float) = 0
-        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Source Blend", Float) = 1.0
-        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Destination Blend", Float) = 0.0
-        [Enum(Off, 0, On, 1)] _ZWrite("ZWrite", Float) = 1.0
+        [Enum(Opaque, 0, Transparent, 1)] _Surface("Surface Type", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend("Source Blend", Float) = 5.0
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Destination Blend", Float) = 10.0
+        [Enum(Off, 0, On, 1)] _ZWrite("ZWrite", Float) = 0.0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull Mode", Float) = 2.0
+
+        [Header(Transparency and Interior Visibility)]
+        _BaseAlpha("Base Shell Opacity", Range(0.0, 1.0)) = 0.35
+        _ChargedAlpha("Charged Area Opacity", Range(0.0, 1.0)) = 0.45
+        _UnchargedAlpha("Uncharged / Empty Area Opacity", Range(0.0, 1.0)) = 0.1
+        _FresnelAlpha("Fresnel Silhouette Opacity", Range(0.0, 1.0)) = 0.5
+        _SparkAlpha("Spark & Flow Opacity Boost", Range(0.0, 1.0)) = 0.7
 
         [Header(Base Appearance)]
         _BaseMap("Base Map (Optional)", 2D) = "white" {}
-        _BaseColor("Base Color", Color) = (0.05, 0.07, 0.1, 1.0)
+        _BaseColor("Base Color", Color) = (0.05, 0.08, 0.12, 0.3)
         _Metallic("Metallic", Range(0.0, 1.0)) = 0.3
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.7
 
@@ -80,6 +87,12 @@ Shader "Custom/ElectricChargeFlow"
             float _DstBlend;
             float _ZWrite;
             float _Cull;
+
+            float _BaseAlpha;
+            float _ChargedAlpha;
+            float _UnchargedAlpha;
+            float _FresnelAlpha;
+            float _SparkAlpha;
 
             float _Metallic;
             float _Smoothness;
@@ -326,10 +339,23 @@ Shader "Custom/ElectricChargeFlow"
                 // Total Composite Color
                 float3 finalRgb = diffuseColor + flowEmission + edgeEmission + rimEmission;
 
-                float alpha = _BaseColor.a;
+                // Alpha / Transparency calculation for interior visibility
+                float alpha = _BaseColor.a * _BaseAlpha;
                 if (_Surface > 0.5)
                 {
-                    alpha = saturate(_BaseColor.a * lerp(0.4, 1.0, chargeMask) + edgeGlowFactor);
+                    float NdotV = saturate(dot(normalWS, viewDirWS));
+                    float fresnel = pow(1.0 - NdotV, _RimPower);
+
+                    // Transparent base: uncharged is clear/see-through, charged has energetic fill
+                    float regionAlpha = lerp(_UnchargedAlpha, _ChargedAlpha, chargeMask) * _BaseAlpha * _BaseColor.a;
+
+                    // Fresnel edge silhouette: viewing angle at glancing edges has subtle opacity to define 3D shape
+                    float edgeAlpha = fresnel * _FresnelAlpha;
+
+                    // Electric pulses and sparks boost opacity so they pop vibrantly
+                    float sparkContribution = saturate(totalFlowPulse * 0.25 * flowVisibility + edgeGlowFactor * 0.7) * _SparkAlpha;
+
+                    alpha = saturate(regionAlpha + edgeAlpha + sparkContribution);
                 }
 
                 return float4(finalRgb, alpha);

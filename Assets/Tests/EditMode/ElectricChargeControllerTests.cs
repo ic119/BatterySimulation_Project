@@ -80,5 +80,25 @@ namespace BatterySimulation.Tests
             Assert.AreEqual(0f, appliedDir.y, 0.0001f);
             Assert.AreEqual(0f, appliedDir.z, 0.0001f);
         }
+
+        [Test]
+        public void SetTransparency_UpdatesAlphaPropertiesCorrectly()
+        {
+            _controller.SetTransparency(0.25f, 0.05f, 0.5f);
+            Assert.AreEqual(0.25f, _controller.BaseAlpha, 0.0001f);
+            Assert.AreEqual(0.05f, _controller.UnchargedAlpha, 0.0001f);
+            Assert.AreEqual(0.5f, _controller.ChargedAlpha, 0.0001f);
+
+            MaterialPropertyBlock block = new MaterialPropertyBlock();
+            _renderer.GetPropertyBlock(block);
+
+            float baseAlpha = block.GetFloat(Shader.PropertyToID("_BaseAlpha"));
+            float unchargedAlpha = block.GetFloat(Shader.PropertyToID("_UnchargedAlpha"));
+            float chargedAlpha = block.GetFloat(Shader.PropertyToID("_ChargedAlpha"));
+
+            Assert.AreEqual(0.25f, baseAlpha, 0.0001f);
+            Assert.AreEqual(0.05f, unchargedAlpha, 0.0001f);
+            Assert.AreEqual(0.5f, chargedAlpha, 0.0001f);
+        }
     }
 }
