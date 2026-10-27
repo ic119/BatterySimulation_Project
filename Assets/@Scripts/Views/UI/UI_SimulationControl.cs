@@ -30,9 +30,6 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Simulation Start Button")]
     [SerializeField] private Button startButton;
 
-    [Header("Current Simulation Text")]
-    [SerializeField] private TextMeshProUGUI curSimulationText;
-
     [Header("SimulationProcess ScrollView")]
     [SerializeField] private RectTransform contentRect;
 
@@ -41,6 +38,7 @@ public class UI_SimulationControl : MonoBehaviour
     [SerializeField] private Material electricChargeFlowMaterial;
 
     [Header("Current Simulation Info")]
+    [SerializeField] private GameObject curSimulationContainer;
     [SerializeField] private TextMeshProUGUI curSimulationText;
 
     [Header("Alarm")]
@@ -115,6 +113,9 @@ public class UI_SimulationControl : MonoBehaviour
         runner.StepBegan += OnStepBegan;
         runner.StepProgressed += OnStepProgressed;
         effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
+
+        // 재생 중이 아닐 때는 꺼 둔다.
+        ClearCurrentText();
     }
 
     public void Init(DeviceSelection _selection, UI_EditorView _treeView, PackFactory _packFactory)
@@ -315,6 +316,11 @@ public class UI_SimulationControl : MonoBehaviour
 
     private void OnStepBegan(SimulationStepModel _step)
     {
+        if (curSimulationContainer != null)
+        {
+            curSimulationContainer.SetActive(true);
+        }
+
         shownRemainSeconds = -1;
         ShowCurrentStep(_step, _step.duringTime);
     }
@@ -344,9 +350,17 @@ public class UI_SimulationControl : MonoBehaviour
         curSimulationText.text = $"{_step.simulationType} ( {remainSeconds} sec )";
     }
 
+    /// <summary>
+    /// 실행 중인 작업 표시를 비우고 curSimulationContainer를 끈다. 시뮬레이션이 끝났거나 중단되었을 때, 그리고 처음 만들 때 호출한다.
+    /// </summary>
     private void ClearCurrentText()
     {
         shownRemainSeconds = -1;
+
+        if (curSimulationContainer != null)
+        {
+            curSimulationContainer.SetActive(false);
+        }
 
         if (curSimulationText != null)
         {
