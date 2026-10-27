@@ -49,9 +49,17 @@ public class UI_SimulationControl : MonoBehaviour
 
     // 프리팹 로드를 기다리는 사이 목록이 다시 그려지면, 이전 요청의 콜백이 줄을 중복으로 만들지 않도록 구분한다.
     private int itemVersion;
+
+    private SimulationRunner runner;
     #endregion
 
     #region LifeCycle
+    private void Awake()
+    {
+        runner = new SimulationRunner(this);
+        runner.Finished += RefreshStartButton;
+    }
+
     private void OnEnable()
     {
         Refresh();
@@ -59,6 +67,8 @@ public class UI_SimulationControl : MonoBehaviour
 
     private void OnDisable()
     {
+        runner.Stop();
+        RefreshStartButton();
         ClearName();
     }
 
@@ -72,6 +82,11 @@ public class UI_SimulationControl : MonoBehaviour
         if (applyButton != null)
         {
             applyButton.onClick.RemoveListener(ApplySettings);
+        }
+
+        if (startButton != null)
+        {
+            startButton.onClick.RemoveListener(StartSimulation);
         }
     }
     #endregion
@@ -92,6 +107,12 @@ public class UI_SimulationControl : MonoBehaviour
         {
             applyButton.onClick.RemoveListener(ApplySettings);
             applyButton.onClick.AddListener(ApplySettings);
+        }
+
+        if (startButton != null)
+        {
+            startButton.onClick.RemoveListener(StartSimulation);
+            startButton.onClick.AddListener(StartSimulation);
         }
 
         BuildDropdownOptions();
@@ -262,7 +283,8 @@ public class UI_SimulationControl : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택된 Container의 SimulationDataModel에 stepList가 1개 이상일 때만 startButton을 활성화하고, 그 외(선택 없음, 데이터 없음, 0개)에는 비활성화한다.
+    /// 선택된 Container의 SimulationDataModel에 stepList가 1개 이상이고 시뮬레이션이 실행 중이 아닐 때만 startButton을 활성화하고,
+    /// 그 외(선택 없음, 데이터 없음, 0개, 실행 중)에는 비활성화한다.
     /// </summary>
     private void RefreshStartButton()
     {
@@ -278,7 +300,22 @@ public class UI_SimulationControl : MonoBehaviour
             hasStep = holder.Model.StepCount != 0;
         }
 
-        startButton.interactable = hasStep;
+        startButton.interactable = hasStep && !runner.IsRunning;
+    }
+
+    /// <summary>
+    /// startButton 클릭 시: 선택된 Container의 작업을 SimulationRunner로 실행한다. 실행 중에는 다시 시작하지 않는다.
+    /// </summary>
+    private void StartSimulation()
+    {
+        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container
+            || !selection.Target.TryGetComponent(out SimulationData holder) || !runner.Start(holder.Model))
+        {
+            DebugLogManager.GenerateWarningMessage<UI_SimulationControl>("실행할 시뮬레이션 작업이 없거나 이미 실행 중입니다.");
+            return;
+        }
+
+        RefreshStartButton();
     }
 
     /// <summary>
