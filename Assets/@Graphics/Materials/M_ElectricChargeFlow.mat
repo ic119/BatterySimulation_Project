@@ -35,17 +35,17 @@ Material:
     - _ChargeEdgeIntensity: 2.54
     - _ChargeEdgePulseSpeed: 6
     - _ChargeEdgeWidth: 0.0226
-    - _ChargeProgress: 0.412
+    - _ChargeProgress: 0
     - _ChargedGlowIntensity: 0.7
     - _Coords: 0
     - _Cull: 2
     - _DstBlend: 0
     - _FlowInUncharged: 0.015
-    - _FlowIntensity: 3
-    - _FlowPulseSharpness: 5
+    - _FlowIntensity: 2.14
+    - _FlowPulseSharpness: 9.67
     - _FlowSpeed: 2.5
-    - _FlowTiling: 4
-    - _Metallic: 0
+    - _FlowTiling: 8
+    - _Metallic: 0.3
     - _NoiseScale: 12
     - _NoiseSpeed: 2
     - _NoiseStrength: 0.035
@@ -61,7 +61,7 @@ Material:
     - _ChargeDirection: {r: 1, g: 0, b: 0, a: 0}
     - _ChargeEdgeColor: {r: 4.0640116, g: 3.8088934, b: 0.2939376, a: 4}
     - _ChargedColor: {r: 1.8614671, g: 1.8597928, b: 0.1580488, a: 1.5}
-    - _FlowColor: {r: 0, g: 2.125, b: 2.5, a: 2.5}
+    - _FlowColor: {r: 2.305134, g: 2.3300898, b: 0.4762761, a: 2.5}
     - _FlowDirection: {r: 1, g: 0, b: 0, a: 0}
     - _RimColor: {r: 0.094695546, g: 0.30726352, b: 0.47798735, a: 1}
     - _UnchargedColor: {r: 0, g: 0, b: 0, a: 1}

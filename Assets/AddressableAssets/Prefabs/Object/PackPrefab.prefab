@@ -227,17 +227,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5542f190e0a90c0469d7dfde87a7c2d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeviceAxisGraphManager
-  parentObject: {fileID: 4368842401684202376}
   centerTarget: {fileID: 0}
-  canvasOffset: {x: -10.82, y: 0, z: -11.35}
-  zAxisOffset: {x: 0, y: 0, z: 11.85}
-  autoSize: 1
-  autoSizeMargin: 1.5
-  size: {x: 1, y: 1, z: 1}
-  tickStep: 0.02
-  lineWidth: 0.002
-  labelSize: 0.01
+  viewCamera: {fileID: 0}
+  lineWidthRatio: 0.006
+  tickLengthRatio: 0.03
+  labelSizeRatio: 0.05
+  targetTickCount: 5
+  axisColor: {r: 0, g: 0, b: 0, a: 1}
+  labelColor: {r: 0, g: 0, b: 0, a: 1}
   lineMat: {fileID: 2100000, guid: 527c113108b732941bbe1fc04ef3ae5d, type: 2}
+  xTitle: 'x: Forward direction'
+  yTitle: 'y: Vertical direction'
+  zTitle: 'z: Lateral direction'
 --- !u!1 &8948092976561481050
 GameObject:
   m_ObjectHideFlags: 0
