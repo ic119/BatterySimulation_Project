@@ -24,6 +24,9 @@ namespace Incheol.Modules
         // 공유 머티리얼 에셋은 건드리지 않고 Body마다 값을 줄 수 있도록, 진행도는 머티리얼 대신 PropertyBlock으로 넣는다.
         private readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
 
+        // Charge / Discharge 연출 중 Container 안의 Module / Cell을 무작위로 빨갛게 점멸시킨다.
+        private readonly SimulationBlinkEffect blinkEffect = new SimulationBlinkEffect();
+
         /// <summary>연출을 입힐 대상(선택된 Container). SetContainer로 지정한다.</summary>
         public ContainerDataModel Container { get; private set; }
 
@@ -49,6 +52,7 @@ namespace Incheol.Modules
         {
             Clear();
             Container = _container;
+            blinkEffect.Collect(_container);
 
             if (_container == null || _container.packsList == null || _packFactory == null)
             {
@@ -72,6 +76,7 @@ namespace Incheol.Modules
         /// </summary>
         public void Clear()
         {
+            blinkEffect.Clear();
             RestoreMaterials();
             Container = null;
             packBodies.Clear();
@@ -84,10 +89,12 @@ namespace Incheol.Modules
                 case SimulationType.Charge:
                     EnsureChargeMaterial();
                     SetChargeProgress(0f);
+                    blinkEffect.Begin();
                     break;
                 case SimulationType.Discharge:
                     EnsureChargeMaterial();
                     SetChargeProgress(1f);
+                    blinkEffect.Begin();
                     break;
                 case SimulationType.None:
                 default:
@@ -114,9 +121,11 @@ namespace Incheol.Modules
             {
                 case SimulationType.Charge:
                     SetChargeProgress(1f);
+                    blinkEffect.Stop();
                     break;
                 case SimulationType.Discharge:
                     SetChargeProgress(0f);
+                    blinkEffect.Stop();
                     break;
                 case SimulationType.None:
                 default:
