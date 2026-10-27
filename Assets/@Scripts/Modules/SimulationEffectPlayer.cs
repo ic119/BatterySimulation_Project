@@ -9,9 +9,7 @@ namespace Incheol.Modules
     /// </summary>
     public class SimulationEffectPlayer
     {
-        private readonly Shader customOutline;
         private readonly Material packPrefabOutLine;
-        private readonly Shader electricChargeFlow;
         private readonly Material electricChargeFlowMaterial;
 
         /// <summary>연출을 입힐 대상(선택된 Container). 실행을 시작하기 전에 지정한다.</summary>
@@ -19,14 +17,10 @@ namespace Incheol.Modules
 
         public SimulationEffectPlayer(
             SimulationRunner _runner,
-            Shader _customOutline,
             Material _packPrefabOutLine,
-            Shader _electricChargeFlow,
             Material _electricChargeFlowMaterial)
         {
-            customOutline = _customOutline;
             packPrefabOutLine = _packPrefabOutLine;
-            electricChargeFlow = _electricChargeFlow;
             electricChargeFlowMaterial = _electricChargeFlowMaterial;
 
             _runner.StepBegan += OnStepBegan;

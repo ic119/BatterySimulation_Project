@@ -34,9 +34,7 @@ public class UI_SimulationControl : MonoBehaviour
     [SerializeField] private RectTransform contentRect;
 
     [Header("Pack CustomShader")]
-    [SerializeField] private Shader customOutline;
     [SerializeField] private Material packPrefabOutLine;
-    [SerializeField] private Shader electricChargeFlow;
     [SerializeField] private Material electricChargeFlowMaterial;
 
 
@@ -57,7 +55,7 @@ public class UI_SimulationControl : MonoBehaviour
         stepList = new UI_SimulationStepList(contentRect, RefreshStartButton);
         runner = new SimulationRunner(this);
         runner.Finished += RefreshStartButton;
-        effectPlayer = new SimulationEffectPlayer(runner, customOutline, packPrefabOutLine, electricChargeFlow, electricChargeFlowMaterial);
+        effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
     }
 
     private void OnEnable()
