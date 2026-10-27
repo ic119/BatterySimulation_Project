@@ -126,6 +126,12 @@ public class UI_SimulationControl : MonoBehaviour
     /// </summary>
     private void Refresh()
     {
+        // 끝난 시뮬레이션의 마지막 연출이 다른 선택에 남지 않게 되돌린다. 실행 중에는 그대로 진행한다.
+        if (!runner.IsRunning)
+        {
+            effectPlayer.Clear();
+        }
+
         RefreshRoot();
         RefreshName();
         ResetInput();

@@ -20,6 +20,9 @@ namespace Incheol.Modules
         /// <summary>작업의 시작 시점에 호출된다.</summary>
         public event Action<SimulationStepModel> StepBegan;
 
+        /// <summary>작업이 진행되는 동안 매 프레임 (작업, 진행도 0~1)로 호출된다. 진행도는 지난 시간 / duringTime이다.</summary>
+        public event Action<SimulationStepModel, float> StepProgressed;
+
         /// <summary>작업의 duringTime이 지난 시점에 호출된다.</summary>
         public event Action<SimulationStepModel> StepEnded;
 
@@ -77,6 +80,7 @@ namespace Incheol.Modules
                 {
                     yield return null;
                     elapsed += Time.deltaTime;
+                    StepProgressed?.Invoke(step, Mathf.Clamp01(elapsed / step.duringTime));
                 }
 
                 carry = elapsed - step.duringTime;
