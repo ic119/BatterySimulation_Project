@@ -141,6 +141,9 @@ public class UI_MainSceneView : MonoBehaviour
     }
     #endregion
 
+    /// <summary>Container / Pack / Module / Cell을 만들고 등록부를 들고 있는 팩토리. 다른 뷰가 Pack의 씬 Transform을 찾을 때 쓴다.</summary>
+    public PackFactory PackFactory => packFactory;
+
     /// <summary>EditorTab의 트리 뷰(이 루트에 붙어 있다).</summary>
     public UI_EditorView EditorTreeView => editorView;
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using SimulationType = Incheol.Models.Define.SimulationType;
 
@@ -12,8 +13,13 @@ namespace Incheol.Modules
         private readonly Material packPrefabOutLine;
         private readonly Material electricChargeFlowMaterial;
 
-        /// <summary>연출을 입힐 대상(선택된 Container). 실행을 시작하기 전에 지정한다.</summary>
-        public Transform Target { get; set; }
+        private readonly List<Renderer> packBodies = new List<Renderer>();
+
+        /// <summary>연출을 입힐 대상(선택된 Container). SetContainer로 지정한다.</summary>
+        public ContainerDataModel Container { get; private set; }
+
+        /// <summary>Container에 속한 Pack들의 몸체(Body) Renderer. SetContainer가 채우고 Clear가 비운다.</summary>
+        public IReadOnlyList<Renderer> PackBodies => packBodies;
 
         public SimulationEffectPlayer(
             SimulationRunner _runner,
@@ -29,11 +35,36 @@ namespace Incheol.Modules
         }
 
         /// <summary>
+        /// _container의 Pack마다 몸체 Renderer를 찾아 PackBodies에 담는다(이전 대상은 비운다). 실행을 시작하기 전에 호출한다.
+        /// Pack의 씬 Transform은 _packFactory가 들고 있다. 씬 오브젝트가 없거나 몸체 Renderer가 없는 Pack은 건너뛴다.
+        /// </summary>
+        public void SetContainer(ContainerDataModel _container, PackFactory _packFactory)
+        {
+            Clear();
+            Container = _container;
+
+            if (_container == null || _container.packsList == null || _packFactory == null)
+            {
+                return;
+            }
+
+            foreach (PackDataModel pack in _container.packsList)
+            {
+                Transform packTransform = _packFactory.GetPackTransform(pack);
+                if (packTransform != null && DeviceBody.TryGetRenderer(packTransform, out Renderer bodyRenderer))
+                {
+                    packBodies.Add(bodyRenderer);
+                }
+            }
+        }
+
+        /// <summary>
         /// 재생 중인 연출을 모두 정리하고 대상을 비운다. 작업이 끝났을 때와, Runner가 중간에 중단되었을 때(StepEnded가 오지 않으므로) 호출한다.
         /// </summary>
         public void Clear()
         {
-            Target = null;
+            Container = null;
+            packBodies.Clear();
         }
 
         private void OnStepBegan(SimulationStepModel _step)

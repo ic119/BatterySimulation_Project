@@ -159,7 +159,7 @@ namespace Incheol.Presenter
             panels.Bind(propertiesView, scaleView, spacingView, structureView, nameView, createCountView, simulationControl, editorView, simulationTreeView);
             selection.Changed += OnSelectionChanged;
 
-            simulationControl?.Init(selection, editorView);
+            simulationControl?.Init(selection, editorView, mainSceneView != null ? mainSceneView.PackFactory : null);
             scaleView?.Init(selection);
             spacingView?.Init(selection);
             createCountView?.Init(selection);

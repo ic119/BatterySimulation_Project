@@ -43,6 +43,7 @@ public class UI_SimulationControl : MonoBehaviour
 
     private DeviceSelection selection;
     private UI_EditorView treeView;
+    private PackFactory packFactory;
 
     private UI_SimulationStepList stepList;
     private SimulationRunner runner;
@@ -91,7 +92,7 @@ public class UI_SimulationControl : MonoBehaviour
     #endregion
 
     #region Method
-    public void Init(DeviceSelection _selection, UI_EditorView _treeView)
+    public void Init(DeviceSelection _selection, UI_EditorView _treeView, PackFactory _packFactory)
     {
         if (selection != null)
         {
@@ -100,6 +101,7 @@ public class UI_SimulationControl : MonoBehaviour
 
         selection = _selection;
         treeView = _treeView;
+        packFactory = _packFactory;
         selection.Changed += Refresh;
 
         if (applyButton != null)
@@ -282,9 +284,9 @@ public class UI_SimulationControl : MonoBehaviour
     private void StartSimulation()
     {
         // 첫 작업의 StepBegan이 Start() 안에서 바로 호출되므로, 연출 대상은 Start() 전에 지정해야 한다. 실행 중에는 바꾸지 않는다.
-        if (selection != null && !runner.IsRunning)
+        if (selection != null && !runner.IsRunning && selection.Model is ContainerDataModel container)
         {
-            effectPlayer.Target = selection.Target;
+            effectPlayer.SetContainer(container, packFactory);
         }
 
         if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container
