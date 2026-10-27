@@ -11,7 +11,7 @@ using SimulationType = Incheol.Models.Define.SimulationType;
 
 public class UI_SimulationControl : MonoBehaviour
 {
-    #region Variable
+    #region Variableq
     [Header("Simulation Area Container")]
     [SerializeField] private GameObject simulationRoot;
 
@@ -30,6 +30,9 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Simulation Start Button")]
     [SerializeField] private Button startButton;
 
+    [Header("Current Simulation Text")]
+    [SerializeField] private TextMeshProUGUI curSimulationText;
+
     [Header("SimulationProcess ScrollView")]
     [SerializeField] private RectTransform contentRect;
 
@@ -37,6 +40,8 @@ public class UI_SimulationControl : MonoBehaviour
     [SerializeField] private Material packPrefabOutLine;
     [SerializeField] private Material electricChargeFlowMaterial;
 
+    [Header("Current Simulation Info")]
+    [SerializeField] private TextMeshProUGUI curSimulationText;
 
     [Header("Alarm")]
     [SerializeField, Tooltip("SimulationTab의 알림 팝업. 저장할 값이 비어 있을 때 알린다.")] private UI_AlarmPopupView alarmPopupView;
@@ -48,6 +53,9 @@ public class UI_SimulationControl : MonoBehaviour
     private UI_SimulationStepList stepList;
     private SimulationRunner runner;
     private SimulationEffectPlayer effectPlayer;
+
+    // curSimulationText에 마지막으로 표시한 남은 시간(초). 같은 값이면 문자열을 다시 만들지 않는다.
+    private int shownRemainSeconds = -1;
     #endregion
 
     #region LifeCycle
@@ -65,6 +73,7 @@ public class UI_SimulationControl : MonoBehaviour
     {
         runner.Stop();
         effectPlayer.Clear();
+        ClearCurrentText();
         RefreshStartButton();
         ClearName();
     }
@@ -102,6 +111,9 @@ public class UI_SimulationControl : MonoBehaviour
         stepList = new UI_SimulationStepList(contentRect, RefreshStartButton);
         runner = new SimulationRunner(this);
         runner.Finished += RefreshStartButton;
+        runner.Finished += ClearCurrentText;
+        runner.StepBegan += OnStepBegan;
+        runner.StepProgressed += OnStepProgressed;
         effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
     }
 
@@ -146,6 +158,7 @@ public class UI_SimulationControl : MonoBehaviour
         {
             runner.Stop();
             effectPlayer.Clear();
+            ClearCurrentText();
         }
 
         RefreshRoot();
@@ -298,6 +311,47 @@ public class UI_SimulationControl : MonoBehaviour
         }
 
         startButton.interactable = hasStep && !runner.IsRunning;
+    }
+
+    private void OnStepBegan(SimulationStepModel _step)
+    {
+        shownRemainSeconds = -1;
+        ShowCurrentStep(_step, _step.duringTime);
+    }
+
+    private void OnStepProgressed(SimulationStepModel _step, float _normalized)
+    {
+        ShowCurrentStep(_step, _step.duringTime * (1f - _normalized));
+    }
+
+    /// <summary>
+    /// 실행 중인 작업을 "Charge ( 5 sec )" 형식으로 curSimulationText에 표시한다. 남은 시간은 올림한 정수 초이고, 값이 바뀔 때만 갱신한다.
+    /// </summary>
+    private void ShowCurrentStep(SimulationStepModel _step, float _remainSeconds)
+    {
+        if (curSimulationText == null)
+        {
+            return;
+        }
+
+        int remainSeconds = Mathf.CeilToInt(_remainSeconds);
+        if (remainSeconds == shownRemainSeconds)
+        {
+            return;
+        }
+
+        shownRemainSeconds = remainSeconds;
+        curSimulationText.text = $"{_step.simulationType} ( {remainSeconds} sec )";
+    }
+
+    private void ClearCurrentText()
+    {
+        shownRemainSeconds = -1;
+
+        if (curSimulationText != null)
+        {
+            curSimulationText.text = string.Empty;
+        }
     }
 
     /// <summary>
