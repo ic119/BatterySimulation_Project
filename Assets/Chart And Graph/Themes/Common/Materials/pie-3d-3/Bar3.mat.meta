@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 64845d7219f2c444383c29ac862f015b
+timeCreated: 1500389217
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/pie-3d-3/Bar3.mat
+  uploadId: 916326

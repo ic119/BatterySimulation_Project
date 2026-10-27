@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ed7c2a8a03e8e9f41820d331a00c0878
+timeCreated: 1491046867
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/M_Floor_Grid_Dark.mat
+  uploadId: 916326

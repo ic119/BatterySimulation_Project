@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bcfe38f0d03a9ed4ebae3515e70f68fd
+timeCreated: 1504031562
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/2d/Candle/preset 1.unity
+  uploadId: 916326

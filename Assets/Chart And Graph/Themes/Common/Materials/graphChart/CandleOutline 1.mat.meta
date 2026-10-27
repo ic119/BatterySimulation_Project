@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: eed098737ad5bef478230559e74e18aa
+timeCreated: 1552401593
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/graphChart/CandleOutline
+    1.mat
+  uploadId: 916326

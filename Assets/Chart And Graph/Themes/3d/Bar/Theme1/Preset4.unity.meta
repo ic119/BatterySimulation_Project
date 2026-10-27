@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e8074d3418bc98c459e8ec15b175f3d1
+timeCreated: 1500221826
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Bar/Theme1/Preset4.unity
+  uploadId: 916326

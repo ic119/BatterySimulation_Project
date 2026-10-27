@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fcaf3f66b87dbe64bb81e1f2a4d1bdb5
+timeCreated: 1535903984
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/Chart And Graph/DefaultText.prefab
+  uploadId: 916326

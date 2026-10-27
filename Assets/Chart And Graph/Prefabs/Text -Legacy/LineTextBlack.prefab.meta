@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7d3333514541d2c458fe1fa5abe5763e
+timeCreated: 1490639147
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -Legacy/LineTextBlack.prefab
+  uploadId: 916326

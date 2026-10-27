@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9c8a1cf377dcfdb4bb19f5b8c6cf8988
+timeCreated: 1481389271
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/ShadedText.prefab
+  uploadId: 916326

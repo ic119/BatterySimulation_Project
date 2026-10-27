@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a4f33da3ce534b14994c64861486de78
+timeCreated: 1491049467
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/ExoText_LightBlue.prefab
+  uploadId: 916326

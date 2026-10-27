@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 3c919925dfb42a24b97f67daecb5da26
+timeCreated: 1500741899
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/Content/abstract
+    shape/Materials/Icosphere.066_Icosphere.002Mat.mat
+  uploadId: 916326

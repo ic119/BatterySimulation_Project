@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5f51b3dcd5731bb4b90474e4968feec3
+timeCreated: 1560618600
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/PieNotGrowing.prefab
+  uploadId: 916326

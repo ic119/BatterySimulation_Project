@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 62568954b47873b4fa13abcacc2168cc
+timeCreated: 1481389262
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Misc/RandomColor/RandomColorText.prefab
+  uploadId: 916326

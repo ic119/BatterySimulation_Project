@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e91a104ae561b8c47afc13fcaa8a166c
+timeCreated: 1536405361
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/graphChart/PrefabLineStyles/lineStyle9.mat
+  uploadId: 916326

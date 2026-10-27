@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0dbd738f5c4b6544997e70d2a0981040
+timeCreated: 1490209514
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/Radar.mat
+  uploadId: 916326

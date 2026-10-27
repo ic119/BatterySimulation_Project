@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: b7ec67385d4ed1c43a2d44e617c001bc
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Playmaker/AddGraphCategory2D.cs
+  uploadId: 916326

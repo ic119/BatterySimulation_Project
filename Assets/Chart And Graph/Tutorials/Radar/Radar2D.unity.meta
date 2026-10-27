@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 78da943ed750a394b9e00fd22daf699d
+timeCreated: 1560541921
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Radar/Radar2D.unity
+  uploadId: 916326

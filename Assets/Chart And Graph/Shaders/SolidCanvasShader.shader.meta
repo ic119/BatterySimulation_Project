@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 0a799adfcb28a1847873696ef5d3c504
+timeCreated: 1480866699
+licenseType: Store
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Shaders/SolidCanvasShader.shader
+  uploadId: 916326

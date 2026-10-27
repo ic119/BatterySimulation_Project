@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5e8cfa425f61da94ca7017e8e0c7fb9d
+timeCreated: 1473252396
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/Click.mat
+  uploadId: 916326

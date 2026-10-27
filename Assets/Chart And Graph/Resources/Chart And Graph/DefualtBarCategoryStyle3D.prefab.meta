@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 64b5b927ba0113947ab4f5e839911592
+timeCreated: 1539560469
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/Chart And Graph/DefualtBarCategoryStyle3D.prefab
+  uploadId: 916326

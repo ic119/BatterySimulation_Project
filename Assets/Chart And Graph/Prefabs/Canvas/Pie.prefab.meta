@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 174751ce50250cf4291f5c015fd4be43
+timeCreated: 1481386469
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/Pie.prefab
+  uploadId: 916326

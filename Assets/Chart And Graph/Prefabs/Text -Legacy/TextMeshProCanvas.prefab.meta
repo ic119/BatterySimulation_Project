@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 86b44f45a3176a9489ce91027010ba63
+timeCreated: 1535903984
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -Legacy/TextMeshProCanvas.prefab
+  uploadId: 916326

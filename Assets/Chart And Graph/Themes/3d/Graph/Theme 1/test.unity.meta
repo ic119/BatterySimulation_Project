@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bf152d72d9b437a43a798d6c09f01377
+timeCreated: 1490887056
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Graph/Theme 1/test.unity
+  uploadId: 916326

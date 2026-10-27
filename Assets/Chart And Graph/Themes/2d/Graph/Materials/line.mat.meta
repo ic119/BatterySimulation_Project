@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cf81936ddd20f43498a311fa0ec8b024
+timeCreated: 1500473854
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/2d/Graph/Materials/line.mat
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 30297fb98ce3a4144afdc7f560d985c0
+timeCreated: 1553945564
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Misc/CustomFormats/LogScale.unity
+  uploadId: 916326

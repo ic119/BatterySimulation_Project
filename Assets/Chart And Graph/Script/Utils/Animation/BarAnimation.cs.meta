@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 8fa3c1507f66ca24fa9c929b5fae69a5
+timeCreated: 1481393289
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Utils/Animation/BarAnimation.cs
+  uploadId: 916326

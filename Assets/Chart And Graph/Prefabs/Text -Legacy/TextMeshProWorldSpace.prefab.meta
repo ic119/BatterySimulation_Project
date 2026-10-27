@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 0040b3ce47d20d940bc5f69a8862eb8c
+timeCreated: 1535915344
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -Legacy/TextMeshProWorldSpace.prefab
+  uploadId: 916326

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bf77440f72a211343af02246df7ffbda
+timeCreated: 1484403559
+licenseType: Store
+ShaderImporter:
+  defaultTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/bar-1/StandardCullOff.shader
+  uploadId: 916326

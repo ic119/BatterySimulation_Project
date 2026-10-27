@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8f4ec85425306614c9a6d154f2e9407b
+timeCreated: 1513871321
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Materials/Canvas/Dim Dotted Line 2.mat
+  uploadId: 916326

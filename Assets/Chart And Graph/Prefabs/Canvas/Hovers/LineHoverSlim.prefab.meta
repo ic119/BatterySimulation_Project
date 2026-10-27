@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: df9950b73d9ea414c96e4b56e92c925d
+timeCreated: 1491932098
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/Hovers/LineHoverSlim.prefab
+  uploadId: 916326

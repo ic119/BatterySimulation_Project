@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: be539abcba8dc8447a2c5de8c26c535f
+timeCreated: 1490210853
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/pie-1/radar1.mat
+  uploadId: 916326

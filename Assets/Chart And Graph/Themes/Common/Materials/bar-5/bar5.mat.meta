@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: edfd3f6f189cd0e4fa3db8e52e070f70
+timeCreated: 1560599399
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/bar-5/bar5.mat
+  uploadId: 916326

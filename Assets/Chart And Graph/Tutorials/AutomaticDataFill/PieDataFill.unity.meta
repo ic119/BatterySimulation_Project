@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9e2dcfbed7989b24c888b1faae74ed8b
+timeCreated: 1563304095
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/AutomaticDataFill/PieDataFill.unity
+  uploadId: 916326

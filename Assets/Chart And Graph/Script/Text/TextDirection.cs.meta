@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: c607f6d5dbf90a943bd7332a6fb04bfd
+timeCreated: 1490546073
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Text/TextDirection.cs
+  uploadId: 916326

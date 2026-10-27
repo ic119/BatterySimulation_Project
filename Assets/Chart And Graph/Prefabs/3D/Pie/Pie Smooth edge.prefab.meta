@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1d40184080f97954f8b89b8534fb95fb
+timeCreated: 1498907660
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Pie/Pie Smooth edge.prefab
+  uploadId: 916326

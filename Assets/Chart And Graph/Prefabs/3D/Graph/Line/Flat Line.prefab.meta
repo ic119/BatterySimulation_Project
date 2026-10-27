@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 955fbe404d20cbf479438c25db5d3018
+timeCreated: 1489164635
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Graph/Line/Flat Line.prefab
+  uploadId: 916326

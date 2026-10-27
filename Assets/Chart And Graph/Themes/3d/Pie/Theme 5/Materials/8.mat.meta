@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c5bec5df671f5564f977c0dc4dca1a1f
+timeCreated: 1485124911
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Pie/Theme 5/Materials/8.mat
+  uploadId: 916326

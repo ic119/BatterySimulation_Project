@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d10cadfe4e40fed438b0d293de01cf51
+timeCreated: 1553945564
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Zoom/graphRectZoom.unity
+  uploadId: 916326

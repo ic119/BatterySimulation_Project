@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ae914a111d504394d9a7cd53ead4ff69
+timeCreated: 1480786374
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/MenuPrefabs/Legend.prefab
+  uploadId: 916326

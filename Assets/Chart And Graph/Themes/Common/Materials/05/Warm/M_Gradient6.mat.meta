@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 13f639caaab786b47beddae290b8e2ad
+timeCreated: 1490965181
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/05/Warm/M_Gradient6.mat
+  uploadId: 916326

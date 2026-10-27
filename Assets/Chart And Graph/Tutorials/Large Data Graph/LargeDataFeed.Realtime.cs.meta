@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 1063c1a4134dbbc4b8d80e7b09a9c377
+timeCreated: 1560596740
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Large Data Graph/LargeDataFeed.Realtime.cs
+  uploadId: 916326

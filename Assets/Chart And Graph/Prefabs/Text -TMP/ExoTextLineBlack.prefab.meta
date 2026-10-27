@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2516559ddccaf9b48ba65c8907d13b6d
+timeCreated: 1491150161
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/ExoTextLineBlack.prefab
+  uploadId: 916326

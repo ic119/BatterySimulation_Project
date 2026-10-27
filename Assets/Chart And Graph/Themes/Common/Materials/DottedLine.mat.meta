@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: efebb8411b3539a4299fc48246fd2aff
+timeCreated: 1480860588
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/DottedLine.mat
+  uploadId: 916326

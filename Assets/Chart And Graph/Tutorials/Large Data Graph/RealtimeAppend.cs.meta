@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: f2040fcec7bc19c4b87961fc8d69a146
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Large Data Graph/RealtimeAppend.cs
+  uploadId: 916326

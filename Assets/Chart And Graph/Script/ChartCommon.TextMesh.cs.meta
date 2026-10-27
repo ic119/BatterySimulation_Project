@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: a4192d78da4d6de40bb65e553ddfa3a5
+timeCreated: 1535917923
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/ChartCommon.TextMesh.cs
+  uploadId: 916326

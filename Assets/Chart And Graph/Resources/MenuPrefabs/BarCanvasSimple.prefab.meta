@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1920dd76fc210eb42ab5aa54f40894ac
+timeCreated: 1481804932
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/MenuPrefabs/BarCanvasSimple.prefab
+  uploadId: 916326

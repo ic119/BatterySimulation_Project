@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7eb856a485603c74681e3976e8577424
+timeCreated: 1490959029
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/03/M_GradientBlack.mat
+  uploadId: 916326

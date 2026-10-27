@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: e23fd8aeaee189d48937b30ac0ea61f4
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Misc/CustomFormats/CustomFormat.cs
+  uploadId: 916326

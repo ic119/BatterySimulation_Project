@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bf494fdaa1246464aab2dfe146825d30
+timeCreated: 1560542081
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Bar/Bar2D Change Color.unity
+  uploadId: 916326

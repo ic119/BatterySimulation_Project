@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ca087691c1104934ea493db092c3966b
+timeCreated: 1560587944
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/2d/Graph/preset 10.unity
+  uploadId: 916326

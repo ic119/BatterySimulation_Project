@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f3725ce33e2c1f348bad45bf7074efdb
+timeCreated: 1490959912
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/01/M_GraphMetallic_Grey
+    1.mat
+  uploadId: 916326

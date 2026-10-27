@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: af8e5e9ecdefca445b956f16f76d54c0
+timeCreated: 1560538967
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/GraphChart/GraphData.Realtime.cs
+  uploadId: 916326

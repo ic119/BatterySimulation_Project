@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 78274e2387f53cc4a964ff5f17369d72
+timeCreated: 1513882815
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/Hovers/PointHover 1.prefab
+  uploadId: 916326

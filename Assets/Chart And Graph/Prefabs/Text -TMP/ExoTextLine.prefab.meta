@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4ca365976e8f5834fb305b61ca53b795
+timeCreated: 1491068513
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/ExoTextLine.prefab
+  uploadId: 916326

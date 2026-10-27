@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 9ed044aea80a33e4ba36faf5a4f82bad
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Zoom/GraphRectZoom.cs
+  uploadId: 916326

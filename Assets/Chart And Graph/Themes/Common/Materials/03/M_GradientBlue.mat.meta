@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 2008c99c8e48ea045b402f4180d1dd07
+timeCreated: 1490958176
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/03/M_GradientBlue.mat
+  uploadId: 916326

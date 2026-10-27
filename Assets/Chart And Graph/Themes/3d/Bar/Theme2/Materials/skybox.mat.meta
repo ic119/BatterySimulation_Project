@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 814d97f415ee2fe49b8a35b3681d9a33
+timeCreated: 1498132800
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Bar/Theme2/Materials/skybox.mat
+  uploadId: 916326

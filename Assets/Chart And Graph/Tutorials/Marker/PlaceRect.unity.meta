@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c91d5b3c8785a5f4585e4a1244b76dad
+timeCreated: 1505744442
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Marker/PlaceRect.unity
+  uploadId: 916326

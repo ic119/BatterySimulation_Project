@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 7b560179d771be94991a4686a1e7fc94
+timeCreated: 1496763003
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Axis/ChartSubDivisionInfo.cs
+  uploadId: 916326

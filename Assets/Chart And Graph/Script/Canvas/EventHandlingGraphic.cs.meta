@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 1e1aa8b268945b540b4b0ef7768aca09
+timeCreated: 1503250771
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Canvas/EventHandlingGraphic.cs
+  uploadId: 916326

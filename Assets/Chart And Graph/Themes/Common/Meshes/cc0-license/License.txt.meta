@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a60f69bfc7ff64642a637e72046c360f
+timeCreated: 1500571967
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/License.txt
+  uploadId: 916326

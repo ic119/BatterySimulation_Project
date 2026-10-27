@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: b1869a89f083abe4bbe8b18724208ccb
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/Chart And Graph/DefualtPieCategoryStyle3D.prefab
+  uploadId: 916326

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 2032ee9ddbfbfb74da66a209b05d468d
+timeCreated: 1478616684
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Canvas/CanvasLines.cs
+  uploadId: 916326

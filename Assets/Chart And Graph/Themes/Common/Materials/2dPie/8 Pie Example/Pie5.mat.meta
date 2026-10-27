@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 26458b69d36fd28499f622b93c8da570
+timeCreated: 1484334602
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/2dPie/8 Pie Example/Pie5.mat
+  uploadId: 916326

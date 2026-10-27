@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: eba69a202555dce4c9e340d13515993b
+timeCreated: 1500567137
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Demo/DemoButton.prefab
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b593c70250d4fb94bb76f653a500cd6d
+timeCreated: 1536774863
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/3rd party notices.txt
+  uploadId: 916326

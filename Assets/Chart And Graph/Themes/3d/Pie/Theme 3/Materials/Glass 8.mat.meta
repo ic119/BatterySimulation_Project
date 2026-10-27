@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: da14023678ce52540980403a2e245a25
+timeCreated: 1499704563
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Pie/Theme 3/Materials/Glass 8.mat
+  uploadId: 916326

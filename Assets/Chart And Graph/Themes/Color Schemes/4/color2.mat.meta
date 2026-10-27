@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6e197c2f133bdc84bb930e4bb0ba8aa7
+timeCreated: 1560622095
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Color Schemes/4/color2.mat
+  uploadId: 916326

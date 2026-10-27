@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3e701bb1e771baf4695d7724e07c524b
+timeCreated: 1490946742
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/Skybox/SB_Grey.mat
+  uploadId: 916326

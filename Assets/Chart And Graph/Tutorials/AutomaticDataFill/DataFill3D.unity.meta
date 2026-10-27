@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c3343bd4a75f85d49a0575384cda3500
+timeCreated: 1536675477
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/AutomaticDataFill/DataFill3D.unity
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 60197f215567a164f9a1b1f4879c6494
+timeCreated: 1481386469
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Pie/ModifiedPiePrefab.prefab
+  uploadId: 916326

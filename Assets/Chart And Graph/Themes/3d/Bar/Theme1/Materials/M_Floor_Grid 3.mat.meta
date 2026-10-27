@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a95a2d656ae926843a62c4157ebdc5df
+timeCreated: 1498071160
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Bar/Theme1/Materials/M_Floor_Grid 3.mat
+  uploadId: 916326

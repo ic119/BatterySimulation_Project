@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 94537e28f05484948ab1cdb3ca3cc588
+timeCreated: 1560542081
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Bar/Bar2D.unity
+  uploadId: 916326

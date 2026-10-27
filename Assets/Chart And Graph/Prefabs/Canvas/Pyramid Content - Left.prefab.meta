@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a1462b463e599af4091975da81b6fa14
+timeCreated: 1579515271
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/Pyramid Content - Left.prefab
+  uploadId: 916326

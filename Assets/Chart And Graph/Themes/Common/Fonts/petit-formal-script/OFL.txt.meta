@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7940739ef48ec0e489cebecbac63da57
+timeCreated: 1579514047
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Fonts/petit-formal-script/OFL.txt
+  uploadId: 916326

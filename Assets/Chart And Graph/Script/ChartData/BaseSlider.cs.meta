@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 42de3f57996db6449a8ac05a372a94fa
+timeCreated: 1502395357
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/ChartData/BaseSlider.cs
+  uploadId: 916326

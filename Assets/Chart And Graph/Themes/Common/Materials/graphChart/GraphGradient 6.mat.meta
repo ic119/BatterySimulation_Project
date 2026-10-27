@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 084574ea59b3e084ebd7ab1a38b8a5de
+timeCreated: 1554209203
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/graphChart/GraphGradient
+    6.mat
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a7dcebad281443045a23c6eeaa7ef7a2
+timeCreated: 1553681293
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Marker/Price Marker.unity
+  uploadId: 916326

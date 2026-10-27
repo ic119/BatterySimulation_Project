@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: a11ef6e4975ad8f4fa64696b57d7a3e6
+timeCreated: 1472290466
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/DataSource/ChartRowCollection.cs
+  uploadId: 916326

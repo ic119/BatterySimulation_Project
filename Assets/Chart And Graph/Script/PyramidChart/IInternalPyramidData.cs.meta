@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 369d1c0e7b4b9fc498252bc1ed05b04c
+timeCreated: 1579445919
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/PyramidChart/IInternalPyramidData.cs
+  uploadId: 916326

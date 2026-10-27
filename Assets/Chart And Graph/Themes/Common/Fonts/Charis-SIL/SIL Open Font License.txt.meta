@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 8c56907ed23a1ec45ace652535204430
+timeCreated: 1579514532
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Fonts/Charis-SIL/SIL Open Font
+    License.txt
+  uploadId: 916326

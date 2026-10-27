@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 630727875fd8dc345b298e3400ef1e8e
+timeCreated: 1479726850
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/PieChart/PieChart.cs
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 50bde693af5c7c349b6c92fa88ea6b70
+timeCreated: 1498911926
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Pie/Theme 3/preset1.unity
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7e587dc3a6578af4080f71cc34d5c3d9
+timeCreated: 1498904056
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/Content/Ruller/Materials/bg.mat
+  uploadId: 916326

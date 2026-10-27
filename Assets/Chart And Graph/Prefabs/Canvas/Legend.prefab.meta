@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 44c162440cb5f1842bcb040f8fb66783
+timeCreated: 1480786374
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/Legend.prefab
+  uploadId: 916326

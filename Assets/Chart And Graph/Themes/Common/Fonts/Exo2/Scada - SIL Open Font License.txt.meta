@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 278feecc5e0197f499846d52f2b6784d
+timeCreated: 1536775675
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Fonts/Exo2/Scada - SIL Open Font
+    License.txt
+  uploadId: 916326

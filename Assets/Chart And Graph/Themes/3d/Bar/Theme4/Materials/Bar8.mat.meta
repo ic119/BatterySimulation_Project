@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b50e8d49b25ee104095a82e67e542915
+timeCreated: 1498152841
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Bar/Theme4/Materials/Bar8.mat
+  uploadId: 916326

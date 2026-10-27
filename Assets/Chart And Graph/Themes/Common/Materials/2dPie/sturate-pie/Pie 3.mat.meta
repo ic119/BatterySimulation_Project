@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 7612a15fc7235884da8201869bd1ecea
+timeCreated: 1484587127
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/2dPie/sturate-pie/Pie
+    3.mat
+  uploadId: 916326

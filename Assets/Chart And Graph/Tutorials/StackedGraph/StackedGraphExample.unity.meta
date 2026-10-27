@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7038e36de22b6434e8ce9a5311d03963
+timeCreated: 1555444970
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/StackedGraph/StackedGraphExample.unity
+  uploadId: 916326

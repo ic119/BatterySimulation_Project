@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 8a5935733d0eb5b48ba1db228c83f0f0
+timeCreated: 1478008114
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Text/GroupLabels.cs
+  uploadId: 916326

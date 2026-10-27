@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 02a3ebc28d57f6e49a6a97bef5e19fdd
+timeCreated: 1504700574
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/graphChart/CandleUp.mat
+  uploadId: 916326

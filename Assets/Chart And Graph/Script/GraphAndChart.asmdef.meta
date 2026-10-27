@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: aa9320822a6e56c41a6d780e3d208040
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/GraphAndChart.asmdef
+  uploadId: 916326

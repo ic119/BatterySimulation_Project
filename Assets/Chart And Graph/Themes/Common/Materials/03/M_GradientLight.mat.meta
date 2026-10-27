@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 38da9e48256b40d4ebb2d39fc8622795
+timeCreated: 1490960983
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/03/M_GradientLight.mat
+  uploadId: 916326

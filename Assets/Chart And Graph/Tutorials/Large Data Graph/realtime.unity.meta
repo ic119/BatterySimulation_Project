@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: dea45a3b0a59b0647b2bd8fb5255994e
+timeCreated: 1500217865
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Large Data Graph/realtime.unity
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 633f2daf7b4e11a49a98f97c0413385c
+timeCreated: 1490718370
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Radar/Radar.unity
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e459b7e1ca99d4d4cab3ea72baaa0896
+timeCreated: 1555444970
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/EditableGraph/Editable.unity
+  uploadId: 916326

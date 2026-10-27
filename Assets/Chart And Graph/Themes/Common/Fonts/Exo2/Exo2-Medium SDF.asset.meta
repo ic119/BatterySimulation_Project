@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f9c1d6b43d9c1b24e8169b796403c7dc
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Fonts/Exo2/Exo2-Medium SDF.asset
+  uploadId: 916326

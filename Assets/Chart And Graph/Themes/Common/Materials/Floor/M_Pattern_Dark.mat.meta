@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1185627dba5e96e45934becf4c1c1c1f
+timeCreated: 1491141825
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/Floor/M_Pattern_Dark.mat
+  uploadId: 916326

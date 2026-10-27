@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fe0ede313e55a164c95fea3c47ed3e53
+timeCreated: 1579513540
+licenseType: Store
+TextScriptImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Fonts/bebas_neue/Try_BebasNeuePro.txt
+  uploadId: 916326

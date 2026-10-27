@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7d8651e0452af9c409b2e5d6c6052eeb
+timeCreated: 1484587509
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/CircleBar 1.mat
+  uploadId: 916326

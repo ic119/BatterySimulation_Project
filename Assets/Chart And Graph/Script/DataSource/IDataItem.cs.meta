@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: a071486401c065442936c0584dfff00e
+timeCreated: 1472284350
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/DataSource/IDataItem.cs
+  uploadId: 916326

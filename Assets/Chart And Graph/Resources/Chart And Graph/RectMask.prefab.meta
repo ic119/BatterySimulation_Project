@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 548f8aa36a1db85429b559df89bc4163
+timeCreated: 1493841552
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/Chart And Graph/RectMask.prefab
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 976ae030a38f89b45b7660f93112068c
+timeCreated: 1481885857
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Misc/RandomColor/randomColor.unity
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ec7eb211c7a36f946bbd98c3f624882e
+timeCreated: 1489164674
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Graph/Line/Cylinder Line.prefab
+  uploadId: 916326

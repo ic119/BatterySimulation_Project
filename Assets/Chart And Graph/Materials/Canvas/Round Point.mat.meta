@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: b44e6f88dc1476049bfcb25ce2908c91
+timeCreated: 1484497418
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Materials/Canvas/Round Point.mat
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 90dccd772e6cc0e4396a512d2258f30f
+timeCreated: 1571150983
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/AutomaticDataFill/RadarDataFill2D 1.unity
+  uploadId: 916326

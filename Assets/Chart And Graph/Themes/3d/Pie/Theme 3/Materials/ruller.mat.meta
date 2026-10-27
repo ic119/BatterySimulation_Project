@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 3411672c132b477428bafc184ac2c99d
+timeCreated: 1498904904
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Pie/Theme 3/Materials/ruller.mat
+  uploadId: 916326

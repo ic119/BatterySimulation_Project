@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7051dc9979af3a64ab0a771f1d3f310a
+timeCreated: 1497963012
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/Square.mat
+  uploadId: 916326

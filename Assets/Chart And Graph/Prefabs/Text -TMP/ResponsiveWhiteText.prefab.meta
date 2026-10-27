@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: aa64ebed3d2ff844984ab064201a5384
+timeCreated: 1492085610
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/ResponsiveWhiteText.prefab
+  uploadId: 916326

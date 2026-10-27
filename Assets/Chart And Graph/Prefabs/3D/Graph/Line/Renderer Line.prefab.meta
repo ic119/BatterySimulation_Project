@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ba7a484efc58c7f4fb2cebe25034f792
+timeCreated: 1489164701
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Graph/Line/Renderer Line.prefab
+  uploadId: 916326

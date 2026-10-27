@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 11d52c7cfa41b0445801b859259e9575
+timeCreated: 1500741907
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/Content/abstract
+    shape/Materials/Plane.001_Plane.004Mat.mat
+  uploadId: 916326

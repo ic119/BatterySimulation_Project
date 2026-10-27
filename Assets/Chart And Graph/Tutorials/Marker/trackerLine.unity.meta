@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 797a09ca63b7e4a49839356660cdf9e8
+timeCreated: 1553681293
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Marker/trackerLine.unity
+  uploadId: 916326

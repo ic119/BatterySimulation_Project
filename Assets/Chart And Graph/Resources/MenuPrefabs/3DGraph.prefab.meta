@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 1170347d9ca1127479bde92b2c78342f
+timeCreated: 1490714904
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Resources/MenuPrefabs/3DGraph.prefab
+  uploadId: 916326

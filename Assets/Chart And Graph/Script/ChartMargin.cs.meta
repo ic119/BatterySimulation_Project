@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 8a134f76961978a449ccd362c1ba4a15
+timeCreated: 1537272146
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/ChartMargin.cs
+  uploadId: 916326

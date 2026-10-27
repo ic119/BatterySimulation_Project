@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: fffaeec6bfca4a04c8e57189ee87e6df
+timeCreated: 1485121801
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Bar/Hard Edge Bar.prefab
+  uploadId: 916326

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 7288ce2a47fcd71438b4d34748c18a6f
+timeCreated: 1478748562
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/Mesh/ChartMeshBase.cs
+  uploadId: 916326

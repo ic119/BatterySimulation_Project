@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7521afaa0c2ad7f45beeb7c9ee213230
+timeCreated: 1498232104
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/Content/Pen/Materials/Plastic_Leather.mat
+  uploadId: 916326

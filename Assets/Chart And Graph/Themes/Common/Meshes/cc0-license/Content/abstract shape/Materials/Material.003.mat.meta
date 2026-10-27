@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 4585581e82fc84d4586ad3087ceaa289
+timeCreated: 1500743971
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Meshes/cc0-license/Content/abstract
+    shape/Materials/Material.003.mat
+  uploadId: 916326

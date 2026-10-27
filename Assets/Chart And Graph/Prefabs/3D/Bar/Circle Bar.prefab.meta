@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 64d4832451ca151478d4619289b30b54
+timeCreated: 1481389673
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Bar/Circle Bar.prefab
+  uploadId: 916326

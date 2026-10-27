@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 992f5fc556b48144986d2304815cc367
+timeCreated: 1579518166
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/2d/Pyramid/Materials/3.mat
+  uploadId: 916326

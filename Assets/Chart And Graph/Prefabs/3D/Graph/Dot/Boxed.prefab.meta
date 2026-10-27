@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: a6417f1b3d34f534a9e8a4a6fcc4f979
+timeCreated: 1489166466
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Graph/Dot/Boxed.prefab
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5892085b5d57c234cb0debaedbeed975
+timeCreated: 1499962505
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/3D/Bar/Low Poly Smooth Bar.prefab
+  uploadId: 916326

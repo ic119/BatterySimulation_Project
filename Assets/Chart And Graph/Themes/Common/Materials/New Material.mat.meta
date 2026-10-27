@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 875e7a17e85903e4cab7f883571945c3
+timeCreated: 1513885442
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/New Material.mat
+  uploadId: 916326

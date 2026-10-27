@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 809a628393abcd84e98d1be8514332dc
+timeCreated: 1496581373
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Stream Graph/StreamGraph.unity
+  uploadId: 916326

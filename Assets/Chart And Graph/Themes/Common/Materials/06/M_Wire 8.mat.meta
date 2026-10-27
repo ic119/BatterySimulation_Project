@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 907526e107c1a2d45bd0ebefc58a8296
+timeCreated: 1491061196
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/06/M_Wire 8.mat
+  uploadId: 916326

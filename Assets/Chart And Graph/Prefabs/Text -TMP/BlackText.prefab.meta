@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f20253a8c3d31694484d83992fd0118c
+timeCreated: 1481389287
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Text -TMP/BlackText.prefab
+  uploadId: 916326

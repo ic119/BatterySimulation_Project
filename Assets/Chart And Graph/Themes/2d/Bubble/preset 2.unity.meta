@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 08c70bda77a2e0543ab03217817fbe4e
+timeCreated: 1516809213
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/2d/Bubble/preset 2.unity
+  uploadId: 916326

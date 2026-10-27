@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f714e39521f6674449b1ab5175e3cf17
+timeCreated: 1500315561
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Prefabs/Canvas/LegnedItem white.prefab
+  uploadId: 916326

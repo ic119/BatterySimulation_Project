@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 735c08f0157eda342a52c88a3f1582c0
+timeCreated: 1500475339
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/3d/Pie/Theme 6/Materials/Floor.mat
+  uploadId: 916326

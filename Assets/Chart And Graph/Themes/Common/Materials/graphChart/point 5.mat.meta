@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 5859d89e4abd4f440a4d7e3b25b76797
+timeCreated: 1516809547
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/graphChart/point 5.mat
+  uploadId: 916326

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 38053b82cd490a045a3fc5966a1dcf55
+timeCreated: 1481885857
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Graph/curveAnimation.unity
+  uploadId: 916326

@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: bce8c0faad072d3448f2c1124ce743f9
+timeCreated: 1536774790
+licenseType: Store
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Script/SimpleJSON-master/SimpleJSON-master/SimpleJSON.cs
+  uploadId: 916326

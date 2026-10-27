@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 15d43e81840a2ef49bc8f2fad8fbd2f8
+timeCreated: 1491054282
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Themes/Common/Materials/02/M_GraphXrayRed 4.mat
+  uploadId: 916326

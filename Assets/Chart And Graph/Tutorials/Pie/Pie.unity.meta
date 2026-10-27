@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: abc9127a9eca3d043a4db00310597765
+timeCreated: 1481822369
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 78488
+  packageName: Graph And Chart - Data Visualization
+  packageVersion: 1.230.0
+  assetPath: Assets/Chart And Graph/Tutorials/Pie/Pie.unity
+  uploadId: 916326
