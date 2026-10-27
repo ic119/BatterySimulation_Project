@@ -13,7 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _COORDS_OBJECTSPACE
-  - _USE_RIM
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -33,38 +32,38 @@ Material:
     m_Floats:
     - _ChargeAxisMax: 0.5
     - _ChargeAxisMin: -0.5
-    - _ChargeEdgeIntensity: 5
-    - _ChargeEdgePulseSpeed: 8
-    - _ChargeEdgeWidth: 0.035
-    - _ChargeProgress: 0.6
-    - _ChargedGlowIntensity: 1.2
+    - _ChargeEdgeIntensity: 2.54
+    - _ChargeEdgePulseSpeed: 6
+    - _ChargeEdgeWidth: 0.0226
+    - _ChargeProgress: 0.412
+    - _ChargedGlowIntensity: 0.7
     - _Coords: 0
     - _Cull: 2
     - _DstBlend: 0
-    - _FlowInUncharged: 0.05
+    - _FlowInUncharged: 0.015
     - _FlowIntensity: 3
     - _FlowPulseSharpness: 5
     - _FlowSpeed: 2.5
-    - _FlowTiling: 6
-    - _Metallic: 0.3
-    - _NoiseScale: 8
-    - _NoiseSpeed: 4
-    - _NoiseStrength: 0.3
-    - _RimIntensity: 1.5
-    - _RimPower: 3
+    - _FlowTiling: 4
+    - _Metallic: 0
+    - _NoiseScale: 12
+    - _NoiseSpeed: 2
+    - _NoiseStrength: 0.035
+    - _RimIntensity: 0
+    - _RimPower: 3.68
     - _Smoothness: 0.7
     - _SrcBlend: 1
     - _Surface: 0
-    - _UseRim: 1
+    - _UseRim: 0
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.049999982, g: 0.06999998, b: 0.09999997, a: 1}
+    - _BaseColor: {r: 0, g: 0, b: 0, a: 1}
     - _ChargeDirection: {r: 1, g: 0, b: 0, a: 0}
-    - _ChargeEdgeColor: {r: 4, g: 3.8, b: 1.2, a: 4}
-    - _ChargedColor: {r: 0, g: 1.3499999, b: 0.67499995, a: 1.5}
+    - _ChargeEdgeColor: {r: 4.0640116, g: 3.8088934, b: 0.2939376, a: 4}
+    - _ChargedColor: {r: 1.8614671, g: 1.8597928, b: 0.1580488, a: 1.5}
     - _FlowColor: {r: 0, g: 2.125, b: 2.5, a: 2.5}
     - _FlowDirection: {r: 1, g: 0, b: 0, a: 0}
-    - _RimColor: {r: 0.1, g: 0.6, b: 1, a: 1}
-    - _UnchargedColor: {r: 0.02, g: 0.03, b: 0.05, a: 1}
+    - _RimColor: {r: 0.094695546, g: 0.30726352, b: 0.47798735, a: 1}
+    - _UnchargedColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
