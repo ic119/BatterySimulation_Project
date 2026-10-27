@@ -51,6 +51,7 @@ public class UI_SimulationControl : MonoBehaviour
     private int itemVersion;
 
     private SimulationRunner runner;
+    private SimulationEffectPlayer effectPlayer;
     #endregion
 
     #region LifeCycle
@@ -58,6 +59,7 @@ public class UI_SimulationControl : MonoBehaviour
     {
         runner = new SimulationRunner(this);
         runner.Finished += RefreshStartButton;
+        effectPlayer = new SimulationEffectPlayer(runner, customOutline, packPrefabOutLine, electricChargeFlow, electricChargeFlowMaterial);
     }
 
     private void OnEnable()
@@ -68,6 +70,7 @@ public class UI_SimulationControl : MonoBehaviour
     private void OnDisable()
     {
         runner.Stop();
+        effectPlayer.Clear();
         RefreshStartButton();
         ClearName();
     }
@@ -308,6 +311,12 @@ public class UI_SimulationControl : MonoBehaviour
     /// </summary>
     private void StartSimulation()
     {
+        // 첫 작업의 StepBegan이 Start() 안에서 바로 호출되므로, 연출 대상은 Start() 전에 지정해야 한다. 실행 중에는 바꾸지 않는다.
+        if (selection != null && !runner.IsRunning)
+        {
+            effectPlayer.Target = selection.Target;
+        }
+
         if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container
             || !selection.Target.TryGetComponent(out SimulationData holder) || !runner.Start(holder.Model))
         {
