@@ -11,7 +11,7 @@ namespace Incheol.Modules
     /// </summary>
     public static class DeviceSizeCalculator
     {
-        private const float Tolerance = 0.001f;
+        private const float Tolerance = DeviceBody.Tolerance;
 
         /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
         public static bool TryGetSizeRenderer(Transform _target, DeviceType _kind, out Renderer _renderer)
@@ -169,9 +169,9 @@ namespace Incheol.Modules
             {
                 Vector3 parentScale = bodyTransform.parent.lossyScale;
                 bodyTransform.localScale = new Vector3(
-                    Divide(_newSize.x, parentScale.x),
-                    Divide(_newSize.y, parentScale.y),
-                    Divide(_newSize.z, parentScale.z));
+                    DeviceBody.DivideSafe(_newSize.x, parentScale.x),
+                    DeviceBody.DivideSafe(_newSize.y, parentScale.y),
+                    DeviceBody.DivideSafe(_newSize.z, parentScale.z));
                 bodyTransform.position = new Vector3(
                     _current.min.x + _newSize.x * 0.5f,
                     _current.min.y + _newSize.y * 0.5f,
@@ -182,11 +182,6 @@ namespace Incheol.Modules
         private static float Scale(float _scale, float _currentSize, float _newSize)
         {
             return Mathf.Approximately(_currentSize, 0.0f) ? _scale : _scale * _newSize / _currentSize;
-        }
-
-        private static float Divide(float _value, float _divisor)
-        {
-            return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
         }
     }
 }

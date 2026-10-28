@@ -13,7 +13,7 @@ namespace Incheol.Modules
     /// </summary>
     public static class DeviceSpacingCalculator
     {
-        private const float Tolerance = 0.001f;
+        private const float Tolerance = DeviceBody.Tolerance;
         private const float UnboundedSize = 2.0e7f;
 
         private struct Layer

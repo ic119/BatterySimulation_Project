@@ -10,6 +10,9 @@ public static class DeviceBody
     /// <summary>Pack / Module 프리팹에서 몸체 Renderer를 가진 자식의 이름.</summary>
     public const string BodyChildName = "Body";
 
+    /// <summary>길이 / 위치 비교에서 같다고 보는 오차. 맞닿은 면을 겹침으로 보지 않거나 경계를 넘었는지 볼 때 쓴다.</summary>
+    public const float Tolerance = 0.001f;
+
     /// <summary>
     /// _target의 몸체 Renderer. 자식 Body에 Renderer가 있으면 그것, 없으면 _target 본인의 Renderer. 둘 다 없으면 false.
     /// </summary>
@@ -94,7 +97,8 @@ public static class DeviceBody
         _target.position += _center - bodyRenderer.bounds.center;
     }
 
-    private static float DivideSafe(float _value, float _divisor)
+    /// <summary>_divisor가 0이면 나눌 수 없으므로 _value를 그대로 돌려준다.</summary>
+    public static float DivideSafe(float _value, float _divisor)
     {
         return Mathf.Approximately(_divisor, 0.0f) ? _value : _value / _divisor;
     }

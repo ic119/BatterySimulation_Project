@@ -8,6 +8,9 @@ using UnityEngine;
 /// </summary>
 public static class PackLayout
 {
+    /// <summary>길이 / 위치 비교에서 같다고 보는 오차. 맞닿은 면을 겹침으로 보지 않거나 경계를 넘었는지 볼 때 쓴다.</summary>
+    public const float Tolerance = DeviceBody.Tolerance;
+
     /// <summary>
     /// Module 내부 공간(월드 AABB). 현재 ModulePrefab은 속이 찬 상자라 벽 두께 없이 Module 자신의 Renderer 영역 전체를 내부로 본다.
     /// 자식(Cell)의 Renderer는 포함하지 않는다. Renderer가 없으면 false.
@@ -145,7 +148,6 @@ public static class PackLayout
     /// <summary>두 Bounds가 겹치는지. 맞닿는 면은 겹침으로 보지 않는다.</summary>
     public static bool Overlaps(Bounds _a, Bounds _b)
     {
-        const float Tolerance = 0.001f;
         return _a.min.x < _b.max.x - Tolerance && _a.max.x > _b.min.x + Tolerance &&
                _a.min.y < _b.max.y - Tolerance && _a.max.y > _b.min.y + Tolerance &&
                _a.min.z < _b.max.z - Tolerance && _a.max.z > _b.min.z + Tolerance;
@@ -181,7 +183,6 @@ public static class PackLayout
         _center = default;
         _capacity = 0;
 
-        const float Tolerance = 0.001f;
         int index = 0;
         while (TryGetSlotCenter(_inner, _itemSize, _padding, index, out Vector3 candidateCenter, out _capacity))
         {
@@ -232,7 +233,6 @@ public static class PackLayout
             return TryFindFreeSlot(_inner, _itemSize, _padding, _occupied, out _center, out _capacity);
         }
 
-        const float Tolerance = 0.001f;
         Vector3 start = new Vector3(float.MaxValue, float.MaxValue, float.MinValue);
         for (int i = 0; i < _occupied.Count; i++)
         {
@@ -322,7 +322,6 @@ public static class PackLayout
             Mathf.Max(0.0f, inner.min.y - cell.min.y, cell.max.y - inner.max.y),
             Mathf.Max(0.0f, inner.min.z - cell.min.z, cell.max.z - inner.max.z));
 
-        const float Tolerance = 0.001f;
         return _overflow.x <= Tolerance && _overflow.y <= Tolerance && _overflow.z <= Tolerance;
     }
 
@@ -344,10 +343,10 @@ public static class PackLayout
             return false;
         }
 
-        const float Tolerance = 0.0001f;
-        int countX = Mathf.FloorToInt(_inner.size.x / slotX + Tolerance);
-        int countY = Mathf.FloorToInt(_inner.size.y / slotY + Tolerance);
-        int countZ = Mathf.FloorToInt(_inner.size.z / slotZ + Tolerance);
+        const float CountTolerance = 0.0001f;
+        int countX = Mathf.FloorToInt(_inner.size.x / slotX + CountTolerance);
+        int countY = Mathf.FloorToInt(_inner.size.y / slotY + CountTolerance);
+        int countZ = Mathf.FloorToInt(_inner.size.z / slotZ + CountTolerance);
 
         _capacity = Mathf.Max(0, countX) * Mathf.Max(0, countY) * Mathf.Max(0, countZ);
         if (_index >= _capacity)
