@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DG.Tweening;
+using Incheol.Utils;
 using UnityEngine;
 
 namespace Incheol.Modules
@@ -68,38 +69,15 @@ namespace Incheol.Modules
         {
             Clear();
 
-            if (_container == null || _container.packsList == null)
+            foreach (PackDataModel pack in DeviceHierarchy.GetPacks(_container))
             {
-                return;
-            }
-
-            foreach (PackDataModel pack in _container.packsList)
-            {
-                if (pack == null || pack.modulesList == null)
+                foreach (ModuleDataModel module in DeviceHierarchy.GetModules(pack))
                 {
-                    continue;
-                }
-
-                foreach (ModuleDataModel module in pack.modulesList)
-                {
-                    if (module == null)
-                    {
-                        continue;
-                    }
-
                     AddRenderer(moduleRenderers, module.modulePosition);
 
-                    if (module.cellsList == null)
+                    foreach (CellDataModel cell in DeviceHierarchy.GetCells(module))
                     {
-                        continue;
-                    }
-
-                    foreach (CellDataModel cell in module.cellsList)
-                    {
-                        if (cell != null)
-                        {
-                            AddRenderer(cellRenderers, cell.cellPosition);
-                        }
+                        AddRenderer(cellRenderers, cell.cellPosition);
                     }
                 }
             }
@@ -202,21 +180,13 @@ namespace Incheol.Modules
 
             int addedCount = 0;
 
-            // 앞에서부터 _count개를 무작위로 뽑는 부분 셔플. 원본 목록은 바꾸지 않도록 인덱스만 섞는다.
             int maxCount = Mathf.Max(1, Mathf.FloorToInt(_renderers.Count * MaxBlinkRatio));
             int count = Random.Range(1, maxCount + 1);
-            int[] indices = new int[_renderers.Count];
-            for (int i = 0; i < indices.Length; i++)
-            {
-                indices[i] = i;
-            }
+            int[] picked = RandomPicker.PickIndices(_renderers.Count, count);
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < picked.Length; i++)
             {
-                int pick = Random.Range(i, indices.Length);
-                (indices[i], indices[pick]) = (indices[pick], indices[i]);
-
-                Renderer targetRenderer = _renderers[indices[i]];
+                Renderer targetRenderer = _renderers[picked[i]];
                 if (targetRenderer == null)
                 {
                     continue;
