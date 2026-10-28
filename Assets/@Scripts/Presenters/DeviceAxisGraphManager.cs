@@ -145,7 +145,7 @@ public class DeviceAxisGraphManager : MonoBehaviour
         Transform target = centerTarget;
         if (target == null && transform.parent != null)
         {
-            target = transform.parent.Find("Body");
+            target = transform.parent.Find(DeviceBody.BodyChildName);
             if (target == null)
                 target = transform.parent;
         }

@@ -35,7 +35,7 @@ namespace Incheol.Modules
             for (int i = 0; i < _target.childCount; i++)
             {
                 Transform child = _target.GetChild(i);
-                if (child.name == "Body" || child.GetComponent<DeviceAxisGraphManager>() != null)
+                if (child.name == DeviceBody.BodyChildName || child.GetComponent<DeviceAxisGraphManager>() != null)
                 {
                     continue;
                 }

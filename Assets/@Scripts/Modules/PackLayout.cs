@@ -43,6 +43,7 @@ public static class PackLayout
 
     /// <summary>
     /// Pack 몸체 Renderer(ModulePrefab과 같은 구조면 자식 Body). 자식 Module(과 그 아래 Cell)의 Renderer는 제외한다. 없으면 false.
+    /// 이름(Body)이 아니라 구조로 찾는다. 이름 규칙으로 찾는 DeviceBody.TryGetRenderer와 달리 Pack 아래의 다른 Renderer도 몸체로 볼 수 있다.
     /// </summary>
     public static bool TryGetPackBody(PackDataModel _pack, Transform _packTransform, out Renderer _body)
     {

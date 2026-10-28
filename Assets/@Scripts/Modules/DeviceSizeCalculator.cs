@@ -16,29 +16,18 @@ namespace Incheol.Modules
         /// <summary>크기를 바꿀 Renderer. Cell은 본인, Pack / Module은 자식 Body(자식 Module / Cell의 Renderer는 제외). 없으면 false.</summary>
         public static bool TryGetSizeRenderer(Transform _target, DeviceType _kind, out Renderer _renderer)
         {
-            _renderer = null;
-            if (_kind == DeviceType.Cell)
-            {
-                _renderer = _target.GetComponent<Renderer>();
-                return _renderer != null;
-            }
-
-            _renderer = _target.GetComponent<Renderer>();
-            if (_renderer != null)
+            if (_target.TryGetComponent(out _renderer))
             {
                 return true;
             }
 
-            for (int i = 0; i < _target.childCount; i++)
+            if (_kind == DeviceType.Cell)
             {
-                Transform child = _target.GetChild(i);
-                if (child.name == "Body" && child.TryGetComponent(out _renderer))
-                {
-                    return true;
-                }
+                return false;
             }
 
-            return false;
+            Transform body = _target.Find(DeviceBody.BodyChildName);
+            return body != null && body.TryGetComponent(out _renderer);
         }
 
         /// <summary>
