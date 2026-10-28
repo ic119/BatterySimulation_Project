@@ -65,21 +65,9 @@ namespace Incheol.Modules
         private static bool TryGetWorldSize(Transform _target, out Vector3 _size)
         {
             _size = Vector3.zero;
-            if (_target == null)
+            if (!RendererBounds.TryGetBounds(_target, out Bounds bounds))
             {
                 return false;
-            }
-
-            Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
-            {
-                return false;
-            }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int i = 1; i < rendererArray.Length; i++)
-            {
-                bounds.Encapsulate(rendererArray[i].bounds);
             }
 
             _size = bounds.size;
@@ -93,28 +81,7 @@ namespace Incheol.Modules
         public static bool ChildrenFit(Transform _target, Renderer _body, Vector3 _newSize, out Vector3 _minSize)
         {
             _minSize = Vector3.zero;
-            bool hasChild = false;
-            Bounds childBounds = default;
-            Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < rendererArray.Length; i++)
-            {
-                if (rendererArray[i] == _body)
-                {
-                    continue;
-                }
-
-                if (!hasChild)
-                {
-                    childBounds = rendererArray[i].bounds;
-                    hasChild = true;
-                }
-                else
-                {
-                    childBounds.Encapsulate(rendererArray[i].bounds);
-                }
-            }
-
-            if (!hasChild)
+            if (!RendererBounds.TryGetBounds(_target, out Bounds childBounds, true, _renderer => _renderer != _body))
             {
                 return true;
             }

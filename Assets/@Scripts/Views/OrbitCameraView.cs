@@ -243,27 +243,7 @@ public class OrbitCameraView : MonoBehaviour
             return false;
         }
 
-        bool found = false;
-        Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < rendererArray.Length; i++)
-        {
-            if (!rendererArray[i].enabled)
-            {
-                continue;
-            }
-
-            if (!found)
-            {
-                _bounds = rendererArray[i].bounds;
-                found = true;
-            }
-            else
-            {
-                _bounds.Encapsulate(rendererArray[i].bounds);
-            }
-        }
-
-        if (!found)
+        if (!RendererBounds.TryGetBounds(_target, out _bounds, false, _renderer => _renderer.enabled))
         {
             _bounds = new Bounds(_target.position, Vector3.one);
         }

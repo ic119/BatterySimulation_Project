@@ -214,14 +214,11 @@ namespace Incheol.Modules
             List<KeyValuePair<Transform, Bounds>> boundsList = new List<KeyValuePair<Transform, Bounds>>();
             for (int i = 0; i < children.Count; i++)
             {
-                Renderer[] rendererArray = children[i].GetComponentsInChildren<Renderer>(true);
-                Bounds bounds = rendererArray[0].bounds;
-                for (int r = 1; r < rendererArray.Length; r++)
+                // Renderer가 하나도 없는 자식은 위치를 비교할 수 없으므로 건너뛴다.
+                if (RendererBounds.TryGetBounds(children[i], out Bounds bounds))
                 {
-                    bounds.Encapsulate(rendererArray[r].bounds);
+                    boundsList.Add(new KeyValuePair<Transform, Bounds>(children[i], bounds));
                 }
-
-                boundsList.Add(new KeyValuePair<Transform, Bounds>(children[i], bounds));
             }
 
             // 기준 모서리에서 가까운 것부터(x, y는 min 오름차순, z는 max 내림차순) 훑으며 겹치는 구간끼리 한 층으로 묶는다.

@@ -21,27 +21,7 @@ public static class PackLayout
         }
 
         // ModulePrefab은 루트(pivot)에 Renderer가 없고 자식 Body에 있다. Cell도 자식이므로 Cell 아래의 Renderer는 제외한다.
-        bool found = false;
-        Renderer[] rendererArray = _module.modulePosition.GetComponentsInChildren<Renderer>();
-        for (int i = 0; i < rendererArray.Length; i++)
-        {
-            if (IsUnderAnyCell(rendererArray[i].transform, _module))
-            {
-                continue;
-            }
-
-            if (!found)
-            {
-                _bounds = rendererArray[i].bounds;
-                found = true;
-            }
-            else
-            {
-                _bounds.Encapsulate(rendererArray[i].bounds);
-            }
-        }
-
-        return found;
+        return RendererBounds.TryGetBounds(_module.modulePosition, out _bounds, false, _renderer => !IsUnderAnyCell(_renderer.transform, _module));
     }
 
     private static bool IsUnderAnyCell(Transform _transform, ModuleDataModel _module)
@@ -94,19 +74,10 @@ public static class PackLayout
                 continue;
             }
 
-            Renderer[] rendererArray = moduleTransform.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
+            if (RendererBounds.TryGetBounds(moduleTransform, out Bounds bounds))
             {
-                continue;
+                occupiedList.Add(bounds);
             }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int j = 1; j < rendererArray.Length; j++)
-            {
-                bounds.Encapsulate(rendererArray[j].bounds);
-            }
-
-            occupiedList.Add(bounds);
         }
 
         return occupiedList;
@@ -127,19 +98,10 @@ public static class PackLayout
                 continue;
             }
 
-            Renderer[] rendererArray = child.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
+            if (RendererBounds.TryGetBounds(child, out Bounds bounds))
             {
-                continue;
+                occupiedList.Add(bounds);
             }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int j = 1; j < rendererArray.Length; j++)
-            {
-                bounds.Encapsulate(rendererArray[j].bounds);
-            }
-
-            occupiedList.Add(bounds);
         }
 
         return occupiedList;
@@ -201,19 +163,10 @@ public static class PackLayout
                 continue;
             }
 
-            Renderer[] rendererArray = cellTransform.GetComponentsInChildren<Renderer>(true);
-            if (rendererArray.Length == 0)
+            if (RendererBounds.TryGetBounds(cellTransform, out Bounds bounds))
             {
-                continue;
+                occupiedList.Add(bounds);
             }
-
-            Bounds bounds = rendererArray[0].bounds;
-            for (int j = 1; j < rendererArray.Length; j++)
-            {
-                bounds.Encapsulate(rendererArray[j].bounds);
-            }
-
-            occupiedList.Add(bounds);
         }
 
         return occupiedList;

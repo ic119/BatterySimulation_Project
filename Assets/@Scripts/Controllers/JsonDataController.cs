@@ -399,19 +399,7 @@ public class JsonDataController
             return bodyRenderer.bounds;
         }
 
-        Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
-        if (rendererArray.Length == 0)
-        {
-            return new Bounds(_target.position, Vector3.zero);
-        }
-
-        Bounds bounds = rendererArray[0].bounds;
-        for (int i = 1; i < rendererArray.Length; i++)
-        {
-            bounds.Encapsulate(rendererArray[i].bounds);
-        }
-
-        return bounds;
+        return RendererBounds.TryGetBounds(_target, out Bounds bounds) ? bounds : new Bounds(_target.position, Vector3.zero);
     }
     #endregion
 }

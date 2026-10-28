@@ -24,7 +24,7 @@ public class PackGridPlacer
     /// </summary>
     public static void PlaceInContainer(Transform _item, Transform _container, float _padding)
     {
-        if (!TryGetBounds(_item, out Bounds own))
+        if (!RendererBounds.TryGetBounds(_item, out Bounds own))
         {
             return;
         }
@@ -51,7 +51,7 @@ public class PackGridPlacer
         _pack.slotColumn = -1;
         _pack.slotRow = -1;
 
-        if (_columns <= 0 || _rows <= 0 || !TryGetBounds(_packTransform, out Bounds own))
+        if (_columns <= 0 || _rows <= 0 || !RendererBounds.TryGetBounds(_packTransform, out Bounds own))
         {
             return false;
         }
@@ -87,25 +87,6 @@ public class PackGridPlacer
         _packTransform.position += new Vector3(targetMinX - own.min.x, 0.0f, targetMaxZ - own.max.z);
         _pack.slotColumn = column;
         _pack.slotRow = row;
-        return true;
-    }
-
-    /// <summary>_target 아래 모든 Renderer(꺼진 것 포함)를 감싸는 월드 Bounds. Renderer가 없으면 false.</summary>
-    private static bool TryGetBounds(Transform _target, out Bounds _bounds)
-    {
-        Renderer[] rendererArray = _target.GetComponentsInChildren<Renderer>(true);
-        if (rendererArray.Length == 0)
-        {
-            _bounds = default;
-            return false;
-        }
-
-        _bounds = rendererArray[0].bounds;
-        for (int i = 1; i < rendererArray.Length; i++)
-        {
-            _bounds.Encapsulate(rendererArray[i].bounds);
-        }
-
         return true;
     }
 
