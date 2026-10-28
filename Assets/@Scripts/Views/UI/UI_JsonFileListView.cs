@@ -64,10 +64,7 @@ public class UI_JsonFileListView : MonoBehaviour
             return;
         }
 
-        for (int i = content.childCount - 1; i >= 0; i--)
-        {
-            Destroy(content.GetChild(i).gameObject);
-        }
+        content.DestroyChildren();
 
         List<(string text, string path)> entryList = new List<(string text, string path)>();
         string[] pathArray = JsonDataController.GetSavedFilePaths();

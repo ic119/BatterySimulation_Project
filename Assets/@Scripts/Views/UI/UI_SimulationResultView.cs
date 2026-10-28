@@ -76,13 +76,7 @@ public class UI_SimulationResultView : MonoBehaviour
             return;
         }
 
-        // Destroy는 프레임 끝에 처리되므로 먼저 contentRect에서 떼어, 바로 이어서 새 줄을 만들어도 레이아웃에서 섞이지 않게 한다.
-        for (int i = contentRect.childCount - 1; i >= 0; i--)
-        {
-            Transform child = contentRect.GetChild(i);
-            child.SetParent(null, false);
-            Destroy(child.gameObject);
-        }
+        contentRect.DestroyChildren();
     }
 
     private void CreatePendingItems()

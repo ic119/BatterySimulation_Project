@@ -42,7 +42,7 @@ public class UI_SimulationStepList
         }
 
         int version = ++itemVersion;
-        ClearItems();
+        contentRect.DestroyChildren();
 
         if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container)
         {
@@ -61,20 +61,6 @@ public class UI_SimulationStepList
             key,
             prefab => CreateItems(prefab, data, version),
             () => DebugLogManager.GenerateErrorMessage<UI_SimulationStepList>($"{key} 로드 실패"));
-    }
-
-    /// <summary>
-    /// 줄을 모두 지운다. Destroy는 프레임 끝에 처리되므로 먼저 contentRect에서 떼어, 바로 이어서 새 줄을 만들어도
-    /// 옛 줄이 레이아웃에 남아 새 줄과 섞이거나 순서가 어긋나지 않게 한다.
-    /// </summary>
-    private void ClearItems()
-    {
-        for (int i = contentRect.childCount - 1; i >= 0; i--)
-        {
-            Transform child = contentRect.GetChild(i);
-            child.SetParent(null, false);
-            UnityEngine.Object.Destroy(child.gameObject);
-        }
     }
 
     private void CreateItems(GameObject _prefab, SimulationDataModel _data, int _version)
