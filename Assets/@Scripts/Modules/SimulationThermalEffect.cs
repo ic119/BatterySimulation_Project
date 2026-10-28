@@ -37,6 +37,7 @@ namespace Incheol.Modules
             public float radius;
             public float strength;
             public float startProgress;
+            public float noiseSeed;
         }
 
         private class Target
@@ -184,7 +185,8 @@ namespace Incheol.Modules
                 heatSources.Add(new PackThermalView.HeatSource(
                     seed.position,
                     seed.radius * Mathf.Lerp(HeatMinRadiusRatio, 1f, grow),
-                    seed.strength * grow));
+                    seed.strength * grow,
+                    seed.noiseSeed));
             }
 
             _target.view.SetHeatSources(heatSources);
@@ -221,6 +223,7 @@ namespace Incheol.Modules
                         radius = radius,
                         strength = UnityEngine.Random.Range(MinHeatStrength, 1f),
                         startProgress = HeatStartSpread * i / count,
+                        noiseSeed = UnityEngine.Random.Range(0f, 100f),
                     });
                 }
             }

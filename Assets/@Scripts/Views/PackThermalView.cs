@@ -17,11 +17,15 @@ public class PackThermalView : MonoBehaviour
         public float radius;
         public float strength;
 
-        public HeatSource(Vector3 _position, float _radius, float _strength)
+        /// <summary>열이 번지는 경계 모양을 정하는 값. 시드가 다르면 모양이 다르다.</summary>
+        public float seed;
+
+        public HeatSource(Vector3 _position, float _radius, float _strength, float _seed = 0.0f)
         {
             position = _position;
             radius = _radius;
             strength = _strength;
+            seed = _seed;
         }
     }
 
@@ -93,7 +97,7 @@ public class PackThermalView : MonoBehaviour
             {
                 HeatSource source = _sources[i];
                 heatPoints[i] = new Vector4(source.position.x, source.position.y, source.position.z, source.radius);
-                heatParams[i] = new Vector4(source.strength, 0.0f, 0.0f, 0.0f);
+                heatParams[i] = new Vector4(source.strength, source.seed, 0.0f, 0.0f);
             }
             else
             {

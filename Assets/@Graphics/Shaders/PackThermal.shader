@@ -42,6 +42,10 @@ Shader "Custom/PackThermal"
         _ThermalColdColor("Thermal Cold Color", Color) = (0.05, 0.02, 0.35, 1.0)
         // 열화상 전환 시에도 원래 조명 음영을 얼마나 남길지(0=음영 없음, 1=원래 음영 그대로).
         _ThermalShading("Thermal Shading Keep", Range(0.0, 1.0)) = 0.4
+        // 열이 번지는 경계를 얼마나 불규칙하게 할지(0=원형, 1=매우 불규칙). 열원마다 시드가 달라 모양이 서로 다르다.
+        _HeatNoiseStrength("Heat Noise Strength", Range(0.0, 1.0)) = 0.35
+        // 경계 불규칙함의 크기. 클수록 잔 굴곡이 많아진다(열원 반경 기준).
+        _HeatNoiseScale("Heat Noise Scale", Range(0.5, 8.0)) = 2.5
     }
 
     SubShader
@@ -83,10 +87,12 @@ Shader "Custom/PackThermal"
             float _ThermalAmount;
             float _HeatCount;
             float _ThermalShading;
+            float _HeatNoiseStrength;
+            float _HeatNoiseScale;
         CBUFFER_END
 
         // 열원 배열: Properties 블록에 선언할 수 없어 CBUFFER 밖에 둔다.
-        // _HeatPoints[i] = (월드 좌표 xyz, 반경 w), _HeatParams[i] = (세기 x, 예비 yzw)
+        // _HeatPoints[i] = (월드 좌표 xyz, 반경 w), _HeatParams[i] = (세기 x, 노이즈 시드 y, 예비 zw)
         float4 _HeatPoints[HEAT_MAX];
         float4 _HeatParams[HEAT_MAX];
 
@@ -143,6 +149,33 @@ Shader "Custom/PackThermal"
                 float2 uv : TEXCOORD2;
             };
 
+            // 3D 값 노이즈(0~1). 정수 격자점마다 해시로 정한 값을 부드럽게 보간한다.
+            float Hash31(float3 p)
+            {
+                p = frac(p * 0.1031);
+                p += dot(p, p.zyx + 31.32);
+                return frac((p.x + p.y) * p.z);
+            }
+
+            float ValueNoise3(float3 p)
+            {
+                float3 i = floor(p);
+                float3 f = frac(p);
+                f = f * f * (3.0 - 2.0 * f);
+
+                float n000 = Hash31(i);
+                float n100 = Hash31(i + float3(1, 0, 0));
+                float n010 = Hash31(i + float3(0, 1, 0));
+                float n110 = Hash31(i + float3(1, 1, 0));
+                float n001 = Hash31(i + float3(0, 0, 1));
+                float n101 = Hash31(i + float3(1, 0, 1));
+                float n011 = Hash31(i + float3(0, 1, 1));
+                float n111 = Hash31(i + float3(1, 1, 1));
+
+                return lerp(lerp(lerp(n000, n100, f.x), lerp(n010, n110, f.x), f.y),
+                            lerp(lerp(n001, n101, f.x), lerp(n011, n111, f.x), f.y), f.z);
+            }
+
             // 열원 전체의 열 세기(0~1). 열원마다 중심에서 반경 끝까지 부드럽게 줄어든다.
             float ComputeHeat(float3 positionWS)
             {
@@ -153,8 +186,16 @@ Shader "Custom/PackThermal"
                 for (int i = 0; i < count; ++i)
                 {
                     float radius = max(_HeatPoints[i].w, 0.0001);
-                    float d = distance(positionWS, _HeatPoints[i].xyz);
-                    float f = 1.0 - saturate(d / radius);
+                    float3 offset = positionWS - _HeatPoints[i].xyz;
+                    float d = length(offset) / radius;
+
+                    // 반경 기준 좌표로 노이즈를 얻어 거리를 늘이거나 줄인다. 중심(d=0)은 그대로라 중심의 열은 변하지 않고 경계만 불규칙해진다.
+                    // 열원마다 시드(_HeatParams[i].y)로 노이즈 위치를 옮겨 모양이 서로 다르다. 2단계(큰 굴곡 + 잔 굴곡)를 겹친다.
+                    float3 noisePos = offset / radius * _HeatNoiseScale + _HeatParams[i].y * float3(17.3, 31.7, 7.1);
+                    float n = ValueNoise3(noisePos) * 0.65 + ValueNoise3(noisePos * 2.13) * 0.35;
+                    d *= 1.0 + (n - 0.5) * 2.0 * _HeatNoiseStrength;
+
+                    float f = 1.0 - saturate(d);
                     f = f * f * (3.0 - 2.0 * f);
                     heat += f * _HeatParams[i].x;
                 }
