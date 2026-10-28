@@ -435,28 +435,14 @@ public class UI_MainSceneView : MonoBehaviour
         packFactory.Clear();
 
         // newButton으로 만들 때와 같은 여백 설정을 쓴다.
-        packFactory.PackPadding = packPadding;
-        packFactory.ModulePadding = modulePadding;
-        packFactory.CellPadding = cellPadding;
+        ApplyPadding();
 
         PackJsonBuilder builder = new PackJsonBuilder(
             packFactory,
             container => AddContainerNode(container),
-            (pack, packTransform) =>
-            {
-                HideOrShowCreated(packTransform);
-                AddPackNode(pack, packTransform);
-            },
-            (module, parentPack) =>
-            {
-                HideOrShowCreated(module.modulePosition);
-                AddModuleNode(module, parentPack);
-            },
-            cell =>
-            {
-                HideOrShowCreated(cell.cellPosition);
-                AddCellNode(cell);
-            },
+            OnPackCreated,
+            OnModuleCreated,
+            OnCellCreated,
             (container, columns, rows) => createCountView?.SetCount(container, columns, rows));
 
         PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
@@ -643,6 +629,34 @@ public class UI_MainSceneView : MonoBehaviour
             () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
     }
 
+    /// <summary>Pack / Module / Cell 사이의 여백 설정을 PackFactory에 넘긴다. 만들기 직전에 부른다.</summary>
+    private void ApplyPadding()
+    {
+        packFactory.PackPadding = packPadding;
+        packFactory.ModulePadding = modulePadding;
+        packFactory.CellPadding = cellPadding;
+    }
+
+    /// <summary>새로 만들어진 Pack을 숨기고 두 탭의 트리에 추가한다. 직접 만들 때와 Json에서 불러올 때 같이 쓴다.</summary>
+    private void OnPackCreated(PackDataModel _pack, Transform _packTransform)
+    {
+        HideOrShowCreated(_packTransform);
+        AddPackNode(_pack, _packTransform);
+    }
+
+    /// <summary>새로 만들어진 Module을 숨기고 두 탭의 트리에 추가한다. _parentPack이 null이면 단독 Module이다.</summary>
+    private void OnModuleCreated(ModuleDataModel _module, PackDataModel _parentPack)
+    {
+        HideOrShowCreated(_module.modulePosition);
+        AddModuleNode(_module, _parentPack);
+    }
+
+    /// <summary>새로 만들어진 Cell을 숨기고 두 탭의 트리에 추가한다.</summary>
+    private void OnCellCreated(CellDataModel _cell)
+    {
+        HideOrShowCreated(_cell.cellPosition);
+        AddCellNode(_cell);
+    }
 
     /// <summary>
     /// 새로 만든 _created는 기본적으로 숨긴다. 단, 현재 선택된 Pack / Module 아래에 생성된 것이면
@@ -680,16 +694,17 @@ public class UI_MainSceneView : MonoBehaviour
         return container;
     }
 
-    /// <summary>_parentPack / _parentModule / _parentContainer는 클릭 시점에 ResolveParent로 정해진 부모다(프리폹 로드를 기다리는 사이 선택이 바뀔어도 그대로 쓴다).</summary>
+    /// <summary>_parentPack / _parentModule / _parentContainer는 클릭 시점에 ResolveParent로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
     private void OnPrefabLoaded(CreateType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule, ContainerDataModel _parentContainer)
     {
+        ApplyPadding();
+
         switch (_type)
         {
             case CreateType.Pack:
                 {
                     // 선택한 Container가 없으면 이 Pack을 담을 새 Container를 만든다.
                     ContainerDataModel container = EnsureContainer(_parentContainer);
-                    packFactory.PackPadding = packPadding;
                     // 선택한 Container의 x * z 격자에 맞춰 x 방향으로 채운 뒤 z 방향 다음 줄에 놓는다(새 Container나 패널이 없으면 기존처럼 x 방향).
                     int gridX = 0;
                     int gridZ = 0;
@@ -699,22 +714,18 @@ public class UI_MainSceneView : MonoBehaviour
                     }
 
                     PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container, gridX, gridZ);
-                    Transform packTransform = packFactory.GetPackTransform(pack);
-                    HideOrShowCreated(packTransform);
-                    AddPackNode(pack, packTransform);
+                    OnPackCreated(pack, packFactory.GetPackTransform(pack));
                     DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Pack 생성 : {pack.packName}");
                     break;
                 }
             case CreateType.Module:
                 {
                     // 부모 Pack이 있으면 그 Pack에 속하고, 없으면 단독 Module로 만든다.
-                    packFactory.ModulePadding = modulePadding;
                     ContainerDataModel container = _parentPack == null ? EnsureContainer(_parentContainer) : null;
                     ModuleDataModel module = packFactory.CreateModule(_parentPack, (++moduleCount).ToString(), _prefab, default, container);
                     if (module != null)
                     {
-                        HideOrShowCreated(module.modulePosition);
-                        AddModuleNode(module, _parentPack);
+                        OnModuleCreated(module, _parentPack);
                         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Module 생성 : {module.moduleName}");
                     }
                     else
@@ -726,12 +737,10 @@ public class UI_MainSceneView : MonoBehaviour
                 }
             case CreateType.Cell:
                 {
-                    packFactory.CellPadding = cellPadding;
                     CellDataModel cell = packFactory.CreateCell(_parentModule, (++cellCount).ToString(), _prefab);
                     if (cell != null)
                     {
-                        HideOrShowCreated(cell.cellPosition);
-                        AddCellNode(cell);
+                        OnCellCreated(cell);
                         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Cell 생성 : {cell.cellName} (Module : {cell.parentModule.moduleName})");
                     }
                     else
