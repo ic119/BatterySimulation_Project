@@ -18,6 +18,16 @@ public class SimulationStepResult
     public int abnormalModuleCount;
     public int abnormalCellCount;
 
+    // ThermalDetection 작업에서만 채워지는 값(섭씨). 다른 타입에서는 0이다.
+    /// <summary>측정된 가장 높은 온도</summary>
+    public float maxTemperature;
+
+    /// <summary>측정된 가장 낮은 온도</summary>
+    public float minTemperature;
+
+    /// <summary>온도가 과하게 오른 부분(열원)의 수량</summary>
+    public int overheatCount;
+
     /// <summary>Module + Cell의 전체 수량</summary>
     public int TotalCount => moduleCount + cellCount;
 

@@ -13259,6 +13259,7 @@ MonoBehaviour:
   contentRect: {fileID: 3572745302167376298}
   packPrefabOutLine: {fileID: 2100000, guid: 734504eb2f9c00344b0453b3a17d6ffe, type: 2}
   electricChargeFlowMaterial: {fileID: 2100000, guid: 4fd61349568814a47bdf5082867ccede, type: 2}
+  thermalDetectionMaterial: {fileID: 2100000, guid: b4b518ab3431bc34c9495fae83b5ad0a, type: 2}
   curSimulationContainer: {fileID: 2753555003406198771}
   curSimulationText: {fileID: 2212809045375738340}
   alarmPopupView: {fileID: 9196572526282773163}

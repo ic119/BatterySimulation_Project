@@ -50,6 +50,20 @@ public class PackThermalView : MonoBehaviour
     /// <summary>현재 열화상 정도. 0 = 원래 모습, 1 = 완전한 열화상.</summary>
     public float ThermalAmount => thermalAmount;
     public int HeatCount => heatCount;
+
+    /// <summary>열화상이 입혀지는 몸체 Renderer. 지정하지 않았으면 처음 필요할 때 자식 Body(없으면 본인)에서 찾는다. 못 찾으면 null.</summary>
+    public Renderer BodyRenderer
+    {
+        get
+        {
+            if (bodyRenderer == null)
+            {
+                DeviceBody.TryGetRenderer(transform, out bodyRenderer);
+            }
+
+            return bodyRenderer;
+        }
+    }
     #endregion
 
     #region Unity Life Cycle
@@ -131,20 +145,21 @@ public class PackThermalView : MonoBehaviour
     /// <summary>현재 열화상 정도와 열원 목록을 PropertyBlock으로 몸체 Renderer에 넘긴다.</summary>
     private void Apply()
     {
-        // Awake보다 먼저 불려도 동작하도록 Renderer는 처음 필요할 때 찾는다.
-        if (bodyRenderer == null && !DeviceBody.TryGetRenderer(transform, out bodyRenderer))
+        // Awake보다 먼저 불려도 동작하도록 Renderer는 처음 필요할 때 찾는다(BodyRenderer).
+        Renderer targetRenderer = BodyRenderer;
+        if (targetRenderer == null)
         {
             Debug.LogWarning("PackThermalView: 몸체 Renderer를 찾지 못했습니다.", this);
             return;
         }
 
         propertyBlock ??= new MaterialPropertyBlock();
-        bodyRenderer.GetPropertyBlock(propertyBlock);
+        targetRenderer.GetPropertyBlock(propertyBlock);
         propertyBlock.SetFloat(ThermalAmountId, thermalAmount);
         propertyBlock.SetFloat(HeatCountId, heatCount);
         propertyBlock.SetVectorArray(HeatPointsId, heatPoints);
         propertyBlock.SetVectorArray(HeatParamsId, heatParams);
-        bodyRenderer.SetPropertyBlock(propertyBlock);
+        targetRenderer.SetPropertyBlock(propertyBlock);
     }
     #endregion
 }

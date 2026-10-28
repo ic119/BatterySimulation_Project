@@ -24,7 +24,8 @@
     {
         None = 0,
         Charge = 1,
-        Discharge = 2
+        Discharge = 2,
+        ThermalDetection = 3
     }
 
     public enum DeviceType

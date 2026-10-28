@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b4b518ab3431bc34c9495fae83b5ad0a, type: 2}
+  - {fileID: 2100000, guid: 734504eb2f9c00344b0453b3a17d6ffe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -285,4 +285,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17a385eb440adde44bef0ad06375618a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Incheol::PackThermalView
-  bodyRenderer: {fileID: 0}
+  bodyRenderer: {fileID: 3930390250007617175}

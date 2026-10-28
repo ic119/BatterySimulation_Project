@@ -36,6 +36,7 @@ public class UI_SimulationControl : MonoBehaviour
     [Header("Pack CustomShader")]
     [SerializeField] private Material packPrefabOutLine;
     [SerializeField] private Material electricChargeFlowMaterial;
+    [SerializeField] private Material thermalDetectionMaterial;
 
     [Header("Current Simulation Info")]
     [SerializeField] private GameObject curSimulationContainer;
@@ -118,7 +119,7 @@ public class UI_SimulationControl : MonoBehaviour
         runner.Finished += ClearCurrentText;
         runner.StepBegan += OnStepBegan;
         runner.StepProgressed += OnStepProgressed;
-        effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial);
+        effectPlayer = new SimulationEffectPlayer(runner, packPrefabOutLine, electricChargeFlowMaterial, thermalDetectionMaterial);
         effectPlayer.StepResultReady += OnStepResultReady;
 
         // 재생 중이 아닐 때는 꺼 둔다.
