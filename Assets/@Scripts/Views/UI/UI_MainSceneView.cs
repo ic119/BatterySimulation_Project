@@ -13,13 +13,6 @@ using UnityEngine.UI;
 
 public class UI_MainSceneView : MonoBehaviour
 {
-    private enum CreateType
-    {
-        Pack,
-        Module,
-        Cell,
-    }
-
     #region Variable
     [Header("EditorTab Tools Button Variable")]
     [SerializeField] private Button newButton;
@@ -44,7 +37,7 @@ public class UI_MainSceneView : MonoBehaviour
     [Header("Cell Layout")]
     [SerializeField, Min(0.0f), Tooltip("Cell 사이(가로/깊이)의 여백. Cell은 칸 가운데에 놓여 벽과도 여백의 절반만큼 떨어진다. 클수록 Module에 들어가는 Cell 개수가 줄어든다.")] private float cellPadding = 0.0f;
 
-    private static readonly CreateType[] DropdownCreateTypes = { CreateType.Pack, CreateType.Module, CreateType.Cell };
+    private static readonly DeviceType[] DropdownDeviceTypes = { DeviceType.Pack, DeviceType.Module, DeviceType.Cell };
 
     private readonly PackFactory packFactory = new PackFactory();
 
@@ -251,10 +244,10 @@ public class UI_MainSceneView : MonoBehaviour
     private void OnClickNewButton()
     {
         // Dropdown에서 선택된 종류(Pack / Module / Cell)를 생성한다. Dropdown이 없으면 Pack.
-        CreateType type = CreateType.Pack;
-        if (newDropdown != null && newDropdown.value >= 0 && newDropdown.value < DropdownCreateTypes.Length)
+        DeviceType type = DeviceType.Pack;
+        if (newDropdown != null && newDropdown.value >= 0 && newDropdown.value < DropdownDeviceTypes.Length)
         {
-            type = DropdownCreateTypes[newDropdown.value];
+            type = DropdownDeviceTypes[newDropdown.value];
         }
 
         CreateObject(type);
@@ -435,9 +428,9 @@ public class UI_MainSceneView : MonoBehaviour
     private void BuildDropdownOptions()
     {
         List<string> optionList = new List<string>();
-        for (int i = 0; i < DropdownCreateTypes.Length; i++)
+        for (int i = 0; i < DropdownDeviceTypes.Length; i++)
         {
-            optionList.Add(DropdownCreateTypes[i].ToString());
+            optionList.Add(DropdownDeviceTypes[i].ToString());
         }
 
         newDropdown.ClearOptions();
@@ -454,136 +447,58 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>Dropdown 옵션(Pack / Module / Cell) 항목이 클릭되면 UI_DropdownItemRelay가 호출해 해당 종류를 생성한다.</summary>
     public void OnDropdownItemClicked(string _optionText)
     {
-        if (System.Enum.TryParse(_optionText, out CreateType type))
+        if (System.Enum.TryParse(_optionText, out DeviceType type) && type != DeviceType.Container)
         {
             CreateObject(type);
         }
     }
 
-    private static AddressableAssetKey GetPrefabKey(CreateType _type)
+    private static AddressableAssetKey GetPrefabKey(DeviceType _type)
     {
         switch (_type)
         {
-            case CreateType.Pack: return AddressableAssetKey.PackPrefab;
-            case CreateType.Module: return AddressableAssetKey.ModulePrefab;
+            case DeviceType.Pack: return AddressableAssetKey.PackPrefab;
+            case DeviceType.Module: return AddressableAssetKey.ModulePrefab;
             default: return AddressableAssetKey.CellPrefab;
         }
     }
 
     /// <summary>
-    /// 생성할 _type의 부모를 정한다.
-    /// - 트리에서 선택된 항목이 없으면 예전처럼 가장 최근 Pack / Module이 부모다.
-    /// - Pack이 선택되어 있으면 Module은 그 Pack에, Cell은 그 Pack의 마지막 Module에 생긴다.
-    /// - Module이 선택되어 있으면 Cell은 그 Module에 생긴다.
-    /// - 선택된 항목 아래에 만들 수 없는 종류(Pack 아래의 Pack, Module 아래의 Pack/Module, Cell 아래의 모든 것)거나
-    ///   부모를 찾지 못하면 false를 반환하고 생성하지 않는다.
+    /// 생성할 _type의 부모를 CreateParentResolver로 정한다. 만들 수 없으면 이유를 로그로 남기고(필요하면 알림 팝업도 띄우고) false를 반환한다.
     /// </summary>
-    private bool ResolveParent(CreateType _type, out PackDataModel _parentPack, out ModuleDataModel _parentModule, out ContainerDataModel _parentContainer)
+    private bool ResolveParent(DeviceType _type, out PackDataModel _parentPack, out ModuleDataModel _parentModule, out ContainerDataModel _parentContainer)
     {
-        _parentPack = packFactory.LastPack;
-        _parentModule = packFactory.LastModule;
-        _parentContainer = null;
+        CreateParentResolver.Result result = CreateParentResolver.Resolve(_type, selection, packFactory, GetPackFullMessage);
+        _parentPack = result.parentPack;
+        _parentModule = result.parentModule;
+        _parentContainer = result.parentContainer;
 
-        if (selection == null || !selection.HasSelection)
+        if (!result.success)
         {
-            return true;
+            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(result.message);
+            if (result.showAlarm)
+            {
+                ShowAlarm(result.message);
+            }
         }
 
-        Transform selectedTarget = selection.Target;
-        switch (selection.Kind)
+        return result.success;
+    }
+
+    /// <summary>_container의 Pack 칸이 모두 찼으면 그 안내 문구를, 더 놓을 수 있으면 null을 반환한다. 패널이 없으면 검사하지 않는다.</summary>
+    private string GetPackFullMessage(ContainerDataModel _container)
+    {
+        if (createCountView == null || createCountView.CanCreatePack(_container, _container.packsList.Count))
         {
-            case DeviceType.Container:
-                {
-                    ContainerDataModel selectedContainer = packFactory.FindContainer(selectedTarget);
-                    if (selectedContainer == null)
-                    {
-                        break;
-                    }
-
-                    // 선택한 Container 안에 Pack을, Module은 하위 Pack 안에(Pack이 없으면 Pack 없는 Module로) 만든다.
-                    if (_type == CreateType.Pack)
-                    {
-                        if (createCountView != null && !createCountView.CanCreatePack(selectedContainer, selectedContainer.packsList.Count))
-                        {
-                            createCountView.TryGetPackGrid(selectedContainer, out int gridX, out int gridZ);
-                            string message = $"Container {selectedContainer.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
-                            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(message);
-                            ShowAlarm(message);
-                            return false;
-                        }
-
-                        _parentContainer = selectedContainer;
-                        return true;
-                    }
-
-                    if (_type == CreateType.Module)
-                    {
-                        // 하위에 Pack이 있으면 마지막 Pack의 자식으로, 없을 때만 Pack 없는 Module로 만든다.
-                        _parentPack = selectedContainer.packsList.Count > 0 ? selectedContainer.packsList[selectedContainer.packsList.Count - 1] : null;
-                        _parentContainer = selectedContainer;
-                        return true;
-                    }
-
-                    DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Container 아래에는 Cell을 직접 만들 수 없습니다. Module을 선택하세요.");
-                    return false;
-                }
-            case DeviceType.Pack:
-                {
-                    PackDataModel selectedPack = packFactory.FindPack(selectedTarget);
-                    if (selectedPack == null)
-                    {
-                        break;
-                    }
-
-                    if (_type == CreateType.Module)
-                    {
-                        _parentPack = selectedPack;
-                        return true;
-                    }
-
-                    if (_type == CreateType.Cell)
-                    {
-                        if (selectedPack.modulesList.Count == 0)
-                        {
-                            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("선택한 Pack에 Module이 없어 Cell을 만들 수 없습니다.");
-                            return false;
-                        }
-
-                        _parentModule = selectedPack.modulesList[selectedPack.modulesList.Count - 1];
-                        return true;
-                    }
-
-                    DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Pack 아래에는 Pack을 만들 수 없습니다.");
-                    return false;
-                }
-            case DeviceType.Module:
-                {
-                    ModuleDataModel selectedModule = packFactory.FindModule(selectedTarget);
-                    if (selectedModule == null)
-                    {
-                        break;
-                    }
-
-                    if (_type == CreateType.Cell)
-                    {
-                        _parentModule = selectedModule;
-                        return true;
-                    }
-
-                    DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"Module 아래에는 {_type}을(를) 만들 수 없습니다.");
-                    return false;
-                }
-            case DeviceType.Cell:
-                DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"Cell 아래에는 {_type}을(를) 만들 수 없습니다.");
-                return false;
+            return null;
         }
 
-        // 선택된 항목의 데이터 모델을 찾지 못하면 선택을 무시하고 예전 방식(최근 오브젝트)으로 만든다.
-        return true;
+        createCountView.TryGetPackGrid(_container, out int gridX, out int gridZ);
+        return $"Container {_container.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
     }
 
     /// <summary>Addressable의 Pack/Module/CellPrefab을 불러와 해당 종류를 생성한다. 선택된 항목이 있으면 그 항목의 하위에 만든다.</summary>
-    private void CreateObject(CreateType _type)
+    private void CreateObject(DeviceType _type)
     {
         // 클릭 시점의 선택으로 부모를 정한다. 만들 수 없는 조합이면 불필요한 로드를 하지 않고 끝낸다.
         if (!ResolveParent(_type, out PackDataModel parentPack, out ModuleDataModel parentModule, out ContainerDataModel parentContainer))
@@ -592,7 +507,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         // Cell은 부모 Module이 있어야만 만들 수 있다.
-        if (_type == CreateType.Cell && (!packFactory.CanCreateCell || parentModule == null))
+        if (_type == DeviceType.Cell && (!packFactory.CanCreateCell || parentModule == null))
         {
             DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Cell은 생성된 Module이 있어야 만들 수 있습니다.");
             return;
@@ -671,13 +586,13 @@ public class UI_MainSceneView : MonoBehaviour
     }
 
     /// <summary>_parentPack / _parentModule / _parentContainer는 클릭 시점에 ResolveParent로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
-    private void OnPrefabLoaded(CreateType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule, ContainerDataModel _parentContainer)
+    private void OnPrefabLoaded(DeviceType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule, ContainerDataModel _parentContainer)
     {
         ApplyPadding();
 
         switch (_type)
         {
-            case CreateType.Pack:
+            case DeviceType.Pack:
                 {
                     // 선택한 Container가 없으면 이 Pack을 담을 새 Container를 만든다.
                     ContainerDataModel container = EnsureContainer(_parentContainer);
@@ -694,7 +609,7 @@ public class UI_MainSceneView : MonoBehaviour
                     DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Pack 생성 : {pack.packName}");
                     break;
                 }
-            case CreateType.Module:
+            case DeviceType.Module:
                 {
                     // 부모 Pack이 있으면 그 Pack에 속하고, 없으면 단독 Module로 만든다.
                     ContainerDataModel container = _parentPack == null ? EnsureContainer(_parentContainer) : null;
@@ -711,7 +626,7 @@ public class UI_MainSceneView : MonoBehaviour
                     }
                     break;
                 }
-            case CreateType.Cell:
+            case DeviceType.Cell:
                 {
                     CellDataModel cell = packFactory.CreateCell(_parentModule, (++cellCount).ToString(), _prefab);
                     if (cell != null)
