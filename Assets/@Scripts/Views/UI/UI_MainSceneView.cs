@@ -309,51 +309,27 @@ public class UI_MainSceneView : MonoBehaviour
 
     private void DeleteModel(IDeviceNode _model)
     {
-        Transform removedTransform = null;
-        ContainerDataModel parentContainer = null;
-        switch (_model)
-        {
-            case ContainerDataModel container:
-                removedTransform = container.containerPosition;
-                break;
-            case PackDataModel pack:
-                removedTransform = packFactory.GetPackTransform(pack);
-                parentContainer = pack.parentContainer;
-                break;
-            case ModuleDataModel module:
-                removedTransform = module.modulePosition;
-                parentContainer = module.parentContainer;
-                break;
-            case CellDataModel cell:
-                removedTransform = cell.cellPosition;
-                break;
-        }
-
+        Transform removedTransform = packFactory.GetTransform(_model);
         if (removedTransform == null)
         {
             return;
         }
 
-        ObjectRemoving?.Invoke(removedTransform);
-
-        bool removed = false;
+        // 지우고 나면 모델에서 읽을 수 없으므로 지우기 전에 속한 Container를 기억해 둔다(Container와 Cell은 없다).
+        ContainerDataModel parentContainer = null;
         switch (_model)
         {
-            case ContainerDataModel container:
-                removed = packFactory.RemoveContainer(container);
-                break;
             case PackDataModel pack:
-                removed = packFactory.RemovePack(pack);
+                parentContainer = pack.parentContainer;
                 break;
             case ModuleDataModel module:
-                removed = packFactory.RemoveModule(module);
-                break;
-            case CellDataModel cell:
-                removed = packFactory.RemoveCell(cell);
+                parentContainer = module.parentContainer;
                 break;
         }
 
-        if (removed)
+        ObjectRemoving?.Invoke(removedTransform);
+
+        if (packFactory.Remove(_model))
         {
             RemoveTreeNode(_model);
 

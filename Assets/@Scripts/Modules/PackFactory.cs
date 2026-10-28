@@ -118,6 +118,42 @@ public class PackFactory
         return AfterRemove(remover.RemoveContainer(_container));
     }
 
+    /// <summary>_node(Container / Pack / Module / Cell)의 종류에 맞는 Remove를 부른다. 지원하지 않는 종류거나 지워지지 않았으면 false.</summary>
+    public bool Remove(IDeviceNode _node)
+    {
+        switch (_node)
+        {
+            case ContainerDataModel container:
+                return RemoveContainer(container);
+            case PackDataModel pack:
+                return RemovePack(pack);
+            case ModuleDataModel module:
+                return RemoveModule(module);
+            case CellDataModel cell:
+                return RemoveCell(cell);
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>_node(Container / Pack / Module / Cell)의 씬 Transform. 지원하지 않는 종류거나 없으면 null.</summary>
+    public Transform GetTransform(IDeviceNode _node)
+    {
+        switch (_node)
+        {
+            case ContainerDataModel container:
+                return container.containerPosition;
+            case PackDataModel pack:
+                return GetPackTransform(pack);
+            case ModuleDataModel module:
+                return module.modulePosition;
+            case CellDataModel cell:
+                return cell.cellPosition;
+            default:
+                return null;
+        }
+    }
+
     /// <summary>무언가 지워졌으면 "공간이 없다"는 이전 안내 문구는 더 이상 맞지 않으므로 비운다.</summary>
     private bool AfterRemove(bool _removed)
     {

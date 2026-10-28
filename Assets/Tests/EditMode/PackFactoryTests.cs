@@ -205,6 +205,23 @@ namespace Incheol.Tests
         }
 
         [Test]
+        public void GetTransform_ReturnsTheSceneTransformOfEachKind()
+        {
+            GameObject packPrefab = CreateBodyPrefab("PackPrefab", new Vector3(2, 1, 2));
+            GameObject modulePrefab = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
+            GameObject cellPrefab = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 0.5f, 0.5f));
+            PackDataModel pack = factory.CreatePack("1", packPrefab);
+            ModuleDataModel module = factory.CreateModule(pack, "1", modulePrefab);
+            CellDataModel cell = factory.CreateCell(module, "1", cellPrefab);
+
+            Assert.AreSame(pack.parentContainer.containerPosition, factory.GetTransform(pack.parentContainer));
+            Assert.AreSame(factory.GetPackTransform(pack), factory.GetTransform(pack));
+            Assert.AreSame(module.modulePosition, factory.GetTransform(module));
+            Assert.AreSame(cell.cellPosition, factory.GetTransform(cell));
+            Assert.IsNull(factory.GetTransform(null));
+        }
+
+        [Test]
         public void CreatePack_WithoutContainer_CreatesOneContainerPerPack()
         {
             GameObject packPrefab = CreateBodyPrefab("PackPrefab", new Vector3(2, 1, 2));

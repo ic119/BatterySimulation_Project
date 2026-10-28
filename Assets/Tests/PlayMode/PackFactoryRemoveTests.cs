@@ -34,6 +34,21 @@ namespace Incheol.Tests
             return module;
         }
 
+        #region Remove
+        [Test]
+        public void Remove_DispatchesByKind()
+        {
+            ModuleDataModel module = CreateModuleWithCells(null, "1", 2);
+            CellDataModel cell = module.cellsList[0];
+
+            Assert.IsTrue(factory.Remove(cell));
+            Assert.AreEqual(1, module.cellsList.Count);
+
+            Assert.IsTrue(factory.Remove(module));
+            Assert.IsFalse(factory.Remove(null));
+        }
+        #endregion
+
         #region RemoveCell
         [UnityTest]
         public IEnumerator RemoveCell_RemovesFromModuleAndDestroysObject()
