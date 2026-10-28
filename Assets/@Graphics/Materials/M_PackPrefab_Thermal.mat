@@ -50,6 +50,8 @@ Material:
     - _FlowSpeed: 2.5
     - _FlowTiling: 2.07
     - _HeatCount: 0
+    - _HeatNoiseScale: 2.5
+    - _HeatNoiseStrength: 0.35
     - _Metallic: 0
     - _NoiseScale: 8
     - _NoiseSpeed: 5.12

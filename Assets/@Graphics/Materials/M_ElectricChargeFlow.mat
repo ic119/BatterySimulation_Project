@@ -38,22 +38,22 @@ Material:
     - _ChargeEdgeIntensity: 2.54
     - _ChargeEdgePulseSpeed: 6
     - _ChargeEdgeWidth: 0.0226
-    - _ChargeProgress: 0
+    - _ChargeProgress: 0.696
     - _ChargedAlpha: 0.45
-    - _ChargedGlowIntensity: 0.7
+    - _ChargedGlowIntensity: 0.69
     - _Coords: 0
     - _Cull: 2
     - _DstBlend: 10
     - _FlowInUncharged: 0.015
-    - _FlowIntensity: 2.14
-    - _FlowPulseSharpness: 9.67
-    - _FlowSpeed: 2.5
-    - _FlowTiling: 8
+    - _FlowIntensity: 0.58
+    - _FlowPulseSharpness: 2.2
+    - _FlowSpeed: 0.2
+    - _FlowTiling: 0
     - _FresnelAlpha: 0.5
     - _Metallic: 0.3
-    - _NoiseScale: 12
-    - _NoiseSpeed: 2
-    - _NoiseStrength: 0.035
+    - _NoiseScale: 0
+    - _NoiseSpeed: 0
+    - _NoiseStrength: 0
     - _RimIntensity: 0
     - _RimPower: 3.68
     - _Smoothness: 0.7
