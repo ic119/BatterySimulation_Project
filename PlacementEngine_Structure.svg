@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 590" width="980" height="590" role="img" aria-labelledby="t d">
+  <title id="t">배치 엔진 구조 다이어그램</title>
+  <desc id="d">PackFactory가 PackGridPlacer, PackLayout, DeviceBody, PackRegistry, PackRemover를 조율하고, PackGridPlacer와 PackLayout이 RendererBounds와 PackRegistry를 사용하는 구조</desc>
+  <style>
+    :root { --bg:#ffffff; --ink:#1f2933; --sub:#52606d; --line:#7b8794;
+            --c1f:#e6f0ff; --c1s:#3b82f6; --c2f:#e5f7ec; --c2s:#2f9e5c; --c3f:#f1f3f5; --c3s:#7b8794; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#16191d; --ink:#e8ecef; --sub:#aab3bb; --line:#8a95a0;
+              --c1f:#1d2d4a; --c1s:#5b9bff; --c2f:#17382a; --c2s:#4cc58a; --c3f:#262b30; --c3s:#8a95a0; }
+    }
+    text { font-family: "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif; fill: var(--ink); }
+    .name { font-size: 16px; font-weight: 700; }
+    .role { font-size: 12px; fill: var(--sub); }
+    .head { font-size: 13px; font-weight: 700; fill: var(--sub); }
+    .box { stroke-width: 1.6; rx: 10; }
+    .gen  { fill: var(--c1f); stroke: var(--c1s); }
+    .calc { fill: var(--c2f); stroke: var(--c2s); }
+    .data { fill: var(--c3f); stroke: var(--c3s); }
+    .arrow { fill: none; stroke: var(--line); stroke-width: 1.6; marker-end: url(#ah); }
+    .dash { stroke-dasharray: 5 4; }
+    .lbl { font-size: 11px; fill: var(--sub); }
+  </style>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--line)"/>
+    </marker>
+  </defs>
+
+  <rect width="980" height="590" fill="var(--bg)"/>
+  <text x="40" y="34" class="head">호출하는 쪽</text>
+
+  <!-- callers -->
+  <rect class="box data" x="200" y="46" width="200" height="52"/>
+  <text x="300" y="68" text-anchor="middle" class="name">PackJsonBuilder</text>
+  <text x="300" y="86" text-anchor="middle" class="role">저장 파일 불러오기</text>
+
+  <rect class="box data" x="560" y="46" width="200" height="52"/>
+  <text x="660" y="68" text-anchor="middle" class="name">UI_MainSceneView</text>
+  <text x="660" y="86" text-anchor="middle" class="role">사용자 생성 요청</text>
+
+  <path class="arrow" d="M300,98 V126 H420 V158"/>
+  <path class="arrow" d="M660,98 V126 H540 V158"/>
+
+  <!-- factory -->
+  <rect class="box gen" x="360" y="160" width="240" height="70"/>
+  <text x="480" y="186" text-anchor="middle" class="name">PackFactory</text>
+  <text x="480" y="206" text-anchor="middle" class="role">CreatePack / CreateModule / CreateCell</text>
+  <text x="480" y="221" text-anchor="middle" class="role">생성 → 배치 → 등록 흐름 총괄</text>
+
+  <!-- factory fan-out -->
+  <path class="arrow" d="M480,230 V268 H130 V312"/>
+  <path class="arrow" d="M480,230 V268 H360 V312"/>
+  <path class="arrow" d="M480,230 V268 H590 V312"/>
+  <path class="arrow" d="M480,230 V268 H820 V312"/>
+  <path class="arrow" d="M600,195 H945 V482 H910"/>
+
+  <!-- row 2 -->
+  <rect class="box calc" x="40" y="314" width="180" height="66"/>
+  <text x="130" y="340" text-anchor="middle" class="name">PackGridPlacer</text>
+  <text x="130" y="358" text-anchor="middle" class="role">Pack 격자 칸 배치</text>
+  <text x="130" y="372" text-anchor="middle" class="role">+ 겹침 없는 자리 대체</text>
+
+  <rect class="box calc" x="270" y="314" width="180" height="66"/>
+  <text x="360" y="340" text-anchor="middle" class="name">PackLayout</text>
+  <text x="360" y="358" text-anchor="middle" class="role">읽기 전용 공간 계산</text>
+  <text x="360" y="372" text-anchor="middle" class="role">빈 칸 탐색 · 겹침 검사</text>
+
+  <rect class="box calc" x="500" y="314" width="180" height="66"/>
+  <text x="590" y="340" text-anchor="middle" class="name">DeviceBody</text>
+  <text x="590" y="358" text-anchor="middle" class="role">몸체 규칙 · 크기 변경</text>
+  <text x="590" y="372" text-anchor="middle" class="role">스케일 보정</text>
+
+  <rect class="box data" x="730" y="314" width="180" height="66"/>
+  <text x="820" y="340" text-anchor="middle" class="name">PackRegistry</text>
+  <text x="820" y="358" text-anchor="middle" class="role">생성 항목 등록부</text>
+  <text x="820" y="372" text-anchor="middle" class="role">Pack Transform 보관 · 조회</text>
+
+  <!-- placer relations -->
+  <path class="arrow" d="M220,347 H270"/>
+  <text x="245" y="340" text-anchor="middle" class="lbl">사용</text>
+  <path class="arrow dash" d="M130,380 V430 H780 V382"/>
+  <text x="620" y="424" text-anchor="middle" class="lbl">다른 Pack의 칸 · Transform 조회</text>
+
+  <!-- row 3 -->
+  <rect class="box data" x="270" y="456" width="180" height="52"/>
+  <text x="360" y="478" text-anchor="middle" class="name">RendererBounds</text>
+  <text x="360" y="496" text-anchor="middle" class="role">자식 Renderer 합친 Bounds</text>
+  <path class="arrow" d="M360,380 V456"/>
+
+  <rect class="box gen" x="730" y="456" width="180" height="52"/>
+  <text x="820" y="478" text-anchor="middle" class="name">PackRemover</text>
+  <text x="820" y="496" text-anchor="middle" class="role">모델 + 씬 오브젝트 삭제</text>
+  <path class="arrow" d="M820,456 V382"/>
+
+  <!-- legend -->
+  <g transform="translate(40,552)">
+    <rect class="box gen" x="0" y="0" width="18" height="18" rx="4"/>
+    <text x="26" y="14" class="role">생성 · 삭제 총괄</text>
+    <rect class="box calc" x="150" y="0" width="18" height="18" rx="4"/>
+    <text x="176" y="14" class="role">배치 · 계산</text>
+    <rect class="box data" x="270" y="0" width="18" height="18" rx="4"/>
+    <text x="296" y="14" class="role">데이터 · 조회 · 호출 주체</text>
+    <path d="M470,9 H510" stroke="var(--line)" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+    <text x="518" y="14" class="role">읽기 전용 참조</text>
+  </g>
+</svg>
