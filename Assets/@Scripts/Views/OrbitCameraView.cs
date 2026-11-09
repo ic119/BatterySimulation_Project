@@ -251,4 +251,12 @@ public class OrbitCameraView : MonoBehaviour
         return true;
     }
     #endregion
+
+    /// <summary>줌 범위(카메라와 대상 사이 거리의 최소/최대)를 설정한다. 현재 목표 거리도 새 범위 안으로 맞춘다.</summary>
+    public void SetZoomRange(float _minRadius, float _maxRadius)
+    {
+        minRadius = Mathf.Max(0.01f, Mathf.Min(_minRadius, _maxRadius));
+        maxRadius = Mathf.Max(minRadius, Mathf.Max(_minRadius, _maxRadius));
+        targetRadius = Mathf.Clamp(targetRadius, minRadius, maxRadius);
+    }
 }
