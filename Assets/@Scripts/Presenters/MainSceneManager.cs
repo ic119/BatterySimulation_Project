@@ -1,4 +1,4 @@
-﻿using Incheol.Models.Define;
+using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
@@ -149,6 +149,11 @@ namespace Incheol.Presenter
 
             mainSceneView = FindView<UI_MainSceneView>(_root);
             tabBarView = FindView<UI_TabBarView>(_root);
+            UI_GizmoIconView gizmoView = _root.GetComponentInChildren<UI_GizmoIconView>(true);
+            if (gizmoView != null)
+            {
+                gizmoView.Init(Camera.main);
+            }
 
             // 트리 뷰는 탭마다 하나씩 있어서 계층 순서에 기대지 않고 UI_MainSceneView가 가진 것을 쓴다.
             editorView = mainSceneView != null ? mainSceneView.EditorTreeView : null;
