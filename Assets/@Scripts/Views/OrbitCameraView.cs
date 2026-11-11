@@ -71,8 +71,6 @@ public class OrbitCameraView : MonoBehaviour
     #region LifeCycle
     private void Awake()
     {
-        orbitalFollow.OrbitStyle = CinemachineOrbitalFollow.OrbitStyles.Sphere;
-
         InputAxis pitch = orbitalFollow.VerticalAxis;
         pitch.Range = new Vector2(minPitch, maxPitch);
         pitch.Wrap = false;

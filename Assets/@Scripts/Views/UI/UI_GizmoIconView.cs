@@ -8,6 +8,8 @@ namespace Incheol.Presenter
     {
         [Header("Gizmo")]
         [SerializeField] private Camera viewCamera;
+        [SerializeField, Tooltip("켜면 카메라 회전에 맞춰 축이 함께 회전한다. 끄면 아래 Fixed Euler 각도로 고정된다.")] private bool rotateWithCamera = false;
+        [SerializeField, Tooltip("Rotate With Camera가 꺼졌을 때 쓰는 고정 시점(카메라 오일러 각도). X / Y / Z 축이 모두 보이도록 살짝 기울여 둔다.")] private Vector3 fixedEuler = new Vector3(20.0f, -45.0f, 0.0f);
         [SerializeField] private TMPro.TMP_Text[] axisLabels = new TMPro.TMP_Text[3];
         [SerializeField] private Color xColor = new Color(0.94f, 0.28f, 0.30f);
         [SerializeField] private Color yColor = new Color(0.25f, 0.55f, 1.0f);
@@ -21,6 +23,39 @@ namespace Incheol.Presenter
         private readonly int[] drawOrder = { 0, 1, 2 };
         private Quaternion lastRotation;
         private bool hasRotation;
+
+        /// <summary>true면 카메라와 함께 회전, false면 고정된 정방향(Fixed Euler)으로 축을 표시한다.</summary>
+        public bool RotateWithCamera
+        {
+            get => rotateWithCamera;
+            set
+            {
+                if (rotateWithCamera == value) return;
+                rotateWithCamera = value;
+                hasRotation = false;
+                Refresh();
+            }
+        }
+
+        public void ToggleRotateWithCamera()
+        {
+            RotateWithCamera = !rotateWithCamera;
+        }
+
+        // 현재 모드에 따라 축 계산에 쓸 시점 회전. 카메라 모드인데 카메라가 없으면 null 대신 identity.
+        private Quaternion GetViewRotation()
+        {
+            if (!rotateWithCamera) return Quaternion.Euler(fixedEuler);
+            return viewCamera != null ? viewCamera.transform.rotation : Quaternion.identity;
+        }
+
+#if UNITY_EDITOR
+        protected override void OnValidate()
+        {
+            base.OnValidate();
+            hasRotation = false;
+        }
+#endif
 
         public void Init(Camera _camera)
         {
@@ -59,7 +94,8 @@ namespace Incheol.Presenter
             // 씬 로드 순서 때문에 Start 시점에 카메라가 없었거나 파괴된 경우 다시 찾는다.
             if (viewCamera == null) MatchMainCamera();
 
-            if (viewCamera != null && (!hasRotation || Quaternion.Angle(lastRotation, viewCamera.transform.rotation) > 0.001f))
+            bool canRefresh = !rotateWithCamera || viewCamera != null;
+            if (canRefresh && (!hasRotation || Quaternion.Angle(lastRotation, GetViewRotation()) > 0.001f))
             {
                 Refresh();
             }
@@ -79,7 +115,7 @@ namespace Incheol.Presenter
 
         private void Refresh(bool _markDirty = true)
         {
-            lastRotation = viewCamera != null ? viewCamera.transform.rotation : Quaternion.identity;
+            lastRotation = GetViewRotation();
             hasRotation = true;
             Quaternion inverse = Quaternion.Inverse(lastRotation);
             directions[0] = inverse * Vector3.right;
