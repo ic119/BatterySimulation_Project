@@ -311,7 +311,13 @@ public static class PackLayout
     public static bool IsCellInsideModule(CellDataModel _cell, out Vector3 _overflow)
     {
         _overflow = Vector3.zero;
-        Renderer cellRenderer = _cell != null && _cell.cellPosition != null ? _cell.cellPosition.GetComponent<Renderer>() : null;
+        Renderer cellRenderer = null;
+        if (_cell != null && _cell.cellPosition != null)
+        {
+            // Cell 프리팹은 본인 또는 자식 Body에 몸체 Renderer를 둔다(Cell_PouchType은 자식 Body).
+            DeviceBody.TryGetRenderer(_cell.cellPosition, out cellRenderer);
+        }
+
         if (cellRenderer == null || !TryGetModuleInnerBounds(_cell.parentModule, out Bounds inner))
         {
             return true;

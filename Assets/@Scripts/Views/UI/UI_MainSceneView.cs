@@ -384,9 +384,9 @@ public class UI_MainSceneView : MonoBehaviour
             packPrefab => AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
                 AddressableAssetKey.ModulePrefab.ToString(),
                 modulePrefab => AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-                    AddressableAssetKey.CellPrefab.ToString(),
+                    AddressableAssetKey.Cell_PouchType.ToString(),
                     cellPrefab => BuildFromJson(data, packPrefab, modulePrefab, cellPrefab),
-                    () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("CellPrefab 로드 실패")),
+                    () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Cell_PouchType 로드 실패")),
                 () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("ModulePrefab 로드 실패")),
             () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("PackPrefab 로드 실패"));
     }
@@ -459,7 +459,7 @@ public class UI_MainSceneView : MonoBehaviour
         {
             case DeviceType.Pack: return AddressableAssetKey.PackPrefab;
             case DeviceType.Module: return AddressableAssetKey.ModulePrefab;
-            default: return AddressableAssetKey.CellPrefab;
+            default: return AddressableAssetKey.Cell_PouchType;
         }
     }
 

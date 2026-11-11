@@ -14,7 +14,8 @@
         UI_TreeNodeItem = 6,
         UI_JsonFileItem = 7,
         SimulationItem = 8,
-        ResultListItem = 9
+        ResultListItem = 9,
+        Cell_PouchType = 10
     }
 
     /// <summary>

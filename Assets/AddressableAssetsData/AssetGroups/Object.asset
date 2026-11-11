@@ -25,6 +25,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 61d5a5845f8739a46bb7541e0d26f13e
+    m_Address: Cell_PouchType
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: e3f196e9eb224ca4c84c5e9084c638fe
     m_Address: PackPrefab
     m_ReadOnly: 0
