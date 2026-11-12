@@ -1,6 +1,5 @@
-using Incheol.Utils;
+﻿using Incheol.Utils;
 using System;
-using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace Incheol.Modules
@@ -35,6 +34,10 @@ namespace Incheol.Modules
         public event Action<string> OnEssSelectedReceived;
         public event Action<string> OnEssListUpdateReceived;
         public event Action<string> OnEssEventListReceived;
+
+        public event Action<string> OnBatterySelectedReceived; // 장비 선택 시 해당 장비 정보 수신
+        public event Action<string> OnBatteryUpdatedReceived;
+        public event Action<string> OnBatteryListLoadedReceived;
         #endregion
 
         #region LifeCycle
