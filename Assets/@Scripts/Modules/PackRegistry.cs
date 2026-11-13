@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -32,7 +32,7 @@ public class PackRegistry
     public void AddPack(PackDataModel _pack, Transform _packTransform)
     {
         packList.Add(_pack);
-        packTransformDictionary[_pack] = _packTransform;
+        packTransformDictionary[_pack] = _packTransform; 
     }
 
     public void AddModule(ModuleDataModel _module)
