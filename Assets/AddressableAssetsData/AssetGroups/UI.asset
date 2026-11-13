@@ -20,13 +20,13 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 32dc7a335e5d2b44c85c46d927042a5f
-    m_Address: UI_MainScene
+  - m_GUID: 48f978cedab93104bb61e7c25909b299
+    m_Address: UI_LoadingBarView
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 48f978cedab93104bb61e7c25909b299
-    m_Address: UI_LoadingBarView
+  - m_GUID: 4ecd637ea71a8634ca47318137f61f4d
+    m_Address: UI_MainScene
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
