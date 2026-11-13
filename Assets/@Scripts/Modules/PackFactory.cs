@@ -15,6 +15,9 @@ public class PackFactory
     private const float ModuleSpacing = 3.0f;
     private const float CellSpacing = 1.0f;
 
+    // PackRoot의 부모가 될 MainScene 오브젝트 이름.
+    private const string GeneratePosName = "GeneratePos";
+
     // 만든 항목의 목록과 조회는 registry가, 지우기는 remover가 맡는다. 이 클래스는 만들고 놓는 일에 집중한다.
     private readonly PackRegistry registry = new PackRegistry();
     private readonly PackRemover remover;
@@ -67,6 +70,12 @@ public class PackFactory
     /// <summary>가장 최근에 생성된 Pack. 없으면 null.</summary>
     public PackDataModel LastPack => registry.LastPack;
 
+    /// <summary>
+    /// PackRoot가 매달릴 부모(MainScene의 GeneratePos). 지정하지 않으면 PackRoot를 만들 때 이름이 GeneratePosName인 씬 오브젝트를 찾고,
+    /// 그것도 없으면 PackRoot를 씬 최상위에 둔다. 이미 만들어진 PackRoot는 옮기지 않으므로 첫 생성 전에 지정한다.
+    /// </summary>
+    public Transform GenerateParent { get; set; }
+
     /// <summary>모든 Pack/Module/Cell GameObject가 매달리는 루트. 처음 필요할 때 만든다.</summary>
     public Transform Root
     {
@@ -75,11 +84,27 @@ public class PackFactory
             if (root == null)
             {
                 root = new GameObject("PackRoot").transform;
+
+                Transform parent = GenerateParent;
+                if (parent == null)
+                {
+                    GameObject found = GameObject.Find(GeneratePosName);
+                    parent = found != null ? found.transform : null;
+                }
+
+                if (parent != null)
+                {
+                    // GeneratePos의 위치/회전/크기를 그대로 따라가도록 로컬 값을 초기화한다.
+                    root.SetParent(parent, false);
+                }
             }
 
             return root;
         }
     }
+
+    // 새로 만드는 Container / Pack / 단독 Module을 놓는 기준 위치. GeneratePos가 있으면 그 위치, 없으면 (0,0,0).
+    private Vector3 Origin => Root.position;
 
     /// <summary>만들어 둔 Pack / Module / Cell을 씬 오브젝트까지 모두 지우고 처음 상태로 되돌린다(저장된 파일을 불러오기 전에 쓴다).</summary>
     public void Clear()
@@ -170,7 +195,7 @@ public class PackFactory
     {
         GameObject containerObject = new GameObject($"Container_{_containerName}");
         containerObject.transform.SetParent(Root, false);
-        containerObject.transform.position = Vector3.zero;
+        containerObject.transform.position = Origin;
 
         ContainerDataModel container = new ContainerDataModel
         {
@@ -250,7 +275,7 @@ public class PackFactory
         // PackDataModel에는 Transform 필드가 없으므로 Module이 매달릴 부모 GameObject를 따로 들고 있는다.
         GameObject packObject = Spawn(_prefab, $"Pack_{_packName}");
         DeviceBody.AttachKeepingOwnScale(packObject.transform, container.containerPosition);
-        packObject.transform.position = Vector3.zero;
+        packObject.transform.position = Origin;
         DeviceBody.Resize(packObject.transform, _size);
 
         bool placed = _columns > 0 && _rows > 0 && placer.PlaceInSlot(pack, packObject.transform, container, _columns, _rows, _slotColumn, _slotRow, packPadding);
@@ -334,7 +359,7 @@ public class PackFactory
         }
         else
         {
-            moduleObject.transform.position = Vector3.zero;
+            moduleObject.transform.position = Origin;
             PackGridPlacer.PlaceInContainer(moduleObject.transform, standaloneContainer.containerPosition, modulePadding);
         }
 
