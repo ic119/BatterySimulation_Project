@@ -9,17 +9,16 @@
         UI_MainScene = 1,
         UI_LoadingBarView = 2,
         PackPrefab = 3,
-        ModulePrefab = 4,
-        CellPrefab = 5,
-        UI_TreeNodeItem = 6,
-        UI_JsonFileItem = 7,
-        SimulationItem = 8,
-        ResultListItem = 9,
-        Cell_PouchType = 10,
-        ModuleAssemblyPrefab = 11,
-        ParallelAssemblyPrefab = 12
+        ModuleAssemblyPrefab = 4,
+        ModulePrefab = 5,
+        ParallelAssemblyPrefab = 6,
+        Cell_PouchType = 7,
+        UI_TreeNodeItem = 8,
+        UI_JsonFileItem = 9,
+        SimulationItem = 10,
+        ResultListItem = 11,
     }
-
+    
     /// <summary>
     /// 시뮬레이션 타입 정의
     /// </summary>

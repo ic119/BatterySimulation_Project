@@ -1,5 +1,4 @@
-using Incheol.Models.Define;
-using DeviceType = Incheol.Models.Define.DeviceType;
+﻿using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
 using System.Collections.Generic;
