@@ -29,7 +29,7 @@ namespace Incheol.Modules
         // 공유 머티리얼 에셋은 건드리지 않고 Body마다 값을 줄 수 있도록, 진행도는 머티리얼 대신 PropertyBlock으로 넣는다.
         private readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
 
-        // Charge / Discharge 연출 중 Container 안의 Module / Cell을 무작위로 빨갛게 점멸시킨다.
+        // Charge / Discharge 연출 중 Pack 안의 Module / Cell을 무작위로 빨갛게 점멸시킨다.
         private readonly SimulationBlinkEffect blinkEffect = new SimulationBlinkEffect();
 
         // 이번 실행에서 끝난 작업 수. 결과의 실행 순서 번호로 쓴다.
@@ -38,10 +38,10 @@ namespace Incheol.Modules
         /// <summary>작업 1개가 끝났을 때(연출 정리 직전) 그 작업의 결과와 함께 호출된다.</summary>
         public event Action<SimulationStepResult> StepResultReady;
 
-        /// <summary>연출을 입힐 대상(선택된 Container). SetContainer로 지정한다.</summary>
-        public ContainerDataModel Container { get; private set; }
+        /// <summary>연출을 입힐 대상(선택된 Pack). SetPack으로 지정한다.</summary>
+        public PackDataModel Pack { get; private set; }
 
-        /// <summary>Container에 속한 Pack들의 몸체(Body) Renderer. SetContainer가 채우고 Clear가 비운다.</summary>
+        /// <summary>Pack의 몸체(Body) Renderer. SetPack이 채우고 Clear가 비운다.</summary>
         public IReadOnlyList<Renderer> PackBodies => packBodies;
 
         public SimulationEffectPlayer(SimulationRunner _runner, Material _packPrefabOutLine, Material _electricChargeFlowMaterial, Material _thermalDetectionMaterial)
@@ -57,38 +57,30 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// _container의 Pack마다 몸체 Renderer를 찾아 PackBodies에 담는다(이전 대상은 되돌리고 비운다). 실행을 시작하기 전에 호출한다.
-        /// Pack의 씬 Transform은 _packFactory가 들고 있다. 씬 오브젝트가 없거나 몸체 Renderer가 없는 Pack은 건너뛴다.
+        /// _pack의 몸체 Renderer를 찾아 PackBodies에 담는다(이전 대상은 되돌리고 비운다). 실행을 시작하기 전에 호출한다.
+        /// 씬 오브젝트가 없거나 몸체 Renderer가 없는 Pack은 대상에서 뺀다.
         /// </summary>
-        public void SetContainer(ContainerDataModel _container, PackFactory _packFactory)
+        public void SetPack(PackDataModel _pack)
         {
             Clear();
-            Container = _container;
-            blinkEffect.Collect(_container);
+            Pack = _pack;
+            blinkEffect.Collect(_pack);
 
-            if (_container == null || _container.packsList == null || _packFactory == null)
+            Transform packTransform = _pack != null ? _pack.packPosition : null;
+            if (packTransform != null && DeviceBody.TryGetRenderer(packTransform, out Renderer bodyRenderer))
             {
-                return;
-            }
+                packBodies.Add(bodyRenderer);
 
-            foreach (PackDataModel pack in _container.packsList)
-            {
-                Transform packTransform = _packFactory.GetPackTransform(pack);
-                if (packTransform != null && DeviceBody.TryGetRenderer(packTransform, out Renderer bodyRenderer))
+                if (packTransform.TryGetComponent(out PackThermalView thermalView))
                 {
-                    packBodies.Add(bodyRenderer);
-
-                    if (packTransform.TryGetComponent(out PackThermalView thermalView))
-                    {
-                        thermalEffect.AddTarget(thermalView, pack);
-                    }
+                    thermalEffect.AddTarget(thermalView, _pack);
                 }
             }
         }
 
         /// <summary>
         /// 연출 중인 Body(electricChargeFlowMaterial)를 packPrefabOutLine으로 바꾸고 대상을 비운다. packPrefabOutLine이 없으면 연출 전 머티리얼로 되돌린다.
-        /// 모든 작업이 끝났을 때(Finished), 다른 Container가 선택되었을 때, 다음 실행을 시작할 때(SetContainer),
+        /// 모든 작업이 끝났을 때(Finished), 다른 Pack이 선택되었을 때, 다음 실행을 시작할 때(SetPack),
         /// Runner가 중간에 중단되었을 때(StepEnded가 오지 않으므로) 호출한다.
         /// </summary>
         public void Clear()
@@ -97,7 +89,7 @@ namespace Incheol.Modules
             thermalEffect.Clear();
             RestoreMaterials();
             completedStepCount = 0;
-            Container = null;
+            Pack = null;
             packBodies.Clear();
         }
 
@@ -165,11 +157,11 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// 끝난 작업의 결과(Container의 Pack / Module / Cell 전체 수량 + 연출이 진행된 Module / Cell 수량)를 만들어 StepResultReady로 알린다.
+        /// 끝난 작업의 결과(Pack 안의 Module / Cell 전체 수량 + 연출이 진행된 Module / Cell 수량)를 만들어 StepResultReady로 알린다.
         /// </summary>
         private void RaiseStepResult(SimulationStepModel _step)
         {
-            if (Container == null || Container.packsList == null)
+            if (Pack == null)
             {
                 return;
             }
@@ -179,12 +171,12 @@ namespace Incheol.Modules
                 stepNumber = ++completedStepCount,
                 simulationType = _step.simulationType,
                 duringTime = _step.duringTime,
-                packCount = Container.packsList.Count,
+                packCount = 1,
                 abnormalModuleCount = blinkEffect.AbnormalModuleCount,
                 abnormalCellCount = blinkEffect.AbnormalCellCount,
             };
 
-            DeviceHierarchy.CountModulesAndCells(Container, out result.moduleCount, out result.cellCount);
+            DeviceHierarchy.CountModulesAndCells(Pack, out result.moduleCount, out result.cellCount);
 
             if (_step.simulationType == SimulationType.ThermalDetection)
             {

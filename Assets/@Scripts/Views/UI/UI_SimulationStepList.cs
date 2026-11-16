@@ -7,7 +7,7 @@ using AddressableAssetKey = Incheol.Models.Define.AddressableAssetKey;
 using DeviceType = Incheol.Models.Define.DeviceType;
 
 /// <summary>
-/// 선택된 Container의 SimulationDataModel.stepList를 contentRect 아래에 SimulationItem 줄로 보여주고, 줄의 삭제 버튼을 처리한다.
+/// 선택된 Pack의 SimulationDataModel.stepList를 contentRect 아래에 SimulationItem 줄로 보여주고, 줄의 삭제 버튼을 처리한다.
 /// 줄 프리팹은 Addressable(SimulationItem)로 불러온다. 입력 / 저장 / 실행은 알지 못한다(UI_SimulationControl이 맡는다).
 /// </summary>
 public class UI_SimulationStepList
@@ -44,7 +44,7 @@ public class UI_SimulationStepList
         int version = ++itemVersion;
         contentRect.DestroyChildren();
 
-        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container)
+        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Pack)
         {
             return;
         }

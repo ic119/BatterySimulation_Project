@@ -50,9 +50,9 @@ public class UI_SimulationControl : MonoBehaviour
     private PackFactory packFactory;
     private UI_SimulationResultView resultView;
 
-    // 결과 목록이 속한 Container. 다른 항목이 선택되면 결과 목록을 비운다.
-    // ContainerDataModel은 Module <-> Cell이 서로를 가리키는 순환 구조라, 스크립트 리로드 때 직렬화되지 않게 제외한다.
-    [System.NonSerialized] private ContainerDataModel resultOwner;
+    // 결과 목록이 속한 Pack. 다른 항목이 선택되면 결과 목록을 비운다.
+    // PackDataModel은 자식과 부모가 서로를 가리키는 순환 구조라, 스크립트 리로드 때 직렬화되지 않게 제외한다.
+    [System.NonSerialized] private PackDataModel resultOwner;
 
     private UI_SimulationStepList stepList;
     private SimulationRunner runner;
@@ -163,15 +163,15 @@ public class UI_SimulationControl : MonoBehaviour
     /// </summary>
     private void Refresh()
     {
-        // 연출 중인 Container가 아닌 다른 항목이 선택되면, 진행 중이던 시뮬레이션을 멈추고 Pack의 머티리얼을 되돌린다.
-        if (effectPlayer.Container != null && !ReferenceEquals(selection != null ? selection.Model : null, effectPlayer.Container))
+        // 연출 중인 Pack이 아닌 다른 항목이 선택되면, 진행 중이던 시뮬레이션을 멈추고 Pack의 머티리얼을 되돌린다.
+        if (effectPlayer.Pack != null && !ReferenceEquals(selection != null ? selection.Model : null, effectPlayer.Pack))
         {
             runner.Stop();
             effectPlayer.Clear();
             ClearCurrentText();
         }
 
-        // 결과 목록은 시뮬레이션을 돌린 Container의 것이므로, 다른 항목이 선택되면 비운다.
+        // 결과 목록은 시뮬레이션을 돌린 Pack의 것이므로, 다른 항목이 선택되면 비운다.
         if (resultOwner != null && !ReferenceEquals(selection != null ? selection.Model : null, resultOwner))
         {
             ClearResults();
@@ -184,7 +184,7 @@ public class UI_SimulationControl : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택된 항목이 있고 Container일 때만 simulationRoot를 켠다. 그 외에는 끈다.
+    /// 선택된 항목이 있고 Pack일 때만 simulationRoot를 켠다. 그 외에는 끈다.
     /// </summary>
     private void RefreshRoot()
     {
@@ -193,8 +193,8 @@ public class UI_SimulationControl : MonoBehaviour
             return;
         }
 
-        bool isContainerSelected = selection != null && selection.Model != null && selection.Kind == DeviceType.Container;
-        simulationRoot.SetActive(isContainerSelected);
+        bool isPackSelected = selection != null && selection.Model != null && selection.Kind == DeviceType.Pack;
+        simulationRoot.SetActive(isPackSelected);
     }
 
     /// <summary>
@@ -309,7 +309,7 @@ public class UI_SimulationControl : MonoBehaviour
     }
 
     /// <summary>
-    /// 선택된 Container의 SimulationDataModel에 stepList가 1개 이상이고 시뮬레이션이 실행 중이 아닐 때만 startButton을 활성화하고,
+    /// 선택된 Pack의 SimulationDataModel에 stepList가 1개 이상이고 시뮬레이션이 실행 중이 아닐 때만 startButton을 활성화하고,
     /// 그 외(선택 없음, 데이터 없음, 0개, 실행 중)에는 비활성화한다.
     /// </summary>
     private void RefreshStartButton()
@@ -320,7 +320,7 @@ public class UI_SimulationControl : MonoBehaviour
         }
 
         bool hasStep = false;
-        if (selection != null && selection.HasSelection && selection.Kind == DeviceType.Container
+        if (selection != null && selection.HasSelection && selection.Kind == DeviceType.Pack
             && selection.Target.TryGetComponent(out SimulationData holder))
         {
             hasStep = holder.Model.StepCount != 0;
@@ -402,21 +402,21 @@ public class UI_SimulationControl : MonoBehaviour
     }
 
     /// <summary>
-    /// startButton 클릭 시: 선택된 Container의 작업을 SimulationRunner로 실행한다. 실행 중에는 다시 시작하지 않는다.
+    /// startButton 클릭 시: 선택된 Pack의 작업을 SimulationRunner로 실행한다. 실행 중에는 다시 시작하지 않는다.
     /// </summary>
     private void StartSimulation()
     {
         // 첫 작업의 StepBegan이 Start() 안에서 바로 호출되므로, 연출 대상은 Start() 전에 지정해야 한다. 실행 중에는 바꾸지 않는다.
-        if (selection != null && !runner.IsRunning && selection.Model is ContainerDataModel container)
+        if (selection != null && !runner.IsRunning && selection.Model is PackDataModel container)
         {
-            effectPlayer.SetContainer(container, packFactory);
+            effectPlayer.SetPack(container);
 
             // 새 실행의 결과가 이전 결과 아래에 쌓이지 않도록 목록을 비우고 결과의 주인을 정한다.
             ClearResults();
             resultOwner = container;
         }
 
-        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Container
+        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Pack
             || !selection.Target.TryGetComponent(out SimulationData holder) || !runner.Start(holder.Model))
         {
             DebugLogManager.GenerateWarningMessage<UI_SimulationControl>("실행할 시뮬레이션 작업이 없거나 이미 실행 중입니다.");

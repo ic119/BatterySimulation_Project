@@ -62,24 +62,21 @@ namespace Incheol.Modules
         public int AbnormalCellCount { get; private set; }
 
         /// <summary>
-        /// _container의 Pack마다 modulesList의 Module과 각 Module의 cellsList의 Cell에서 몸체 Renderer를 모아 둔다(이전 대상은 비운다).
+        /// _pack 아래의 모든 Module과 Cell에서 몸체 Renderer를 모아 둔다(이전 대상은 비운다).
         /// 씬 오브젝트가 없거나 Renderer가 없는 Module / Cell은 건너뛴다.
         /// </summary>
-        public void Collect(ContainerDataModel _container)
+        public void Collect(PackDataModel _pack)
         {
             Clear();
 
-            foreach (PackDataModel pack in DeviceHierarchy.GetPacks(_container))
+            foreach (IDeviceNode module in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Module))
             {
-                foreach (ModuleDataModel module in DeviceHierarchy.GetModules(pack))
-                {
-                    AddRenderer(moduleRenderers, module.modulePosition);
+                AddRenderer(moduleRenderers, module.Position);
+            }
 
-                    foreach (CellDataModel cell in DeviceHierarchy.GetCells(module))
-                    {
-                        AddRenderer(cellRenderers, cell.cellPosition);
-                    }
-                }
+            foreach (IDeviceNode cell in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Cell))
+            {
+                AddRenderer(cellRenderers, cell.Position);
             }
         }
 
