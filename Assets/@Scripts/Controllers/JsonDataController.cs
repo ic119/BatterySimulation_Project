@@ -1,4 +1,6 @@
-﻿using Incheol.Modules;
+﻿using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
+using Incheol.Modules;
 using Incheol.Utils;
 using System;
 using System.Collections.Generic;
@@ -8,23 +10,12 @@ using UnityEngine;
 /// <summary>
 /// 저장 데이터(SaveJson) 형식과 Json 파일 입출력. 멤버가 모두 static이라 씬에 두거나 컴포넌트로 붙일 필요가 없다.
 /// (static class는 DebugLogManager.GenerateLogMessage&lt;T&gt;의 T로 쓸 수 없어 일반 class로 둔다.)
+/// 저장 구조는 Pack > ModuleAssembly > Module > ParallelAssembly > Cell 이다.
 /// </summary>
 public class JsonDataController
 {
     #region Json Data
-    [Serializable]
-    public class CellJson
-    {
-        public string name;
-        public Vector3 position;
-        public Vector3 size;
-
-        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
-        public bool hasBodyCenter;
-        public Vector3 bodyCenter;
-    }
-
-    /// <summary>항목(Pack / Module)에 적용한 자식 간격(축 x, y, z 순서). applied가 true인 축만 유효하다. 없던 예전 파일은 모두 false.</summary>
+    /// <summary>항목에 적용한 자식 간격(축 x, y, z 순서). applied가 true인 축만 유효하다.</summary>
     [Serializable]
     public class SpacingJson
     {
@@ -32,88 +23,65 @@ public class JsonDataController
         public bool[] applied = new bool[3];
     }
 
+    /// <summary>모든 종류가 공통으로 저장하는 값. 종류는 어느 목록에 담겼는지로 정해진다(JsonUtility는 다형성을 지원하지 않는다).</summary>
     [Serializable]
-    public class ModuleJson
+    public class NodeJson
     {
         public string name;
         public Vector3 position;
         public Vector3 size;
 
-        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
+        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다.</summary>
         public bool hasBodyCenter;
         public Vector3 bodyCenter;
 
-        /// <summary>이 Module 안의 Cell 사이 간격.</summary>
-        public SpacingJson cellSpacing = new SpacingJson();
+        /// <summary>이 항목 안의 자식 사이 간격.</summary>
+        public SpacingJson childSpacing = new SpacingJson();
+    }
 
+    [Serializable]
+    public class CellJson : NodeJson
+    {
+    }
+
+    [Serializable]
+    public class ParallelAssemblyJson : NodeJson
+    {
         public List<CellJson> cells = new List<CellJson>();
     }
 
     [Serializable]
-    public class PackJson
+    public class ModuleJson : NodeJson
     {
-        public string name;
-        public Vector3 position;
-        public Vector3 size;
+        public List<ParallelAssemblyJson> parallelAssemblies = new List<ParallelAssemblyJson>();
+    }
 
-        /// <summary>몸체의 월드 중심. 불러올 때 이 자리에 그대로 놓는다. hasBodyCenter가 false면 이 값이 없던 예전 파일이다.</summary>
-        public bool hasBodyCenter;
-        public Vector3 bodyCenter;
-
-        /// <summary>Container의 Pack 격자에서 놓인 열(x 방향)과 줄(z 방향). hasSlot이 false면 칸 정보가 없던 예전 파일이다.</summary>
-        public bool hasSlot;
-        public int slotColumn;
-        public int slotRow;
-
-        /// <summary>이 Pack 안의 Module 사이 간격.</summary>
-        public SpacingJson moduleSpacing = new SpacingJson();
-
+    [Serializable]
+    public class ModuleAssemblyJson : NodeJson
+    {
         public List<ModuleJson> modules = new List<ModuleJson>();
     }
 
     [Serializable]
-    public class ContainerJson
+    public class PackJson : NodeJson
     {
-        public string name;
-
-        /// <summary>Pack 생성 격자(UI_CreateDeviceCount의 x 개수 / z 줄 수). 0이면 이 값이 없던 예전 파일이다.</summary>
-        public int packColumns;
-        public int packRows;
-
-        /// <summary>Container에 적용한 Pack 사이 간격(축 x, y, z 순서). spacingApplied가 true인 축만 유효하다.</summary>
-        public float[] spacing = new float[3];
-        public bool[] spacingApplied = new bool[3];
-
-        public List<PackJson> packs = new List<PackJson>();
-
-        /// <summary>어느 Pack에도 속하지 않고 이 Container에 단독으로 만든 Module.</summary>
-        public List<ModuleJson> standaloneModules = new List<ModuleJson>();
+        public List<ModuleAssemblyJson> moduleAssemblies = new List<ModuleAssemblyJson>();
     }
 
     [Serializable]
     public class SaveJson
     {
-        /// <summary>
-        /// 저장 형식의 버전. 이 값이 없던 예전 파일은 0으로 읽힌다. 새로 저장할 때는 항상 CurrentVersion을 쓴다.
-        /// 불러올 때 JsonDataMigration이 현재 버전의 구조로 바꾸고, CurrentVersion보다 높은 파일(더 새로운 프로그램이 저장한 것)은 읽지 않는다.
-        /// </summary>
+        /// <summary>저장 형식의 버전. 이 값이 CurrentVersion과 다른 파일은 읽지 않는다.</summary>
         public int version;
 
-        public List<ContainerJson> containers = new List<ContainerJson>();
-
-        /// <summary>Container가 없던 예전(버전 0) 파일의 Pack. 새로 저장할 때는 쓰지 않고, 불러올 때 JsonDataMigration이 Pack마다 새 Container에 옮겨 담고 비운다.</summary>
         public List<PackJson> packs = new List<PackJson>();
-
-        /// <summary>Container가 없던 예전(버전 0) 파일의 단독 Module. 불러올 때 JsonDataMigration이 새 Container에 옮겨 담고 비운다.</summary>
-        public List<ModuleJson> standaloneModules = new List<ModuleJson>();
     }
 
     /// <summary>
     /// 저장 형식의 현재 버전.
-    /// 0: 버전 필드가 없던 파일(Container가 없던 가장 오래된 형식부터 Container가 있던 중간 형식까지. 몸체 중심, 칸, 격자는 있는 파일도 있고 없는 파일도 있다).
-    /// 1: 항상 containers 아래에 담긴다. 형식을 바꿀 때는 이 값을 올리고 JsonDataMigration에 이전 버전에서 올리는 단계를 추가한다.
+    /// 2: Pack > ModuleAssembly > Module > ParallelAssembly > Cell. 이전 형식(Container, Pack > Module > Cell)은 호환하지 않는다.
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     #endregion
 
     #region Method
@@ -160,8 +128,8 @@ public class JsonDataController
     }
 
     /// <summary>
-    /// _path의 Json 파일을 읽어 저장 데이터로 돌려준다. 예전 버전 파일은 현재 버전의 구조로 바꿔서 돌려준다.
-    /// 파일이 없거나 형식이 맞지 않거나, 이 프로그램보다 새로운 버전으로 저장된 파일이면 null.
+    /// _path의 Json 파일을 읽어 저장 데이터로 돌려준다.
+    /// 파일이 없거나 형식이 맞지 않거나, 현재 저장 형식(CurrentVersion)이 아닌 파일이면 null.
     /// </summary>
     public static SaveJson Load(string _path)
     {
@@ -174,9 +142,9 @@ public class JsonDataController
                 return null;
             }
 
-            if (!JsonDataMigration.TryMigrate(data))
+            if (data.version != CurrentVersion)
             {
-                DebugLogManager.GenerateErrorMessage<JsonDataController>($"Json을 읽을 수 없는 버전입니다 : {_path}");
+                DebugLogManager.GenerateErrorMessage<JsonDataController>($"Json을 읽을 수 없는 버전입니다 : {_path} (파일 {data.version}, 현재 {CurrentVersion})");
                 return null;
             }
 
@@ -237,15 +205,15 @@ public class JsonDataController
     }
 
     /// <summary>
-    /// _factory가 가진 Pack / Module / Cell(Pack에 속한 것과 단독 Module 모두)의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss_fff다.
+    /// _factory가 가진 모든 장치의 현재 상태를 Json 파일로 저장한다. 파일 이름은 저장하는 시점의 yyyyMMdd_HHmmss_fff다.
     /// 저장할 항목이 하나도 없거나 쓰기에 실패하면 false.
     /// </summary>
-    public static bool Save(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
+    public static bool Save(PackFactory _factory)
     {
-        SaveJson data = Build(_factory, _gridProvider);
-        if (data.containers.Count == 0)
+        SaveJson data = Build(_factory);
+        if (data.packs.Count == 0)
         {
-            DebugLogManager.GenerateErrorMessage<JsonDataController>("저장할 Pack / Module이 없습니다.");
+            DebugLogManager.GenerateErrorMessage<JsonDataController>("저장할 Pack이 없습니다.");
             return false;
         }
 
@@ -264,8 +232,7 @@ public class JsonDataController
         return true;
     }
 
-    /// <param name="_gridProvider">Container의 Pack 생성 격자(x 개수, z 줄 수). 없으면 격자를 저장하지 않는다.</param>
-    public static SaveJson Build(PackFactory _factory, Func<ContainerDataModel, Vector2Int> _gridProvider = null)
+    public static SaveJson Build(PackFactory _factory)
     {
         SaveJson data = new SaveJson { version = CurrentVersion };
         if (_factory == null)
@@ -273,73 +240,64 @@ public class JsonDataController
             return data;
         }
 
-        IReadOnlyList<ContainerDataModel> containerList = _factory.Containers;
-        for (int c = 0; c < containerList.Count; c++)
+        IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.Pack);
+        for (int i = 0; i < packList.Count; i++)
         {
-            ContainerDataModel container = containerList[c];
-            ContainerJson containerJson = new ContainerJson { name = container.containerName };
-
-            if (_gridProvider != null)
+            PackJson packJson = new PackJson();
+            Fill(packJson, packList[i]);
+            foreach (IDeviceNode moduleAssembly in packList[i].Children)
             {
-                Vector2Int grid = _gridProvider(container);
-                containerJson.packColumns = grid.x;
-                containerJson.packRows = grid.y;
-            }
-
-            if (container.containerPosition != null && container.containerPosition.TryGetComponent(out SubDeviceSpacingData spacingData))
-            {
-                for (int axis = 0; axis < 3; axis++)
+                ModuleAssemblyJson moduleAssemblyJson = new ModuleAssemblyJson();
+                Fill(moduleAssemblyJson, moduleAssembly);
+                foreach (IDeviceNode module in moduleAssembly.Children)
                 {
-                    containerJson.spacingApplied[axis] = spacingData.TryGet(axis, out containerJson.spacing[axis]);
-                }
-            }
-
-            for (int i = 0; i < container.packsList.Count; i++)
-            {
-                PackDataModel pack = container.packsList[i];
-                PackJson packJson = new PackJson
-                {
-                    name = pack.packName,
-                    hasSlot = pack.slotColumn >= 0 && pack.slotRow >= 0,
-                    slotColumn = pack.slotColumn,
-                    slotRow = pack.slotRow,
-                };
-
-                // PackDataModel에는 Transform이 없으므로 팩토리가 따로 들고 있는 Pack 오브젝트를 꺼낸다.
-                Transform packTransform = _factory.GetPackTransform(pack);
-                if (packTransform != null)
-                {
-                    packJson.position = packTransform.position;
-                    Bounds packBounds = GetBodyBounds(packTransform);
-                    packJson.size = packBounds.size;
-                    packJson.hasBodyCenter = true;
-                    packJson.bodyCenter = packBounds.center;
-                    ReadSpacing(packTransform, packJson.moduleSpacing);
-                }
-
-                if (pack.modulesList != null)
-                {
-                    for (int j = 0; j < pack.modulesList.Count; j++)
+                    ModuleJson moduleJson = new ModuleJson();
+                    Fill(moduleJson, module);
+                    foreach (IDeviceNode parallelAssembly in module.Children)
                     {
-                        packJson.modules.Add(BuildModule(pack.modulesList[j]));
+                        ParallelAssemblyJson parallelAssemblyJson = new ParallelAssemblyJson();
+                        Fill(parallelAssemblyJson, parallelAssembly);
+                        foreach (IDeviceNode cell in parallelAssembly.Children)
+                        {
+                            CellJson cellJson = new CellJson();
+                            Fill(cellJson, cell);
+                            parallelAssemblyJson.cells.Add(cellJson);
+                        }
+
+                        moduleJson.parallelAssemblies.Add(parallelAssemblyJson);
                     }
+
+                    moduleAssemblyJson.modules.Add(moduleJson);
                 }
 
-                containerJson.packs.Add(packJson);
+                packJson.moduleAssemblies.Add(moduleAssemblyJson);
             }
 
-            for (int i = 0; i < container.modulesList.Count; i++)
-            {
-                containerJson.standaloneModules.Add(BuildModule(container.modulesList[i]));
-            }
-
-            data.containers.Add(containerJson);
+            data.packs.Add(packJson);
         }
 
         return data;
     }
 
-    /// <summary>_target(Pack / Module)에 기억된 자식 간격을 _spacing에 옮겨 담는다. 기억된 간격이 없으면 그대로 둔다.</summary>
+    /// <summary>_node의 이름, 위치, 몸체 크기와 중심, 자식 간격을 _json에 옮겨 담는다.</summary>
+    private static void Fill(NodeJson _json, IDeviceNode _node)
+    {
+        _json.name = _node.Name;
+        Transform target = _node.Position;
+        if (target == null)
+        {
+            return;
+        }
+
+        _json.position = target.position;
+        Bounds bounds = GetBodyBounds(target);
+        _json.size = bounds.size;
+        _json.hasBodyCenter = true;
+        _json.bodyCenter = bounds.center;
+        ReadSpacing(target, _json.childSpacing);
+    }
+
+    /// <summary>_target에 기억된 자식 간격을 _spacing에 옮겨 담는다. 기억된 간격이 없으면 그대로 둔다.</summary>
     private static void ReadSpacing(Transform _target, SpacingJson _spacing)
     {
         if (!_target.TryGetComponent(out SubDeviceSpacingData data))
@@ -353,43 +311,8 @@ public class JsonDataController
         }
     }
 
-    private static ModuleJson BuildModule(ModuleDataModel _module)
-    {
-        ModuleJson moduleJson = new ModuleJson { name = _module.moduleName };
-        if (_module.modulePosition != null)
-        {
-            moduleJson.position = _module.modulePosition.position;
-            Bounds moduleBounds = GetBodyBounds(_module.modulePosition);
-            moduleJson.size = moduleBounds.size;
-            moduleJson.hasBodyCenter = true;
-            moduleJson.bodyCenter = moduleBounds.center;
-            ReadSpacing(_module.modulePosition, moduleJson.cellSpacing);
-        }
-
-        if (_module.cellsList != null)
-        {
-            for (int i = 0; i < _module.cellsList.Count; i++)
-            {
-                CellDataModel cell = _module.cellsList[i];
-                CellJson cellJson = new CellJson { name = cell.cellName };
-                if (cell.cellPosition != null)
-                {
-                    cellJson.position = cell.cellPosition.position;
-                    Bounds cellBounds = GetBodyBounds(cell.cellPosition);
-                    cellJson.size = cellBounds.size;
-                    cellJson.hasBodyCenter = true;
-                    cellJson.bodyCenter = cellBounds.center;
-                }
-
-                moduleJson.cells.Add(cellJson);
-            }
-        }
-
-        return moduleJson;
-    }
-
     /// <summary>
-    /// 몸체의 월드 bounds. Pack / Module은 자식 Body, Cell은 본인의 Renderer를 쓰고(자식 Module / Cell은 섞지 않는다),
+    /// 몸체의 월드 bounds. 자식 Body 또는 본인의 Renderer를 쓰고(자식 장비는 섞지 않는다),
     /// 둘 다 없으면 자식 Renderer 전체를 합친다. Renderer가 없으면 크기 0.
     /// </summary>
     private static Bounds GetBodyBounds(Transform _target)

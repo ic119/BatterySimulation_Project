@@ -36,8 +36,8 @@ namespace Incheol.Modules
         /// <summary>진행 중인 React 파싱 작업 취소용. 새 데이터 수신 시 이전 작업을 취소한다.</summary>
         private CancellationTokenSource _reactParseCts;
 
-        /// <summary>Container 단위로 프레임을 나누어 처리. 1이면 매 Container마다 한 프레임 양보.</summary>
-        [SerializeField] private int _yieldEveryNContainers = 1;
+        /// <summary>Pack 단위로 프레임을 나누어 처리. 1이면 매 Pack마다 한 프레임 양보.</summary>
+        [SerializeField] private int _yieldEveryNPacks = 1;
         #endregion
 
         #region LifeCycle
@@ -85,19 +85,19 @@ namespace Incheol.Modules
                 return;
             }
 
-            if (!JsonDataMigration.TryMigrate(root))
+            if (root == null || root.version != JsonDataController.CurrentVersion)
             {
                 jsonData = new JsonDataController.SaveJson();
-                DebugLogManager.GenerateLogMessage<JsonDataLoader>("Container에 대한 Json 데이터가 없거나 읽을 수 없는 버전입니다.");
+                DebugLogManager.GenerateLogMessage<JsonDataLoader>("Pack에 대한 Json 데이터가 없거나 읽을 수 없는 버전입니다.");
                 return;
             }
 
             await BuildJsonDataAsync(
                 root,
-                _onFinished: (containers, packs, modules, cells) =>
+                _onFinished: (packs, moduleAssemblies, modules, parallelAssemblies, cells) =>
                 {
                     DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                        $"{key} JsonData 반영 완료 (containers={containers}, packs={packs}, modules={modules}, cells={cells})");
+                        $"{key} JsonData 반영 완료 (packs={packs}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
                 });
         }
 
@@ -132,81 +132,70 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// 단일 Container 트리를 순회하며 개수를 세고 null 목록을 보정한다.
+        /// <summary>
+        /// 저장 데이터의 Pack 트리를 순회하며 종류별 개수를 세고 null 목록을 보정한다. null 항목은 건너뛴다.
         /// </summary>
-        private void ProcessContainer(JsonDataController.ContainerJson _container, ref int _packsCount, ref int _modulesCount, ref int _cellsCount)
+        private static void Count(JsonDataController.PackJson _pack, ref int _moduleAssemblies, ref int _modules, ref int _parallelAssemblies, ref int _cells)
         {
-            if (_container.packs == null)
+            _pack.moduleAssemblies ??= new List<JsonDataController.ModuleAssemblyJson>();
+            _moduleAssemblies += _pack.moduleAssemblies.Count;
+            foreach (JsonDataController.ModuleAssemblyJson moduleAssembly in _pack.moduleAssemblies)
             {
-                _container.packs = new List<JsonDataController.PackJson>();
-            }
+                if (moduleAssembly == null)
+                {
+                    continue;
+                }
 
-            if (_container.standaloneModules == null)
-            {
-                _container.standaloneModules = new List<JsonDataController.ModuleJson>();
-            }
+                moduleAssembly.modules ??= new List<JsonDataController.ModuleJson>();
+                _modules += moduleAssembly.modules.Count;
+                foreach (JsonDataController.ModuleJson module in moduleAssembly.modules)
+                {
+                    if (module == null)
+                    {
+                        continue;
+                    }
 
-            _packsCount += _container.packs.Count;
-            foreach (JsonDataController.PackJson pack in _container.packs)
+                    module.parallelAssemblies ??= new List<JsonDataController.ParallelAssemblyJson>();
+                    _parallelAssemblies += module.parallelAssemblies.Count;
+                    foreach (JsonDataController.ParallelAssemblyJson parallelAssembly in module.parallelAssemblies)
+                    {
+                        if (parallelAssembly == null)
+                        {
+                            continue;
+                        }
+
+                        parallelAssembly.cells ??= new List<JsonDataController.CellJson>();
+                        _cells += parallelAssembly.cells.Count;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pack 목록을 프레임을 나누어 검사한 뒤 한 번에 커밋해, 프레임 분할 중에도 jsonData가 부분 상태로 남지 않게 함.
+        /// </summary>
+        private async Awaitable BuildJsonDataAsync(JsonDataController.SaveJson _source, Action<int, int, int, int, int> _onFinished, CancellationToken token = default)
+        {
+            int stride = Mathf.Max(1, _yieldEveryNPacks);
+            _source.packs ??= new List<JsonDataController.PackJson>();
+            List<JsonDataController.PackJson> built = new List<JsonDataController.PackJson>(_source.packs.Count);
+            int moduleAssembliesCount = 0;
+            int modulesCount = 0;
+            int parallelAssembliesCount = 0;
+            int cellsCount = 0;
+            int processedSinceYield = 0;
+
+            foreach (JsonDataController.PackJson pack in _source.packs)
             {
+                token.ThrowIfCancellationRequested();
+
                 if (pack == null)
                 {
                     continue;
                 }
 
-                if (pack.modules == null)
-                {
-                    pack.modules = new List<JsonDataController.ModuleJson>();
-                }
-
-                CountModules(pack.modules, ref _modulesCount, ref _cellsCount);
-            }
-
-            CountModules(_container.standaloneModules, ref _modulesCount, ref _cellsCount);
-        }
-
-        private static void CountModules(List<JsonDataController.ModuleJson> _modules, ref int _modulesCount, ref int _cellsCount)
-        {
-            _modulesCount += _modules.Count;
-            foreach (JsonDataController.ModuleJson module in _modules)
-            {
-                if (module == null)
-                {
-                    continue;
-                }
-
-                if (module.cells == null)
-                {
-                    module.cells = new List<JsonDataController.CellJson>();
-                }
-
-                _cellsCount += module.cells.Count;
-            }
-        }
-
-        /// <summary>
-        /// Container 목록을 프레임을 나누어 검사한 뒤 한 번에 커밋해, 프레임 분할 중에도 jsonData가 부분 상태로 남지 않게 함.
-        /// </summary>
-        private async Awaitable BuildJsonDataAsync(JsonDataController.SaveJson _source, Action<int, int, int, int> _onFinished, CancellationToken token = default)
-        {
-            int stride = Mathf.Max(1, _yieldEveryNContainers);
-            List<JsonDataController.ContainerJson> built = new List<JsonDataController.ContainerJson>(_source.containers.Count);
-            int packsCount = 0;
-            int modulesCount = 0;
-            int cellsCount = 0;
-            int processedSinceYield = 0;
-
-            foreach (JsonDataController.ContainerJson container in _source.containers)
-            {
-                token.ThrowIfCancellationRequested();
-
-                if (container == null)
-                {
-                    continue;
-                }
-
-                ProcessContainer(container, ref packsCount, ref modulesCount, ref cellsCount);
-                built.Add(container);
+                Count(pack, ref moduleAssembliesCount, ref modulesCount, ref parallelAssembliesCount, ref cellsCount);
+                built.Add(pack);
                 processedSinceYield++;
 
                 if (processedSinceYield >= stride)
@@ -218,10 +207,10 @@ namespace Incheol.Modules
 
             token.ThrowIfCancellationRequested();
 
-            _source.containers = built;
+            _source.packs = built;
             jsonData = _source;
 
-            _onFinished?.Invoke(built.Count, packsCount, modulesCount, cellsCount);
+            _onFinished?.Invoke(built.Count, moduleAssembliesCount, modulesCount, parallelAssembliesCount, cellsCount);
         }
 
         /// <summary>
@@ -295,10 +284,10 @@ namespace Incheol.Modules
 
                 token.ThrowIfCancellationRequested();
 
-                if (!JsonDataMigration.TryMigrate(root))
+                if (root == null || root.version != JsonDataController.CurrentVersion)
                 {
                     jsonData = new JsonDataController.SaveJson();
-                    DebugLogManager.GenerateLogMessage<JsonDataLoader>("Container에 대한 Json 데이터가 없거나 읽을 수 없는 버전입니다.");
+                    DebugLogManager.GenerateLogMessage<JsonDataLoader>("Pack에 대한 Json 데이터가 없거나 읽을 수 없는 버전입니다.");
                     isReactParsing = false;
                     isReactParsed = false;
                     return;
@@ -306,9 +295,9 @@ namespace Incheol.Modules
 
                 await BuildJsonDataAsync(
                     root,
-                    _onFinished: (containers, packs, modules, cells) =>
+                    _onFinished: (packs, moduleAssemblies, modules, parallelAssemblies, cells) =>
                     {
-                        DebugLogManager.GenerateLogMessage<JsonDataLoader>($"React JsonData 파싱 완료 (containers={containers}, packs={packs}, modules={modules}, cells={cells})");
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>($"React JsonData 파싱 완료 (packs={packs}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
                         isReactParsing = false;
                         isReactParsed = true;
                     },
