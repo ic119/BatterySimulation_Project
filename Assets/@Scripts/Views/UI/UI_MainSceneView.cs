@@ -467,11 +467,46 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
+        // Pack은 만들 때 ModuleAssembly > Module > ParallelAssembly > Cell을 하나씩 함께 만들므로 5종 프리팹을 모두 불러온다.
+        if (_type == DeviceType.Pack)
+        {
+            LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), CreatePackWithChildren);
+            return;
+        }
+
         string key = GetPrefabKey(_type).ToString();
         AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
             key,
             prefab => OnPrefabLoaded(_type, prefab, resolved.parent),
             () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
+    }
+
+    /// <summary>
+    /// Pack을 만들고 그 아래에 ModuleAssembly > Module > ParallelAssembly > Cell을 하나씩 차례로 만든다(저장된 파일을 불러올 때는 쓰지 않는다).
+    /// 중간 단계가 부모 안에 들어가지 않아 만들지 못하면 거기서 멈추고, 이미 만든 윗 단계는 그대로 둔다.
+    /// </summary>
+    private void CreatePackWithChildren(Dictionary<DeviceType, GameObject> _prefabs)
+    {
+        ApplyPadding();
+
+        IDeviceNode parent = null;
+        for (int i = 0; i < DropdownDeviceTypes.Length; i++)
+        {
+            DeviceType type = DropdownDeviceTypes[i];
+            countDictionary.TryGetValue(type, out int count);
+
+            IDeviceNode node = packFactory.Create(type, parent, (count + 1).ToString(), _prefabs[type]);
+            if (node == null)
+            {
+                ShowFullAlarm();
+                return;
+            }
+
+            countDictionary[type] = count + 1;
+            OnNodeCreated(node);
+            DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"{type} 생성 : {node.Name}" + (parent != null ? $" ({parent.Kind} : {parent.Name})" : string.Empty));
+            parent = node;
+        }
     }
 
     /// <summary>_parent는 클릭 시점에 CreateParentResolver로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
