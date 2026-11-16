@@ -1,5 +1,3 @@
-using Incheol.Models.Define;
-using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Presenter;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,7 +12,6 @@ namespace Incheol.Modules
     public static class DeviceSpacingCalculator
     {
         private const float Tolerance = DeviceBody.Tolerance;
-        private const float UnboundedSize = 2.0e7f;
 
         private struct Layer
         {
@@ -53,11 +50,11 @@ namespace Incheol.Modules
         /// _axis(0 = x, 1 = y, 2 = z) 방향의 현재 평균 간격과, 몸체를 벗어나지 않는 최대 간격을 구한다.
         /// 층이 2개 미만이거나 몸체가 없으면 false.
         /// </summary>
-        public static bool TryGetSpacing(Transform _target, DeviceType _kind, int _axis, out float _current, out float _max)
+        public static bool TryGetSpacing(Transform _target, int _axis, out float _current, out float _max)
         {
             _current = 0.0f;
             _max = 0.0f;
-            if (!TryBuildLayers(_target, _kind, _axis, out List<Layer> layerList, out Bounds body))
+            if (!TryBuildLayers(_target, _axis, out List<Layer> layerList, out Bounds body))
             {
                 return false;
             }
@@ -92,7 +89,6 @@ namespace Incheol.Modules
                 return false;
             }
 
-            DeviceType kind = GetParentKind(_parent);
 
             bool applied = false;
             for (int axis = 0; axis < 3; axis++)
@@ -102,7 +98,7 @@ namespace Incheol.Modules
                     continue;
                 }
 
-                if (TrySetSpacing(_parent, kind, axis, spacing, out _))
+                if (TrySetSpacing(_parent, axis, spacing, out _))
                 {
                     applied = true;
                 }
@@ -115,13 +111,6 @@ namespace Incheol.Modules
             return applied;
         }
 
-        /// <summary>부모는 Cell일 수 없다. 몸체(Body)가 없는 빈 오브젝트면 Container, 있으면 Pack / Module(탐색 방식은 같다)이다.</summary>
-        private static DeviceType GetParentKind(Transform _parent)
-        {
-            return DeviceSizeCalculator.TryGetSizeRenderer(_parent, DeviceType.Pack, out _)
-                ? DeviceType.Pack
-                : DeviceType.Container;
-        }
 
         /// <summary>
         /// _parent에 기억된 축별 간격을 자식의 현재 실제 간격으로 갱신한다. 자식 크기를 바꾼 뒤 부르면 기억된 값이 실제와 어긋나지 않는다
@@ -135,10 +124,9 @@ namespace Incheol.Modules
                 return;
             }
 
-            DeviceType kind = GetParentKind(_parent);
             for (int axis = 0; axis < 3; axis++)
             {
-                if (data.TryGet(axis, out _) && TryGetSpacing(_parent, kind, axis, out float current, out _))
+                if (data.TryGet(axis, out _) && TryGetSpacing(_parent, axis, out float current, out _))
                 {
                     data.Set(axis, current);
                 }
@@ -148,10 +136,10 @@ namespace Incheol.Modules
         /// <summary>
         /// _axis 방향의 층 사이 간격을 _spacing으로 바꾼다. 몸체 밖으로 나가면 바꾸지 않고 false(_max에 허용되는 최대 간격).
         /// </summary>
-        public static bool TrySetSpacing(Transform _target, DeviceType _kind, int _axis, float _spacing, out float _max)
+        public static bool TrySetSpacing(Transform _target, int _axis, float _spacing, out float _max)
         {
             _max = 0.0f;
-            if (!TryGetSpacing(_target, _kind, _axis, out _, out _max))
+            if (!TryGetSpacing(_target, _axis, out _, out _max))
             {
                 return true;
             }
@@ -161,7 +149,7 @@ namespace Incheol.Modules
                 return false;
             }
 
-            TryBuildLayers(_target, _kind, _axis, out List<Layer> layerList, out _);
+            TryBuildLayers(_target, _axis, out List<Layer> layerList, out _);
             bool reverse = _axis == 2;
             float cursor = reverse ? layerList[0].Min : layerList[0].Max;
             for (int i = 1; i < layerList.Count; i++)
@@ -191,13 +179,12 @@ namespace Incheol.Modules
             return true;
         }
 
-        private static bool TryBuildLayers(Transform _target, DeviceType _kind, int _axis, out List<Layer> _layerList, out Bounds _body)
+        private static bool TryBuildLayers(Transform _target, int _axis, out List<Layer> _layerList, out Bounds _body)
         {
             _layerList = null;
             _body = default;
             Renderer bodyRenderer = null;
-            bool unbounded = _kind == DeviceType.Container;
-            if (_target == null || (!unbounded && !DeviceSizeCalculator.TryGetSizeRenderer(_target, _kind, out bodyRenderer)))
+            if (_target == null || !DeviceBody.TryGetRenderer(_target, out bodyRenderer))
             {
                 return false;
             }
@@ -208,8 +195,7 @@ namespace Incheol.Modules
                 return false;
             }
 
-            // Container는 몸체가 없는 빈 오브젝트라 자식이 나갈 한계가 없다. 사실상 제한이 없는 큰 범위로 본다.
-            _body = unbounded ? new Bounds(Vector3.zero, Vector3.one * UnboundedSize) : bodyRenderer.bounds;
+            _body = bodyRenderer.bounds;
             bool reverse = _axis == 2;
             List<KeyValuePair<Transform, Bounds>> boundsList = new List<KeyValuePair<Transform, Bounds>>();
             for (int i = 0; i < children.Count; i++)

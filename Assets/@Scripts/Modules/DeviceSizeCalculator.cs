@@ -85,14 +85,14 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// _child(Cell은 Module 안, Module은 Pack 안)를 _newSize로 바꿨을 때 부모 몸체 안에 남는지 검사한다.
+        /// _child(Pack 외에는 모두 바로 위 부모 몸체 안)를 _newSize로 바꿨을 때 부모 몸체 안에 남는지 검사한다.
         /// _current는 _child 몸체의 현재 bounds. 부모 몸체를 찾을 수 없으면 검사하지 않고 true.
         /// 벗어나면 false이고 _maxSize에는 그 모서리에서 키울 수 있는 최대 크기가 담긴다.
         /// </summary>
         public static bool FitsInParent(Transform _child, DeviceType _kind, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
         {
             _maxSize = _newSize;
-            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, _kind == DeviceType.Cell ? DeviceType.Module : DeviceType.Pack, out Renderer parentBody))
+            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, DeviceType.Pack, out Renderer parentBody))
             {
                 return true;
             }
@@ -107,7 +107,7 @@ namespace Incheol.Modules
         }
 
         /// <summary>
-        /// Pack(_pack) 몸체를 _newSize로 바꿨을 때 같은 Container 아래의 다른 항목(Pack, 단독 Module과 그 자식)과 겹치는지 검사한다.
+        /// Pack(_pack) 몸체를 _newSize로 바꿨을 때 같은 Root 아래의 다른 Pack과 겹치는지 검사한다.
         /// 몸체는 좌측 바닥 뒤쪽 모서리(min.x, min.y, max.z)를 고정한 채 +x, +y, -z 방향으로 바뀐다고 본다(Resize와 같다).
         /// 겹치면 true이고 _overlapped에는 겹친 영역이 담긴다. _current는 바꾸기 전 몸체 bounds.
         /// </summary>

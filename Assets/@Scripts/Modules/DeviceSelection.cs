@@ -12,7 +12,7 @@ namespace Incheol.Modules
     public class DeviceSelection
     {
         /// <summary>
-        /// 현재 선택된 항목의 모델(Container / Pack / Module / Cell) (없을 경우 Null 처리)
+        /// 현재 선택된 항목의 모델(Pack / ModuleAssembly / Module / ParallelAssembly / Cell) (없을 경우 Null 처리)
         /// </summary>
         public IDeviceNode Model { get; private set; }
 
