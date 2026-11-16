@@ -15,7 +15,9 @@
         UI_JsonFileItem = 7,
         SimulationItem = 8,
         ResultListItem = 9,
-        Cell_PouchType = 10
+        Cell_PouchType = 10,
+        ModuleAssemblyPrefab = 11,
+        ParallelAssemblyPrefab = 12
     }
 
     /// <summary>
@@ -32,8 +34,9 @@
     public enum DeviceType
     {
         Pack,
+        ModuleAssembly,
         Module,
-        Cell,
-        Container
+        ParallelAssembly,
+        Cell
     }
 }
