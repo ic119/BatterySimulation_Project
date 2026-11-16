@@ -162,6 +162,9 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>새 장치를 만들어 숨긴 직후 발생한다. 인자는 만들어진 오브젝트이다.</summary>
     public event System.Action<Transform> ObjectCreated;
 
+    /// <summary>CreatePack(true)로 만든 Pack이 완성되었을 때 발생한다. 받는 쪽이 그 Pack을 선택해 보이게 한다. 인자는 만들어진 Pack이다.</summary>
+    public event System.Action<IDeviceNode> PackSelectRequested;
+
     #region Method
     // 트리는 EditorTab의 UI_EditorView가 기준이고, SimulationTab의 트리(simulationTreeView)에는 같은 변경을 그대로 따라 한다.
     private void AddDeviceNode(IDeviceNode _node)
@@ -451,8 +454,14 @@ public class UI_MainSceneView : MonoBehaviour
         ShowAlarm(message);
     }
 
+    /// <summary>Pack을 만든다(아래 ModuleAssembly > Module > ParallelAssembly > Cell도 하나씩 함께 만든다). 생성 버튼, 단축키가 같이 쓴다.</summary>
+    public void CreatePack(bool _selectCreated = false)
+    {
+        CreateObject(DeviceType.Pack, _selectCreated);
+    }
+
     /// <summary>Addressable의 프리팹을 불러와 _type 종류를 생성한다. 선택된 항목이 있으면 그 항목의 하위에 만든다.</summary>
-    private void CreateObject(DeviceType _type)
+    private void CreateObject(DeviceType _type, bool _selectCreated = false)
     {
         // 클릭 시점의 선택으로 부모를 정한다. 만들 수 없는 조합이면 불필요한 로드를 하지 않고 끝낸다.
         CreateParentResolver.Result resolved = CreateParentResolver.Resolve(_type, selection, packFactory);
@@ -470,7 +479,7 @@ public class UI_MainSceneView : MonoBehaviour
         // Pack은 만들 때 ModuleAssembly > Module > ParallelAssembly > Cell을 하나씩 함께 만들므로 5종 프리팹을 모두 불러온다.
         if (_type == DeviceType.Pack)
         {
-            LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), CreatePackWithChildren);
+            LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs => CreatePackWithChildren(prefabs, _selectCreated));
             return;
         }
 
@@ -485,10 +494,11 @@ public class UI_MainSceneView : MonoBehaviour
     /// Pack을 만들고 그 아래에 ModuleAssembly > Module > ParallelAssembly > Cell을 하나씩 차례로 만든다(저장된 파일을 불러올 때는 쓰지 않는다).
     /// 중간 단계가 부모 안에 들어가지 않아 만들지 못하면 거기서 멈추고, 이미 만든 윗 단계는 그대로 둔다.
     /// </summary>
-    private void CreatePackWithChildren(Dictionary<DeviceType, GameObject> _prefabs)
+    private void CreatePackWithChildren(Dictionary<DeviceType, GameObject> _prefabs, bool _selectCreated)
     {
         ApplyPadding();
 
+        IDeviceNode pack = null;
         IDeviceNode parent = null;
         for (int i = 0; i < DropdownDeviceTypes.Length; i++)
         {
@@ -499,13 +509,20 @@ public class UI_MainSceneView : MonoBehaviour
             if (node == null)
             {
                 ShowFullAlarm();
-                return;
+                break;
             }
 
             countDictionary[type] = count + 1;
             OnNodeCreated(node);
             DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"{type} 생성 : {node.Name}" + (parent != null ? $" ({parent.Kind} : {parent.Name})" : string.Empty));
             parent = node;
+            pack ??= node;
+        }
+
+        // 중간에 멈췄더라도 Pack이 만들어졌으면 선택해 보이게 한다.
+        if (_selectCreated && pack != null)
+        {
+            PackSelectRequested?.Invoke(pack);
         }
     }
 
