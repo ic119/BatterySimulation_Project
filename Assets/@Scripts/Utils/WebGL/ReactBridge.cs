@@ -77,6 +77,10 @@ namespace Incheol.Modules
             OnEssSelectedReceived = null;
             OnEssListUpdateReceived = null;
             OnEssEventListReceived = null;
+
+            OnBatterySelectedReceived = null;
+            OnBatteryUpdatedReceived = null;
+            OnBatteryListLoadedReceived = null;
         }
         #endregion
 
