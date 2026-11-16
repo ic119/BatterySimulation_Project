@@ -37,6 +37,7 @@ public class OrbitCameraView : MonoBehaviour
     [SerializeField] private float maxRadius = 300.0f;
 
     [Header("Rotate")]
+    [SerializeField, Tooltip("true일 때만 마우스 우클릭 드래그 회전이 동작한다.")] private bool isOrbit = false;
     [SerializeField, Tooltip("마우스 1픽셀당 회전 각도")] private float rotateSpeed = 0.2f;
     [SerializeField, Tooltip("체크하면 마우스를 위로 끌 때 아래에서 올려다보는 방향(Y축 반전)으로 회전한다. 해제하면 위에서 내려다보는 각도가 커진다.")] private bool invertY = true;
     [SerializeField] private float minPitch = -10.0f;
@@ -66,6 +67,7 @@ public class OrbitCameraView : MonoBehaviour
     #region Property
     public TrackMode CurrentTrackMode => trackMode;
     public float TargetRadius => targetRadius;
+    public bool IsOrbit { get => isOrbit; set => isOrbit = value; }
     #endregion
 
     #region LifeCycle
@@ -192,6 +194,12 @@ public class OrbitCameraView : MonoBehaviour
             Zoom(scroll);
         }
 
+        if (!isOrbit)
+        {
+            isRotating = false;
+            return;
+        }
+
         if (mouse.rightButton.wasPressedThisFrame)
         {
             isRotating = !overUi;
@@ -221,6 +229,11 @@ public class OrbitCameraView : MonoBehaviour
     /// <summary>마우스 이동량(픽셀)만큼 회전한다. 오른쪽으로 끌면 장면이 오른쪽으로 돌아가고, 위로 끌면 위에서 내려다보는 각도가 커진다.</summary>
     public void Rotate(Vector2 _delta)
     {
+        if (!isOrbit)
+        {
+            return;
+        }
+
         // 사용자가 직접 돌리기 시작하면 진행 중이던 회전 복귀는 멈춘다.
         isResettingRotation = false;
 
