@@ -455,7 +455,7 @@ MonoBehaviour:
   _xTitle: "x: \uC815\uBC29\uD5A5"
   _yTitle: "y: \uD6A1\uBC29\uD5A5"
   _zTitle: "z: \uC885\uBC29\uD5A5"
-  _lineWidthRatio: 0.01
+  _lineWidthRatio: 0.005
   _tickLengthRatio: 0.1
   _labelSizeRatio: 0.05
   _axisColor: {r: 0, g: 0, b: 0, a: 1}
