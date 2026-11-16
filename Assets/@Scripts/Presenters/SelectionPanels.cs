@@ -115,7 +115,7 @@ namespace Incheol.Presenter
         }
 
         /// <summary>
-        /// 선택된 항목 본인의 자식 구조(Pack이면 Module / Cell, Module이면 Cell)를 구조 패널에 보여준다. 선택이 없으면 패널을 비운다.
+        /// 선택된 항목 본인의 자식 구조(하위 장치 전체)를 구조 패널에 보여준다. 선택이 없으면 패널을 비운다.
         /// 선택한 항목 아래에 새 자식이 생길 때도 UI_EditorView가 호출해 갱신한다. 패널과 트리 뷰는 비동기로 생성되므로 필요할 때 찾는다.
         /// </summary>
         private void RefreshStructure()
@@ -148,8 +148,8 @@ namespace Incheol.Presenter
         {
             bool hasSelection = selection.HasSelection;
 
-            // Container는 빈 오브젝트라 몸체 크기가 없으므로 크기 패널은 비워 둔다(자식 Pack 사이의 간격은 간격 패널로 조절한다).
-            bool hasBody = hasSelection && selection.Kind != DeviceType.Container;
+            // 모든 종류가 몸체를 가지므로 선택이 있으면 크기 패널을 보여준다.
+            bool hasBody = hasSelection;
 
             if (propertiesView != null)
             {
@@ -187,7 +187,7 @@ namespace Incheol.Presenter
                 }
             }
 
-            // Container가 선택됐을 때만 Pack 생성 수량 패널을 보여준다.
+            // 예전 Pack 생성 수량 패널(UI_CreateDeviceCount)은 항상 꺼 둔다.
             createCountView?.Refresh();
         }
 

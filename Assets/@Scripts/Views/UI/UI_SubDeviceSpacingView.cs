@@ -104,7 +104,7 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
 
     private void RefreshAxis(Transform _target, int _axis, TMP_InputField _field)
     {
-        if (DeviceSpacingCalculator.TryGetSpacing(_target, selection.Kind, _axis, out float current, out _))
+        if (DeviceSpacingCalculator.TryGetSpacing(_target, _axis, out float current, out _))
         {
             SetInput(_field, current);
         }
@@ -170,7 +170,6 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
             return;
         }
 
-        DeviceType kind = selection.Kind;
         if (!_value.HasValue || _value.Value < 0.0f)
         {
             if (_value.HasValue)
@@ -183,17 +182,17 @@ public class UI_SubDeviceSpacingView : MonoBehaviour
         }
 
         float spacing = _value.Value;
-        if (!DeviceSpacingCalculator.TrySetSpacing(target, kind, _axis, spacing, out float max))
+        if (!DeviceSpacingCalculator.TrySetSpacing(target, _axis, spacing, out float max))
         {
             string message = $"{target.name} 밖으로 벗어나 간격을 늘릴 수 없습니다. {AxisNames[_axis]} 최대 간격 : {max:0.##}, 입력 : {spacing:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_SubDeviceSpacingView>(message);
             alarmPopupView?.Show(message);
 
-            DeviceSpacingCalculator.TrySetSpacing(target, kind, _axis, max, out _);
+            DeviceSpacingCalculator.TrySetSpacing(target, _axis, max, out _);
         }
 
         // 이후 새 자식이 생길 때 같은 간격을 다시 적용할 수 있도록 선택 항목에 기억해 둔다.
-        if (DeviceSpacingCalculator.TryGetSpacing(target, kind, _axis, out float applied, out _))
+        if (DeviceSpacingCalculator.TryGetSpacing(target, _axis, out float applied, out _))
         {
             if (!target.TryGetComponent(out SubDeviceSpacingData data))
             {

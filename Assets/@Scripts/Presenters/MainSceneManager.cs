@@ -169,7 +169,7 @@ namespace Incheol.Presenter
             scaleView?.Init(selection);
             spacingView?.Init(selection);
             createCountView?.Init(selection);
-            mainSceneView?.Init(selection, createCountView);
+            mainSceneView?.Init(selection);
 
             if (editorView != null)
             {

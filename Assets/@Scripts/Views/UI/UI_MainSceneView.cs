@@ -29,27 +29,37 @@ public class UI_MainSceneView : MonoBehaviour
     [SerializeField] private UI_JsonFileListView jsonFileListView;
 
     [Header("Pack Layout")]
-    [SerializeField, Min(0.0f), Tooltip("같은 Container 안에서 Pack 사이의 가로 여백.")] private float packPadding = 0.0f;
+    [SerializeField, Min(0.0f), Tooltip("Pack 사이의 가로 여백.")] private float packPadding = 0.0f;
+
+    [Header("ModuleAssembly Layout")]
+    [SerializeField, Min(0.0f), Tooltip("ModuleAssembly 사이(가로/깊이)의 여백. 칸 가운데에 놓여 Pack 벽과도 여백의 절반만큼 떨어진다.")] private float moduleAssemblyPadding = 0.0f;
 
     [Header("Module Layout")]
-    [SerializeField, Min(0.0f), Tooltip("Module 사이(가로/깊이)의 여백. Module은 칸 가운데에 놓여 Pack 벽과도 여백의 절반만큼 떨어진다.")] private float modulePadding = 0.0f;
+    [SerializeField, Min(0.0f), Tooltip("Module 사이(가로/깊이)의 여백. 칸 가운데에 놓여 ModuleAssembly 벽과도 여백의 절반만큼 떨어진다.")] private float modulePadding = 0.0f;
+
+    [Header("ParallelAssembly Layout")]
+    [SerializeField, Min(0.0f), Tooltip("ParallelAssembly 사이(가로/깊이)의 여백. 칸 가운데에 놓여 Module 벽과도 여백의 절반만큼 떨어진다.")] private float parallelAssemblyPadding = 0.0f;
 
     [Header("Cell Layout")]
-    [SerializeField, Min(0.0f), Tooltip("Cell 사이(가로/깊이)의 여백. Cell은 칸 가운데에 놓여 벽과도 여백의 절반만큼 떨어진다. 클수록 Module에 들어가는 Cell 개수가 줄어든다.")] private float cellPadding = 0.0f;
+    [SerializeField, Min(0.0f), Tooltip("Cell 사이(가로/깊이)의 여백. Cell은 칸 가운데에 놓여 벽과도 여백의 절반만큼 떨어진다. 클수록 ParallelAssembly에 들어가는 Cell 개수가 줄어든다.")] private float cellPadding = 0.0f;
 
-    private static readonly DeviceType[] DropdownDeviceTypes = { DeviceType.Pack, DeviceType.Module, DeviceType.Cell };
+    private static readonly DeviceType[] DropdownDeviceTypes =
+    {
+        DeviceType.Pack,
+        DeviceType.ModuleAssembly,
+        DeviceType.Module,
+        DeviceType.ParallelAssembly,
+        DeviceType.Cell,
+    };
 
     private readonly PackFactory packFactory = new PackFactory();
 
-    // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 Pack/Module/Cell을 여기에 알린다.
+    // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 장치를 여기에 알린다.
     private UI_EditorView editorView;
     private DeviceSelection selection;
-    private UI_CreateDeviceCount createCountView;
 
-    private int containerCount;
-    private int packCount;
-    private int moduleCount;
-    private int cellCount;
+    // 종류별로 마지막에 붙인 이름 번호. 이름이 "3"처럼 번호 문자열이다. 삭제해도 줄이지 않아 이름이 겹치지 않는다.
+    private readonly Dictionary<DeviceType, int> countDictionary = new Dictionary<DeviceType, int>();
     private int skippedCount;
     #endregion
 
@@ -134,7 +144,7 @@ public class UI_MainSceneView : MonoBehaviour
     }
     #endregion
 
-    /// <summary>Container / Pack / Module / Cell을 만들고 등록부를 들고 있는 팩토리. 다른 뷰가 Pack의 씬 Transform을 찾을 때 쓴다.</summary>
+    /// <summary>모든 장치를 만들고 등록부를 들고 있는 팩토리.</summary>
     public PackFactory PackFactory => packFactory;
 
     /// <summary>EditorTab의 트리 뷰(이 루트에 붙어 있다).</summary>
@@ -143,39 +153,21 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>SimulationTab의 트리 뷰. 없으면 null.</summary>
     public UI_EditorView SimulationTreeView => simulationTreeView;
 
-    /// <summary>Pack / Module / Cell을 지우기 직전에 발생한다. 인자는 지워질 오브젝트이다. 선택된 항목이 그 안에 있으면 받는 쪽이 선택을 풀어야 한다.</summary>
+    /// <summary>장치를 지우기 직전에 발생한다. 인자는 지워질 오브젝트이다. 선택된 항목이 그 안에 있으면 받는 쪽이 선택을 풀어야 한다.</summary>
     public event System.Action<Transform> ObjectRemoving;
 
     /// <summary>모두 지우고 다시 만들기 전에 발생한다. 받는 쪽은 현재 선택을 풀어 카메라와 패널을 되돌린다.</summary>
     public event System.Action SelectionClearRequested;
 
-    /// <summary>새 Pack / Module / Cell을 만들어 숨긴 직후 발생한다. 인자는 만들어진 오브젝트이다.</summary>
+    /// <summary>새 장치를 만들어 숨긴 직후 발생한다. 인자는 만들어진 오브젝트이다.</summary>
     public event System.Action<Transform> ObjectCreated;
 
     #region Method
     // 트리는 EditorTab의 UI_EditorView가 기준이고, SimulationTab의 트리(simulationTreeView)에는 같은 변경을 그대로 따라 한다.
-    private void AddContainerNode(ContainerDataModel _container)
+    private void AddDeviceNode(IDeviceNode _node)
     {
-        editorView?.AddContainer(_container);
-        simulationTreeView?.AddContainer(_container);
-    }
-
-    private void AddPackNode(PackDataModel _pack, Transform _target)
-    {
-        editorView?.AddPack(_pack, _target);
-        simulationTreeView?.AddPack(_pack, _target);
-    }
-
-    private void AddModuleNode(ModuleDataModel _module, PackDataModel _parentPack)
-    {
-        editorView?.AddModule(_module, _parentPack);
-        simulationTreeView?.AddModule(_module, _parentPack);
-    }
-
-    private void AddCellNode(CellDataModel _cell)
-    {
-        editorView?.AddCell(_cell);
-        simulationTreeView?.AddCell(_cell);
+        editorView?.AddDevice(_node);
+        simulationTreeView?.AddDevice(_node);
     }
 
     private void RemoveTreeNode(IDeviceNode _model)
@@ -185,7 +177,7 @@ public class UI_MainSceneView : MonoBehaviour
     }
 
     /// <summary>
-    /// 만들어 둔 Container / Pack / Module / Cell(씬 오브젝트와 모델), 두 탭의 트리, 선택, 번호 이어 붙이기, Container별 수량을 모두 처음 상태로 되돌린다.
+    /// 만들어 둔 모든 장치(씬 오브젝트와 모델), 두 탭의 트리, 선택, 번호 이어 붙이기를 모두 처음 상태로 되돌린다.
     /// 탭을 바꿀 때 쓴다. 저장하지 않은 내용은 사라진다.
     /// </summary>
     public void ResetAll()
@@ -196,13 +188,8 @@ public class UI_MainSceneView : MonoBehaviour
         ClearTrees();
         packFactory.Clear();
 
-        containerCount = 0;
-        packCount = 0;
-        moduleCount = 0;
-        cellCount = 0;
+        countDictionary.Clear();
         skippedCount = 0;
-
-        createCountView?.ClearCounts();
     }
 
     private void ClearTrees()
@@ -218,11 +205,10 @@ public class UI_MainSceneView : MonoBehaviour
         simulationAlarmPopupView?.Show(_message);
     }
 
-    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태와 Pack 수량 패널을 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
-    public void Init(DeviceSelection _selection, UI_CreateDeviceCount _createCountView)
+    /// <summary>MainSceneManager가 프리팹을 인스턴스화한 직후 선택 상태를 넘겨준다. 뷰가 씬에서 직접 찾지 않는다.</summary>
+    public void Init(DeviceSelection _selection)
     {
         selection = _selection;
-        createCountView = _createCountView;
     }
 
     /// <summary>
@@ -243,7 +229,7 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>newButton은 Dropdown에서 선택된 종류를 생성한다.</summary>
     private void OnClickNewButton()
     {
-        // Dropdown에서 선택된 종류(Pack / Module / Cell)를 생성한다. Dropdown이 없으면 Pack.
+        // Dropdown에서 선택된 종류를 생성한다. Dropdown이 없으면 Pack.
         DeviceType type = DeviceType.Pack;
         if (newDropdown != null && newDropdown.value >= 0 && newDropdown.value < DropdownDeviceTypes.Length)
         {
@@ -254,7 +240,7 @@ public class UI_MainSceneView : MonoBehaviour
     }
 
     /// <summary>
-    /// 트리 줄의 삭제 버튼이 눌리면 해당 Pack / Module / Cell을 (자식까지) 씬, 데이터 모델, 트리에서 지운다.
+    /// 트리 줄의 삭제 버튼이 눌리면 해당 장치를 (자식까지) 씬, 데이터 모델, 트리에서 지운다.
     /// 지우는 대상이나 그 하위가 선택되어 있으면 먼저 선택을 풀어 카메라 / 패널 / 축 그래프가 파괴된 오브젝트를 가리키지 않게 한다.
     /// 번호 카운터는 줄이지 않는다(이름이 겹치지 않도록).
     /// </summary>
@@ -271,24 +257,14 @@ public class UI_MainSceneView : MonoBehaviour
 
     private void RequestDelete(IDeviceNode _model, UI_ConfirmPopupView _confirmPopup)
     {
-        string description;
-        switch (_model)
+        if (_model == null)
         {
-            case ContainerDataModel container:
-                description = $"Container {container.containerName}과(와) 그 안의 모든 Pack / Module / Cell을";
-                break;
-            case PackDataModel pack:
-                description = $"Pack {pack.packName}과(와) 그 안의 모든 Module / Cell을";
-                break;
-            case ModuleDataModel module:
-                description = $"Module {module.moduleName}과(와) 그 안의 모든 Cell을";
-                break;
-            case CellDataModel cell:
-                description = $"Cell {cell.cellName}을(를)";
-                break;
-            default:
-                return;
+            return;
         }
+
+        string description = DeviceHierarchy.TryGetChildKind(_model.Kind, out DeviceType childKind)
+            ? $"{_model.Kind} {_model.Name}과(와) 그 안의 모든 하위 장치를"
+            : $"{_model.Kind} {_model.Name}을(를)";
 
         // 확인 팝업이 없으면 묻지 않고 지우는 일은 하지 않는다.
         if (_confirmPopup == null)
@@ -308,52 +284,20 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        // 지우고 나면 모델에서 읽을 수 없으므로 지우기 전에 속한 Container를 기억해 둔다(Container와 Cell은 없다).
-        ContainerDataModel parentContainer = null;
-        switch (_model)
-        {
-            case PackDataModel pack:
-                parentContainer = pack.parentContainer;
-                break;
-            case ModuleDataModel module:
-                parentContainer = module.parentContainer;
-                break;
-        }
-
         ObjectRemoving?.Invoke(removedTransform);
 
         if (packFactory.Remove(_model))
         {
             RemoveTreeNode(_model);
-
-            // 마지막 Pack / 단독 Module을 지워 비게 된 Container는 함께 지운다.
-            if (parentContainer != null && parentContainer.packsList.Count == 0 && parentContainer.modulesList.Count == 0)
-            {
-                ObjectRemoving?.Invoke(parentContainer.containerPosition);
-                packFactory.RemoveContainer(parentContainer);
-                RemoveTreeNode(parentContainer);
-            }
-
             DebugLogManager.GenerateLogMessage<UI_MainSceneView>("삭제 완료");
         }
     }
 
-    /// <summary>saveButton은 지금까지 생성된 Pack / Module / Cell을 Json 파일로 저장하고 결과를 알람 팝업으로 알려준다.</summary>
+    /// <summary>saveButton은 지금까지 생성된 장치를 Json 파일로 저장하고 결과를 알람 팝업으로 알려준다.</summary>
     private void OnClickSaveButton()
     {
-        bool saved = JsonDataController.Save(packFactory, GetPackGrid);
-        ShowAlarm(saved ? "저장되었습니다." : "저장할 Pack / Module이 없거나 저장에 실패했습니다.");
-    }
-
-    /// <summary>저장할 _container의 Pack 생성 격자(x 개수, z 줄 수). 패널이 없으면 (0, 0)이라 저장하지 않은 것으로 본다.</summary>
-    private Vector2Int GetPackGrid(ContainerDataModel _container)
-    {
-        if (createCountView != null && createCountView.TryGetPackGrid(_container, out int gridX, out int gridZ))
-        {
-            return new Vector2Int(gridX, gridZ);
-        }
-
-        return Vector2Int.zero;
+        bool saved = JsonDataController.Save(packFactory);
+        ShowAlarm(saved ? "저장되었습니다." : "저장할 Pack이 없거나 저장에 실패했습니다.");
     }
 
     /// <summary>loadButton은 저장된 Json 파일 목록을 JsonFileListContainer의 ScrollView에 보여준다.</summary>
@@ -362,13 +306,13 @@ public class UI_MainSceneView : MonoBehaviour
         jsonFileListView?.Show();
     }
 
-    /// <summary>목록에서 Json 파일을 누르면 현재 Pack / Module / Cell을 모두 지우고 그 파일의 내용으로 다시 만든다.</summary>
+    /// <summary>목록에서 Json 파일을 누르면 현재 장치를 모두 지우고 그 파일의 내용으로 다시 만든다.</summary>
     private void OnJsonFileClicked(string _path)
     {
         LoadFromFile(_path);
     }
 
-    /// <summary>_path의 Json으로 모든 Pack / Module / Cell을 다시 만든다. Editor 탭과 Simulation 탭의 Load가 같이 쓴다.</summary>
+    /// <summary>_path의 Json으로 모든 장치를 다시 만든다. Editor 탭과 Simulation 탭의 Load가 같이 쓴다.</summary>
     public void LoadFromFile(string _path)
     {
         JsonDataController.SaveJson data = JsonDataController.Load(_path);
@@ -378,24 +322,36 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        // Pack → Module → Cell Prefab을 차례로 불러온 뒤 한 번에 만든다.
+        // 위 계층부터 아래 계층 순서로 프리팹을 모두 불러온 뒤 한 번에 만든다.
+        LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs => BuildFromJson(data, prefabs));
+    }
+
+    /// <summary>DropdownDeviceTypes[_index]부터 끝까지 프리팹을 차례로 불러와 _prefabs에 담고, 다 불러오면 _done을 부른다. 하나라도 실패하면 로그만 남기고 멈춘다.</summary>
+    private void LoadPrefabsFrom(int _index, Dictionary<DeviceType, GameObject> _prefabs, System.Action<Dictionary<DeviceType, GameObject>> _done)
+    {
+        if (_index >= DropdownDeviceTypes.Length)
+        {
+            _done(_prefabs);
+            return;
+        }
+
+        DeviceType type = DropdownDeviceTypes[_index];
+        string key = GetPrefabKey(type).ToString();
         AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-            AddressableAssetKey.PackPrefab.ToString(),
-            packPrefab => AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-                AddressableAssetKey.ModulePrefab.ToString(),
-                modulePrefab => AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-                    AddressableAssetKey.Cell_PouchType.ToString(),
-                    cellPrefab => BuildFromJson(data, packPrefab, modulePrefab, cellPrefab),
-                    () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Cell_PouchType 로드 실패")),
-                () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("ModulePrefab 로드 실패")),
-            () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("PackPrefab 로드 실패"));
+            key,
+            prefab =>
+            {
+                _prefabs[type] = prefab;
+                LoadPrefabsFrom(_index + 1, _prefabs, _done);
+            },
+            () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
     }
 
     /// <summary>
-    /// 지금 있는 것을 모두 지우고 _data의 Pack / Module / Cell을 newButton으로 만들 때와 같은 방식으로 다시 만든다.
+    /// 지금 있는 것을 모두 지우고 _data의 장치를 newButton으로 만들 때와 같은 방식으로 다시 만든다.
     /// 만드는 일은 PackJsonBuilder가 하고, 이 뷰는 만들어진 것을 숨겨 두고 트리에 추가하며 번호를 이어 붙인다.
     /// </summary>
-    private void BuildFromJson(JsonDataController.SaveJson _data, GameObject _packPrefab, GameObject _modulePrefab, GameObject _cellPrefab)
+    private void BuildFromJson(JsonDataController.SaveJson _data, Dictionary<DeviceType, GameObject> _prefabs)
     {
         // 지울 오브젝트가 선택되어 있으면 먼저 선택을 풀어 카메라와 패널을 되돌린다.
         SelectionClearRequested?.Invoke();
@@ -406,22 +362,18 @@ public class UI_MainSceneView : MonoBehaviour
         // newButton으로 만들 때와 같은 여백 설정을 쓴다.
         ApplyPadding();
 
-        PackJsonBuilder builder = new PackJsonBuilder(
-            packFactory,
-            container => AddContainerNode(container),
-            OnPackCreated,
-            OnModuleCreated,
-            OnCellCreated,
-            (container, columns, rows) => createCountView?.SetCount(container, columns, rows));
+        PackJsonBuilder builder = new PackJsonBuilder(packFactory, OnNodeCreated);
+        PackJsonBuilder.Result result = builder.Build(_data, _prefabs);
 
-        PackJsonBuilder.Result result = builder.Build(_data, _packPrefab, _modulePrefab, _cellPrefab);
-        containerCount = result.containerCount;
-        packCount = result.packCount;
-        moduleCount = result.moduleCount;
-        cellCount = result.cellCount;
+        countDictionary.Clear();
+        countDictionary[DeviceType.Pack] = result.packCount;
+        countDictionary[DeviceType.ModuleAssembly] = result.moduleAssemblyCount;
+        countDictionary[DeviceType.Module] = result.moduleCount;
+        countDictionary[DeviceType.ParallelAssembly] = result.parallelAssemblyCount;
+        countDictionary[DeviceType.Cell] = result.cellCount;
         skippedCount = result.skippedCount;
 
-        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.Packs.Count}개, Module {packFactory.Modules.Count}개, 건너뜀 {skippedCount}개");
+        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.GetNodes(DeviceType.Pack).Count}개, Module {packFactory.GetNodes(DeviceType.Module).Count}개, 건너뜀 {skippedCount}개");
         ShowAlarm(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
     }
 
@@ -444,10 +396,10 @@ public class UI_MainSceneView : MonoBehaviour
         }
     }
 
-    /// <summary>Dropdown 옵션(Pack / Module / Cell) 항목이 클릭되면 UI_DropdownItemRelay가 호출해 해당 종류를 생성한다.</summary>
+    /// <summary>Dropdown 옵션 항목이 클릭되면 UI_DropdownItemRelay가 호출해 해당 종류를 생성한다.</summary>
     public void OnDropdownItemClicked(string _optionText)
     {
-        if (System.Enum.TryParse(_optionText, out DeviceType type) && type != DeviceType.Container)
+        if (System.Enum.TryParse(_optionText, out DeviceType type))
         {
             CreateObject(type);
         }
@@ -458,106 +410,33 @@ public class UI_MainSceneView : MonoBehaviour
         switch (_type)
         {
             case DeviceType.Pack: return AddressableAssetKey.PackPrefab;
+            case DeviceType.ModuleAssembly: return AddressableAssetKey.ModuleAssemblyPrefab;
             case DeviceType.Module: return AddressableAssetKey.ModulePrefab;
+            case DeviceType.ParallelAssembly: return AddressableAssetKey.ParallelAssemblyPrefab;
             default: return AddressableAssetKey.Cell_PouchType;
         }
     }
 
-    /// <summary>
-    /// 생성할 _type의 부모를 CreateParentResolver로 정한다. 만들 수 없으면 이유를 로그로 남기고(필요하면 알림 팝업도 띄우고) false를 반환한다.
-    /// </summary>
-    private bool ResolveParent(DeviceType _type, out PackDataModel _parentPack, out ModuleDataModel _parentModule, out ContainerDataModel _parentContainer)
-    {
-        CreateParentResolver.Result result = CreateParentResolver.Resolve(_type, selection, packFactory, GetPackFullMessage);
-        _parentPack = result.parentPack;
-        _parentModule = result.parentModule;
-        _parentContainer = result.parentContainer;
-
-        if (!result.success)
-        {
-            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(result.message);
-            if (result.showAlarm)
-            {
-                ShowAlarm(result.message);
-            }
-        }
-
-        return result.success;
-    }
-
-    /// <summary>_container의 Pack 칸이 모두 찼으면 그 안내 문구를, 더 놓을 수 있으면 null을 반환한다. 패널이 없으면 검사하지 않는다.</summary>
-    private string GetPackFullMessage(ContainerDataModel _container)
-    {
-        if (createCountView == null || createCountView.CanCreatePack(_container, _container.packsList.Count))
-        {
-            return null;
-        }
-
-        createCountView.TryGetPackGrid(_container, out int gridX, out int gridZ);
-        return $"Container {_container.containerName}의 x({gridX}) × z({gridZ}) 칸이 모두 차서 더 이상 Pack을 생성할 수 없습니다.";
-    }
-
-    /// <summary>Addressable의 Pack/Module/CellPrefab을 불러와 해당 종류를 생성한다. 선택된 항목이 있으면 그 항목의 하위에 만든다.</summary>
-    private void CreateObject(DeviceType _type)
-    {
-        // 클릭 시점의 선택으로 부모를 정한다. 만들 수 없는 조합이면 불필요한 로드를 하지 않고 끝낸다.
-        if (!ResolveParent(_type, out PackDataModel parentPack, out ModuleDataModel parentModule, out ContainerDataModel parentContainer))
-        {
-            return;
-        }
-
-        // Cell은 부모 Module이 있어야만 만들 수 있다.
-        if (_type == DeviceType.Cell && (!packFactory.CanCreateCell || parentModule == null))
-        {
-            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("Cell은 생성된 Module이 있어야 만들 수 있습니다.");
-            return;
-        }
-
-        string key = GetPrefabKey(_type).ToString();
-        AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
-            key,
-            prefab => OnPrefabLoaded(_type, prefab, parentPack, parentModule, parentContainer),
-            () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
-    }
-
-    /// <summary>Pack / Module / Cell 사이의 여백 설정을 PackFactory에 넘긴다. 만들기 직전에 부른다.</summary>
+    /// <summary>생성할 종류 사이의 여백 설정을 PackFactory에 넘긴다. 만들기 직전에 부른다.</summary>
     private void ApplyPadding()
     {
-        packFactory.PackPadding = packPadding;
-        packFactory.ModulePadding = modulePadding;
-        packFactory.CellPadding = cellPadding;
-    }
-
-    /// <summary>새로 만들어진 Pack을 숨기고 두 탭의 트리에 추가한다. 직접 만들 때와 Json에서 불러올 때 같이 쓴다.</summary>
-    private void OnPackCreated(PackDataModel _pack, Transform _packTransform)
-    {
-        HideOrShowCreated(_packTransform);
-        AddPackNode(_pack, _packTransform);
-    }
-
-    /// <summary>새로 만들어진 Module을 숨기고 두 탭의 트리에 추가한다. _parentPack이 null이면 단독 Module이다.</summary>
-    private void OnModuleCreated(ModuleDataModel _module, PackDataModel _parentPack)
-    {
-        HideOrShowCreated(_module.modulePosition);
-        AddModuleNode(_module, _parentPack);
-    }
-
-    /// <summary>새로 만들어진 Cell을 숨기고 두 탭의 트리에 추가한다.</summary>
-    private void OnCellCreated(CellDataModel _cell)
-    {
-        HideOrShowCreated(_cell.cellPosition);
-        AddCellNode(_cell);
+        packFactory.SetPadding(DeviceType.Pack, packPadding);
+        packFactory.SetPadding(DeviceType.ModuleAssembly, moduleAssemblyPadding);
+        packFactory.SetPadding(DeviceType.Module, modulePadding);
+        packFactory.SetPadding(DeviceType.ParallelAssembly, parallelAssemblyPadding);
+        packFactory.SetPadding(DeviceType.Cell, cellPadding);
     }
 
     /// <summary>
-    /// 새로 만든 _created는 기본적으로 숨긴다. 단, 현재 선택된 Pack / Module 아래에 생성된 것이면
+    /// 새로 만들어진 _node를 숨기고 두 탭의 트리에 추가한다. 직접 만들 때와 Json에서 불러올 때 같이 쓴다.
+    /// 새로 만든 것은 기본적으로 숨긴다. 단, 현재 선택된 장치 아래에 생성된 것이면
     /// 생성되는 모습이 바로 보이도록 ObjectCreated를 받는 쪽이 다시 켜준다.
     /// </summary>
-    private void HideOrShowCreated(Transform _created)
+    private void OnNodeCreated(IDeviceNode _node)
     {
-        DeviceVisibility.SetVisible(_created, false);
-
-        ObjectCreated?.Invoke(_created);
+        DeviceVisibility.SetVisible(_node.Position, false);
+        ObjectCreated?.Invoke(_node.Position);
+        AddDeviceNode(_node);
     }
 
     /// <summary>가장 최근 생성이 "더 이상 놓을 공간이 없어서" 실패했다면 그 안내 문구를 알람 팝업으로 잠깐 보여준다. 다른 이유의 실패면 아무것도 하지 않는다.</summary>
@@ -572,76 +451,47 @@ public class UI_MainSceneView : MonoBehaviour
         ShowAlarm(message);
     }
 
-    /// <summary>_container가 있으면 그대로, 없으면 새 Container를 만들어 트리에 추가해 돌려준다.</summary>
-    private ContainerDataModel EnsureContainer(ContainerDataModel _container)
+    /// <summary>Addressable의 프리팹을 불러와 _type 종류를 생성한다. 선택된 항목이 있으면 그 항목의 하위에 만든다.</summary>
+    private void CreateObject(DeviceType _type)
     {
-        if (_container != null)
+        // 클릭 시점의 선택으로 부모를 정한다. 만들 수 없는 조합이면 불필요한 로드를 하지 않고 끝낸다.
+        CreateParentResolver.Result resolved = CreateParentResolver.Resolve(_type, selection, packFactory);
+        if (!resolved.success)
         {
-            return _container;
+            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>(resolved.message);
+            if (resolved.showAlarm)
+            {
+                ShowAlarm(resolved.message);
+            }
+
+            return;
         }
 
-        ContainerDataModel container = packFactory.CreateContainer((++containerCount).ToString());
-        AddContainerNode(container);
-        return container;
+        string key = GetPrefabKey(_type).ToString();
+        AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
+            key,
+            prefab => OnPrefabLoaded(_type, prefab, resolved.parent),
+            () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
     }
 
-    /// <summary>_parentPack / _parentModule / _parentContainer는 클릭 시점에 ResolveParent로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
-    private void OnPrefabLoaded(DeviceType _type, GameObject _prefab, PackDataModel _parentPack, ModuleDataModel _parentModule, ContainerDataModel _parentContainer)
+    /// <summary>_parent는 클릭 시점에 CreateParentResolver로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
+    private void OnPrefabLoaded(DeviceType _type, GameObject _prefab, IDeviceNode _parent)
     {
         ApplyPadding();
 
-        switch (_type)
-        {
-            case DeviceType.Pack:
-                {
-                    // 선택한 Container가 없으면 이 Pack을 담을 새 Container를 만든다.
-                    ContainerDataModel container = EnsureContainer(_parentContainer);
-                    // 선택한 Container의 x * z 격자에 맞춰 x 방향으로 채운 뒤 z 방향 다음 줄에 놓는다(새 Container나 패널이 없으면 기존처럼 x 방향).
-                    int gridX = 0;
-                    int gridZ = 0;
-                    if (_parentContainer != null && createCountView != null)
-                    {
-                        createCountView.TryGetPackGrid(_parentContainer, out gridX, out gridZ);
-                    }
+        countDictionary.TryGetValue(_type, out int count);
+        string name = (count + 1).ToString();
 
-                    PackDataModel pack = packFactory.CreatePack((++packCount).ToString(), _prefab, default, container, gridX, gridZ);
-                    OnPackCreated(pack, packFactory.GetPackTransform(pack));
-                    DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Pack 생성 : {pack.packName}");
-                    break;
-                }
-            case DeviceType.Module:
-                {
-                    // 부모 Pack이 있으면 그 Pack에 속하고, 없으면 단독 Module로 만든다.
-                    ContainerDataModel container = _parentPack == null ? EnsureContainer(_parentContainer) : null;
-                    ModuleDataModel module = packFactory.CreateModule(_parentPack, (++moduleCount).ToString(), _prefab, default, container);
-                    if (module != null)
-                    {
-                        OnModuleCreated(module, _parentPack);
-                        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Module 생성 : {module.moduleName}");
-                    }
-                    else
-                    {
-                        moduleCount--;
-                        ShowFullAlarm();
-                    }
-                    break;
-                }
-            case DeviceType.Cell:
-                {
-                    CellDataModel cell = packFactory.CreateCell(_parentModule, (++cellCount).ToString(), _prefab);
-                    if (cell != null)
-                    {
-                        OnCellCreated(cell);
-                        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Cell 생성 : {cell.cellName} (Module : {cell.parentModule.moduleName})");
-                    }
-                    else
-                    {
-                        cellCount--;
-                        ShowFullAlarm();
-                    }
-                    break;
-                }
+        IDeviceNode node = packFactory.Create(_type, _parent, name, _prefab);
+        if (node == null)
+        {
+            ShowFullAlarm();
+            return;
         }
+
+        countDictionary[_type] = count + 1;
+        OnNodeCreated(node);
+        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"{_type} 생성 : {node.Name}" + (_parent != null ? $" ({_parent.Kind} : {_parent.Name})" : string.Empty));
     }
     #endregion
 }

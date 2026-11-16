@@ -240,7 +240,7 @@ public class UI_DeviceScaleView : MonoBehaviour
             }
         }
 
-        // Cell / Module을 키울 때 부모 Module / Pack 몸체 밖으로 나가면 막는다.
+        // Pack 외의 장치를 키울 때 부모 몸체 밖으로 나가면 막는다.
         DeviceType kind = selection.Kind;
         if (kind != DeviceType.Pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
@@ -250,7 +250,7 @@ public class UI_DeviceScaleView : MonoBehaviour
                 return;
             }
 
-            string parentName = kind == DeviceType.Cell ? "Module" : "Pack";
+            string parentName = DeviceHierarchy.TryGetParentKind(kind, out DeviceType parentKind) ? parentKind.ToString() : "부모";
             string message = $"{parentName} 밖으로 벗어나 크기를 키울 수 없습니다. 최대 크기(x,y,z) : {maxSize.x:0.##}, {maxSize.y:0.##}, {maxSize.z:0.##}, 입력 : {newSize.x:0.##}, {newSize.y:0.##}, {newSize.z:0.##}";
             DebugLogManager.GenerateErrorMessage<UI_DeviceScaleView>(message);
             alarmPopupView?.Show(message);
@@ -270,7 +270,7 @@ public class UI_DeviceScaleView : MonoBehaviour
             }
         }
 
-        // Pack은 같은 Container의 다른 Pack / 단독 Module과 겹치면 막는다. 타이핑 중에는 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 현재 크기로 되돌린다.
+        // Pack은 같은 Root의 다른 Pack과 겹치면 막는다. 타이핑 중에는 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 현재 크기로 되돌린다.
         if (kind == DeviceType.Pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
         {
             if (!_log)

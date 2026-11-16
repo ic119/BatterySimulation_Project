@@ -10,7 +10,7 @@ public class UI_EditorView : MonoBehaviour
 {
     private class TreeNode
     {
-        /// <summary>이 노드가 가리키는 Pack / Module / Cell 모델. 항목을 구분하는 키로도 쓴다.</summary>
+        /// <summary>이 노드가 가리키는 장치 모델. 항목을 구분하는 키로도 쓴다.</summary>
         public IDeviceNode model;
 
         public string label;
@@ -19,7 +19,7 @@ public class UI_EditorView : MonoBehaviour
         public readonly List<TreeNode> childList = new List<TreeNode>();
         public bool expanded;
 
-        /// <summary>이 항목이 가리키는 씬 오브젝트(Pack/Module/Cell). 선택하면 이것이 보이게 된다.</summary>
+        /// <summary>이 항목이 가리키는 씬 오브젝트. 선택하면 이것이 보이게 된다.</summary>
         public Transform target;
     }
 
@@ -40,7 +40,7 @@ public class UI_EditorView : MonoBehaviour
     private TreeNode selectedNode;
     #endregion
 
-    /// <summary>줄의 삭제 버튼이 눌렸을 때 발생한다. 인자는 그 줄의 모델(PackDataModel / ModuleDataModel / CellDataModel)이다.</summary>
+    /// <summary>줄의 삭제 버튼이 눌렸을 때 발생한다. 인자는 그 줄의 모델이다.</summary>
     public event System.Action<IDeviceNode> DeleteRequested;
 
     /// <summary>줄이 추가되거나 지워져 트리 구조가 바뀌었을 때 발생한다. 선택된 항목의 자식 구조와 크기 표시를 새로 그리게 한다.</summary>
@@ -104,7 +104,7 @@ public class UI_EditorView : MonoBehaviour
     }
 
     /// <summary>
-    /// _model 항목의 Pack / Module / Cell 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
+    /// _model 항목의 이름을 _newName으로 바꾼다. 트리 줄 표시는 접두어("Pack " 등)까지 포함해 _newName 그대로가 된다.
     /// 모델 이름과 씬 오브젝트 이름에는 앞에 종류 접두어가 있으면 그것을 뺀 값을 쓴다(저장 후 불러올 때 접두어가 다시 붙기 때문).
     /// 앞뒤 공백을 뺀 이름이 비어 있거나 트리에 없는 항목이면 바꾸지 않고 false를 반환한다.
     /// </summary>
@@ -116,7 +116,7 @@ public class UI_EditorView : MonoBehaviour
             return false;
         }
 
-        // 접두어는 종류 이름(Container / Pack / Module / Cell)과 같다.
+        // 접두어는 종류 이름(Pack / ModuleAssembly / Module / ParallelAssembly / Cell)과 같다.
         string prefix = _model.Kind.ToString();
 
         string modelName = newName;
@@ -139,7 +139,7 @@ public class UI_EditorView : MonoBehaviour
     }
 
     /// <summary>
-    /// _model(Pack / Module / Cell 모델)의 줄과 그 아래 모든 자식 줄을 트리에서 지운다. 씬 오브젝트와 모델은 건드리지 않는다.
+    /// _model의 줄과 그 아래 모든 자식 줄을 트리에서 지운다. 씬 오브젝트와 모델은 건드리지 않는다.
     /// 트리에 없는 모델이면 아무 것도 하지 않는다.
     /// </summary>
     public void RemoveNode(IDeviceNode _model)
@@ -190,49 +190,18 @@ public class UI_EditorView : MonoBehaviour
         RefreshTree();
     }
 
-    /// <summary>Container를 최상위 항목으로 추가한다. 씬 오브젝트는 _container.containerPosition이다.</summary>
-    public void AddContainer(ContainerDataModel _container)
+    /// <summary>
+    /// _node를 트리에 추가한다. 부모는 _node.Parent(Pack이면 최상위), 줄 이름은 "종류 이름"(예: "Pack 1"), 씬 오브젝트는 _node.Position이다.
+    /// 부모가 트리에 없으면 최상위로 둔다.
+    /// </summary>
+    public void AddDevice(IDeviceNode _node)
     {
-        if (_container == null)
+        if (_node == null)
         {
             return;
         }
 
-        AddNode(_container, $"Container {_container.containerName}", null, _container.containerPosition);
-    }
-
-    /// <summary>Pack을 그 Container의 자식으로 추가한다. _target은 Pack의 씬 오브젝트다(PackDataModel에는 Transform이 없다).</summary>
-    public void AddPack(PackDataModel _pack, Transform _target)
-    {
-        if (_pack == null)
-        {
-            return;
-        }
-
-        AddNode(_pack, $"Pack {_pack.packName}", _pack.parentContainer, _target);
-    }
-
-    /// <summary>Module을 추가한다. _parentPack이 있으면 그 Pack의 자식, 없으면 그 Module을 담은 Container의 자식이 된다.</summary>
-    public void AddModule(ModuleDataModel _module, PackDataModel _parentPack)
-    {
-        if (_module == null)
-        {
-            return;
-        }
-
-        IDeviceNode parentKey = _parentPack != null ? (IDeviceNode)_parentPack : _module.parentContainer;
-        AddNode(_module, $"Module {_module.moduleName}", parentKey, _module.modulePosition);
-    }
-
-    /// <summary>Cell을 추가한다. 부모는 cell.parentModule이다.</summary>
-    public void AddCell(CellDataModel _cell)
-    {
-        if (_cell == null)
-        {
-            return;
-        }
-
-        AddNode(_cell, $"Cell {_cell.cellName}", _cell.parentModule, _cell.cellPosition);
+        AddNode(_node, $"{_node.Kind} {_node.Name}", _node.Parent, _node.Position);
     }
 
     private void AddNode(IDeviceNode _key, string _label, IDeviceNode _parentKey, Transform _target)
