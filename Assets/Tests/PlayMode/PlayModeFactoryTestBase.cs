@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.TestTools;
+using DeviceType = Incheol.Models.Define.DeviceType;
 
 namespace Incheol.Tests
 {
@@ -83,9 +84,26 @@ namespace Incheol.Tests
             return bounds;
         }
 
-        protected Bounds PackBodyBounds(PackDataModel _pack)
+        protected readonly Dictionary<DeviceType, GameObject> prefabs = new Dictionary<DeviceType, GameObject>();
+
+        /// <summary>표준 프리팹 5종(FactoryTestBase와 같은 크기).</summary>
+        protected void CreateStandardPrefabs()
         {
-            Assert.IsTrue(PackLayout.TryGetPackBody(_pack, factory.GetPackTransform(_pack), out Renderer body), "Pack 몸체 Renderer를 찾지 못했다.");
+            prefabs[DeviceType.Pack] = CreateBodyPrefab("PackPrefab", new Vector3(4, 1, 4));
+            prefabs[DeviceType.ModuleAssembly] = CreateBodyPrefab("ModuleAssemblyPrefab", new Vector3(2, 1, 2));
+            prefabs[DeviceType.Module] = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.ParallelAssembly] = CreateBodyPrefab("ParallelAssemblyPrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.Cell] = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 1, 0.5f));
+        }
+
+        protected IDeviceNode Make(DeviceType _kind, IDeviceNode _parent, string _name, Vector3 _size = default)
+        {
+            return factory.Create(_kind, _parent, _name, prefabs[_kind], _size);
+        }
+
+        protected static Bounds BodyBounds(IDeviceNode _node)
+        {
+            Assert.IsTrue(DeviceBody.TryGetRenderer(_node.Position, out Renderer body), "몸체 Renderer를 찾지 못했다.");
             return body.bounds;
         }
     }

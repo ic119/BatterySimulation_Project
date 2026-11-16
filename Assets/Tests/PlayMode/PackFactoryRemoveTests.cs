@@ -1,342 +1,194 @@
 using NUnit.Framework;
 using System.Collections;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.TestTools;
+using DeviceType = Incheol.Models.Define.DeviceType;
 
 namespace Incheol.Tests
 {
     public class PackFactoryRemoveTests : PlayModeFactoryTestBase
     {
-        private GameObject packPrefab;
-        private GameObject modulePrefab;
-        private GameObject cellPrefab;
+        private IDeviceNode pack;
+        private IDeviceNode moduleAssembly;
+        private IDeviceNode module;
+        private IDeviceNode parallelAssembly;
 
         [SetUp]
         public void SetUp()
         {
-            // Pack 2 x 1 x 2 에 Module 1 x 1 x 1 이 4개, Module 2 x 1 x 2 에 Cell 1 x 1 x 1 이 4개 들어간다.
-            packPrefab = CreateBodyPrefab("PackPrefab", new Vector3(2, 1, 2));
-            modulePrefab = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
-            cellPrefab = CreateCellPrefab("CellPrefab", new Vector3(1, 1, 1));
+            // Pack 4x1x4 > ModuleAssembly 2x1x2 (4개) > Module 1x1x1 (4개) > ParallelAssembly 1x1x1 (1개) > Cell 0.5x1x0.5 (4개)
+            CreateStandardPrefabs();
+            pack = Make(DeviceType.Pack, null, "1");
+            moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
+            module = Make(DeviceType.Module, moduleAssembly, "1");
+            parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
         }
 
-        private ModuleDataModel CreateModuleWithCells(PackDataModel _pack, string _name, int _cellCount)
-        {
-            GameObject bigModulePrefab = CreateBodyPrefab("BigModulePrefab", new Vector3(2, 1, 2));
-            ModuleDataModel module = factory.CreateModule(_pack, _name, _pack == null ? bigModulePrefab : modulePrefab);
-            Assert.IsNotNull(module);
-            for (int i = 0; i < _cellCount; i++)
-            {
-                Assert.IsNotNull(factory.CreateCell(module, (i + 1).ToString(), cellPrefab));
-            }
-
-            return module;
-        }
-
-        #region Remove
         [Test]
-        public void Remove_DispatchesByKind()
+        public void Remove_Cell_RemovesFromParentAndRegistry()
         {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 2);
-            CellDataModel cell = module.cellsList[0];
+            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
 
             Assert.IsTrue(factory.Remove(cell));
-            Assert.AreEqual(1, module.cellsList.Count);
 
-            Assert.IsTrue(factory.Remove(module));
-            Assert.IsFalse(factory.Remove(null));
+            Assert.AreEqual(0, parallelAssembly.Children.Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.Cell).Count);
+            Assert.IsNull(factory.Find(cell.Position));
         }
-        #endregion
 
-        #region RemoveCell
         [UnityTest]
-        public IEnumerator RemoveCell_RemovesFromModuleAndDestroysObject()
+        public IEnumerator Remove_Cell_DestroysTheSceneObject()
         {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 2);
-            CellDataModel cell = module.cellsList[0];
-            GameObject cellObject = cell.cellPosition.gameObject;
+            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            GameObject cellObject = cell.Position.gameObject;
 
-            Assert.IsTrue(factory.RemoveCell(cell));
-
-            Assert.AreEqual(1, module.cellsList.Count);
-            Assert.IsFalse(module.cellsList.Contains(cell));
+            factory.Remove(cell);
             yield return null;
-            Assert.IsTrue(cellObject == null, "Cell 오브젝트가 프레임 뒤에 파괴되어야 한다.");
+
+            Assert.IsTrue(cellObject == null, "프레임이 끝나면 Cell 오브젝트가 사라져야 한다.");
         }
 
         [Test]
-        public void RemoveCell_IsDetachedAndHiddenImmediately()
+        public void Remove_Cell_IsDetachedAndHiddenImmediately()
         {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 1);
-            Transform cellTransform = module.cellsList[0].cellPosition;
+            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            Transform cellTransform = cell.Position;
 
-            factory.RemoveCell(module.cellsList[0]);
+            factory.Remove(cell);
 
-            // Destroy는 프레임 끝에야 반영되므로, 같은 프레임의 Bounds 계산에 섞이지 않게 먼저 떼어 내고 꺼 둔다.
-            Assert.IsNull(cellTransform.parent);
+            Assert.IsNull(cellTransform.parent, "Destroy는 프레임 끝에 반영되므로 먼저 부모에서 떼어 낸다.");
             Assert.IsFalse(cellTransform.gameObject.activeSelf);
-            Assert.AreEqual(0, PackLayout.GetOccupiedBounds(module).Count);
         }
 
         [Test]
-        public void RemoveCell_SecondTimeOrNull_ReturnsFalse()
+        public void Remove_Cell_FreesItsSlotInTheSameFrame()
         {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 1);
-            CellDataModel cell = module.cellsList[0];
-
-            Assert.IsTrue(factory.RemoveCell(cell));
-            Assert.IsFalse(factory.RemoveCell(cell));
-            Assert.IsFalse(factory.RemoveCell(null));
-            Assert.IsFalse(factory.RemoveCell(new CellDataModel { cellName = "x" }));
-        }
-
-        [Test]
-        public void RemoveCell_FreesItsSlotInTheSameFrame()
-        {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 4);
-            Vector3 removedCenter = RendererBounds(module.cellsList[2].cellPosition).center;
-
-            factory.RemoveCell(module.cellsList[2]);
-            CellDataModel replacement = factory.CreateCell(module, "5", cellPrefab);
-
-            Assert.IsNotNull(replacement, "비워진 칸에 같은 프레임에도 다시 만들 수 있어야 한다.");
-            Assert.AreEqual(removedCenter.x, RendererBounds(replacement.cellPosition).center.x, Tolerance);
-            Assert.AreEqual(removedCenter.z, RendererBounds(replacement.cellPosition).center.z, Tolerance);
-        }
-        #endregion
-
-        #region RemoveModule
-        [UnityTest]
-        public IEnumerator RemoveModule_InPack_RemovesCellsAndAllLists()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel module = CreateModuleWithCells(pack, "1", 0);
-            ModuleDataModel other = factory.CreateModule(pack, "2", modulePrefab);
-            GameObject moduleObject = module.modulePosition.gameObject;
-
-            Assert.IsTrue(factory.RemoveModule(module));
-
-            Assert.IsFalse(pack.modulesList.Contains(module));
-            Assert.IsFalse(factory.Modules.Contains(module));
-            Assert.IsTrue(factory.Modules.Contains(other), "다른 Module은 남아야 한다.");
-            yield return null;
-            Assert.IsTrue(moduleObject == null);
-        }
-
-        [UnityTest]
-        public IEnumerator RemoveModule_DestroysItsCellObjects()
-        {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 2);
-            GameObject cellObject = module.cellsList[0].cellPosition.gameObject;
-
-            factory.RemoveModule(module);
-
-            yield return null;
-            Assert.IsTrue(cellObject == null, "Module 아래의 Cell 오브젝트도 함께 파괴되어야 한다.");
-        }
-
-        [Test]
-        public void RemoveModule_Standalone_RemovesFromItsContainer()
-        {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 0);
-            ContainerDataModel container = module.parentContainer;
-
-            Assert.IsTrue(factory.RemoveModule(module));
-
-            Assert.AreEqual(0, container.modulesList.Count);
-            Assert.AreEqual(0, factory.Modules.Count);
-        }
-
-        [Test]
-        public void RemoveModule_LastOne_DisablesCellCreation()
-        {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 0);
-            Assert.IsTrue(factory.CanCreateCell);
-
-            factory.RemoveModule(module);
-
-            Assert.IsFalse(factory.CanCreateCell);
-        }
-
-        [Test]
-        public void RemoveModule_UnknownOrTwice_ReturnsFalse()
-        {
-            ModuleDataModel module = CreateModuleWithCells(null, "1", 0);
-
-            Assert.IsTrue(factory.RemoveModule(module));
-            Assert.IsFalse(factory.RemoveModule(module));
-            Assert.IsFalse(factory.RemoveModule(null));
-        }
-
-        [Test]
-        public void RemoveModule_FreesItsSlotInTheSameFrame()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            for (int i = 0; i < 4; i++)
+            IDeviceNode[] cells = new IDeviceNode[4];
+            for (int i = 0; i < cells.Length; i++)
             {
-                Assert.IsNotNull(factory.CreateModule(pack, (i + 1).ToString(), modulePrefab));
+                cells[i] = Make(DeviceType.Cell, parallelAssembly, (i + 1).ToString());
             }
 
-            Vector3 removedCenter = RendererBounds(pack.modulesList[1].modulePosition).center;
+            // 가득 찬 ParallelAssembly에서 하나를 지우면 같은 프레임에 새 Cell이 그 칸에 들어간다.
+            Assert.IsTrue(factory.Remove(cells[1]));
+            IDeviceNode replacement = Make(DeviceType.Cell, parallelAssembly, "5");
 
-            factory.RemoveModule(pack.modulesList[1]);
-            ModuleDataModel replacement = factory.CreateModule(pack, "5", modulePrefab);
-
-            Assert.IsNotNull(replacement, "비워진 칸에 같은 프레임에도 다시 만들 수 있어야 한다.");
-            Vector3 center = RendererBounds(replacement.modulePosition).center;
-            Assert.AreEqual(removedCenter.x, center.x, Tolerance);
-            Assert.AreEqual(removedCenter.z, center.z, Tolerance);
+            Assert.IsNotNull(replacement);
+            Assert.AreEqual(4, parallelAssembly.Children.Count);
         }
-        #endregion
 
-        #region RemovePack
-        [UnityTest]
-        public IEnumerator RemovePack_RemovesModulesCellsAndObjects()
+        [Test]
+        public void Remove_UnknownOrTwiceOrNull_ReturnsFalse()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel module = factory.CreateModule(pack, "1", modulePrefab);
-            GameObject packObject = factory.GetPackTransform(pack).gameObject;
-            GameObject moduleObject = module.modulePosition.gameObject;
-            ContainerDataModel container = pack.parentContainer;
+            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            PackDataModel stranger = new PackDataModel { packName = "x" };
 
-            Assert.IsTrue(factory.RemovePack(pack));
+            Assert.IsTrue(factory.Remove(cell));
+            Assert.IsFalse(factory.Remove(cell));
+            Assert.IsFalse(factory.Remove(stranger));
+            Assert.IsFalse(factory.Remove(null));
+        }
 
-            Assert.AreEqual(0, factory.Packs.Count);
-            Assert.AreEqual(0, factory.Modules.Count, "Pack 안의 Module도 팩토리에서 빠져야 한다.");
-            Assert.AreEqual(0, container.packsList.Count);
-            Assert.IsNull(factory.GetPackTransform(pack));
+        [UnityTest]
+        public IEnumerator Remove_Module_RemovesEverythingBelowIt()
+        {
+            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            GameObject moduleObject = module.Position.gameObject;
+            GameObject cellObject = cell.Position.gameObject;
+
+            Assert.IsTrue(factory.Remove(module));
             yield return null;
+
+            Assert.AreEqual(0, moduleAssembly.Children.Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.Module).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.ParallelAssembly).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.Cell).Count);
+            Assert.IsTrue(moduleObject == null);
+            Assert.IsTrue(cellObject == null);
+        }
+
+        [Test]
+        public void Remove_ModuleAssembly_KeepsItsSiblings()
+        {
+            IDeviceNode sibling = Make(DeviceType.ModuleAssembly, pack, "2");
+
+            Assert.IsTrue(factory.Remove(moduleAssembly));
+
+            CollectionAssert.AreEqual(new[] { sibling }, pack.Children);
+            Assert.AreEqual(1, factory.GetNodes(DeviceType.ModuleAssembly).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.Module).Count, "지운 ModuleAssembly 아래 항목은 모두 등록부에서 빠져야 한다.");
+        }
+
+        [Test]
+        public void Remove_ModuleAssembly_FreesItsSlotInTheSameFrame()
+        {
+            IDeviceNode second = Make(DeviceType.ModuleAssembly, pack, "2");
+            Make(DeviceType.ModuleAssembly, pack, "3");
+            Make(DeviceType.ModuleAssembly, pack, "4");
+
+            Assert.IsTrue(factory.Remove(second));
+            IDeviceNode replacement = Make(DeviceType.ModuleAssembly, pack, "5");
+
+            Assert.IsNotNull(replacement);
+            Assert.AreEqual(4, pack.Children.Count);
+        }
+
+        [UnityTest]
+        public IEnumerator Remove_Pack_RemovesEverythingAndTheObject()
+        {
+            Make(DeviceType.Cell, parallelAssembly, "1");
+            GameObject packObject = pack.Position.gameObject;
+
+            Assert.IsTrue(factory.Remove(pack));
+            yield return null;
+
+            foreach (DeviceType kind in System.Enum.GetValues(typeof(DeviceType)))
+            {
+                Assert.AreEqual(0, factory.GetNodes(kind).Count, $"{kind}이(가) 등록부에 남았다.");
+            }
+
             Assert.IsTrue(packObject == null);
-            Assert.IsTrue(moduleObject == null, "Pack 아래의 Module 오브젝트도 함께 파괴되어야 한다.");
         }
 
         [Test]
-        public void RemovePack_UnknownOrTwice_ReturnsFalse()
+        public void Remove_Pack_FreesItsPlaceInRoot()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
+            IDeviceNode second = Make(DeviceType.Pack, null, "2");
+            Bounds firstBounds = BodyBounds(pack);
 
-            Assert.IsTrue(factory.RemovePack(pack));
-            Assert.IsFalse(factory.RemovePack(pack));
-            Assert.IsFalse(factory.RemovePack(null));
-            Assert.IsFalse(factory.RemovePack(new PackDataModel { packName = "x", modulesList = new System.Collections.Generic.List<ModuleDataModel>() }));
-        }
+            Assert.IsTrue(factory.Remove(pack));
+            IDeviceNode replacement = Make(DeviceType.Pack, null, "3");
 
-        [Test]
-        public void RemovePack_KeepsTheOtherPacksSlots()
-        {
-            ContainerDataModel container = factory.CreateContainer("1");
-            PackDataModel a = factory.CreatePack("1", packPrefab, default, container, 3, 1);
-            PackDataModel b = factory.CreatePack("2", packPrefab, default, container, 3, 1);
-            PackDataModel c = factory.CreatePack("3", packPrefab, default, container, 3, 1);
-            Bounds cBefore = PackBodyBounds(c);
-
-            factory.RemovePack(b);
-
-            Assert.AreEqual((0, 2), (a.slotColumn, c.slotColumn));
-            Assert.AreEqual(cBefore.center.x, PackBodyBounds(c).center.x, Tolerance, "남은 Pack은 움직이지 않아야 한다.");
-        }
-
-        [Test]
-        public void RemovePack_FreesItsGridSlot_NextPackTakesItInTheSameFrame()
-        {
-            factory.PackPadding = 1.0f;
-            ContainerDataModel container = factory.CreateContainer("1");
-            PackDataModel a = factory.CreatePack("1", packPrefab, default, container, 2, 1);
-            factory.CreatePack("2", packPrefab, default, container, 2, 1);
-            Bounds removedBounds = PackBodyBounds(a);
-
-            factory.RemovePack(a);
-            PackDataModel replacement = factory.CreatePack("3", packPrefab, default, container, 2, 1);
-
-            Assert.AreEqual((0, 0), (replacement.slotColumn, replacement.slotRow), "비워진 첫 칸을 다시 채워야 한다.");
-            Assert.AreEqual(removedBounds.min.x, PackBodyBounds(replacement).min.x, Tolerance);
-            Assert.AreEqual(removedBounds.max.z, PackBodyBounds(replacement).max.z, Tolerance);
-        }
-        #endregion
-
-        #region RemoveContainer / Clear
-        [UnityTest]
-        public IEnumerator RemoveContainer_RemovesPacksStandaloneModulesAndItself()
-        {
-            ContainerDataModel container = factory.CreateContainer("1");
-            PackDataModel packA = factory.CreatePack("1", packPrefab, default, container, 2, 1);
-            PackDataModel packB = factory.CreatePack("2", packPrefab, default, container, 2, 1);
-            factory.CreateModule(packA, "1", modulePrefab);
-            ModuleDataModel standalone = factory.CreateModule(null, "2", modulePrefab, default, container);
-            GameObject containerObject = container.containerPosition.gameObject;
-            GameObject packBObject = factory.GetPackTransform(packB).gameObject;
-            GameObject standaloneObject = standalone.modulePosition.gameObject;
-
-            // 다른 Container는 영향을 받지 않아야 한다.
-            PackDataModel otherPack = factory.CreatePack("9", packPrefab);
-
-            Assert.IsTrue(factory.RemoveContainer(container));
-
-            Assert.AreEqual(1, factory.Containers.Count);
-            Assert.AreEqual(1, factory.Packs.Count);
-            Assert.AreSame(otherPack, factory.Packs[0]);
-            Assert.AreEqual(0, factory.Modules.Count);
-            yield return null;
-            Assert.IsTrue(containerObject == null);
-            Assert.IsTrue(packBObject == null);
-            Assert.IsTrue(standaloneObject == null);
-            Assert.IsNotNull(factory.GetPackTransform(otherPack));
-        }
-
-        [Test]
-        public void RemoveContainer_UnknownOrTwice_ReturnsFalse()
-        {
-            ContainerDataModel container = factory.CreateContainer("1");
-
-            Assert.IsTrue(factory.RemoveContainer(container));
-            Assert.IsFalse(factory.RemoveContainer(container));
-            Assert.IsFalse(factory.RemoveContainer(null));
-        }
-
-        [Test]
-        public void RemoveContainer_FindContainerNoLongerFindsIt()
-        {
-            ContainerDataModel container = factory.CreateContainer("1");
-            Transform containerTransform = container.containerPosition;
-
-            factory.RemoveContainer(container);
-
-            Assert.IsNull(factory.FindContainer(containerTransform));
+            Assert.IsNotNull(replacement);
+            Assert.AreNotSame(second, replacement);
+            Assert.AreEqual(2, factory.GetNodes(DeviceType.Pack).Count);
+            Assert.AreEqual(firstBounds.size, BodyBounds(replacement).size);
         }
 
         [UnityTest]
         public IEnumerator Clear_DestroysRootAndResetsTheFactory()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            factory.CreateModule(pack, "1", modulePrefab);
+            Make(DeviceType.Cell, parallelAssembly, "1");
             GameObject rootObject = factory.Root.gameObject;
 
             factory.Clear();
-
-            Assert.AreEqual(0, factory.Containers.Count);
-            Assert.AreEqual(0, factory.Packs.Count);
-            Assert.AreEqual(0, factory.Modules.Count);
-            Assert.IsFalse(factory.CanCreateCell);
-            Assert.IsNull(factory.LastPack);
-            Assert.IsNull(factory.LastModule);
-            Assert.AreEqual(string.Empty, factory.LastFullMessage);
             yield return null;
-            Assert.IsTrue(rootObject == null, "Root 오브젝트가 파괴되어야 한다.");
 
-            // 비운 뒤에도 새로 만들 수 있고, 새 Root가 쓰인다.
-            PackDataModel again = factory.CreatePack("1", packPrefab);
-            Assert.IsNotNull(again);
-            Assert.IsTrue(factory.Root.gameObject != rootObject);
-            Assert.AreEqual(1, factory.Root.childCount);
+            Assert.IsTrue(rootObject == null);
+            foreach (DeviceType kind in System.Enum.GetValues(typeof(DeviceType)))
+            {
+                Assert.AreEqual(0, factory.GetNodes(kind).Count);
+            }
+
+            Assert.IsEmpty(factory.LastFullMessage);
         }
 
         [Test]
         public void Clear_OnEmptyFactory_DoesNothing()
         {
-            Assert.DoesNotThrow(() => factory.Clear());
-            Assert.AreEqual(0, factory.Containers.Count);
+            PackFactory empty = new PackFactory();
+
+            Assert.DoesNotThrow(() => empty.Clear());
         }
-        #endregion
     }
 }

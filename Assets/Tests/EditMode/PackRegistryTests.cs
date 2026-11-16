@@ -1,13 +1,13 @@
 using NUnit.Framework;
-using System.Collections.Generic;
 using UnityEngine;
+using DeviceType = Incheol.Models.Define.DeviceType;
 
 namespace Incheol.Tests
 {
     public class PackRegistryTests
     {
         private PackRegistry registry;
-        private readonly List<GameObject> createdList = new List<GameObject>();
+        private readonly System.Collections.Generic.List<GameObject> createdList = new System.Collections.Generic.List<GameObject>();
 
         [SetUp]
         public void SetUp()
@@ -29,159 +29,111 @@ namespace Incheol.Tests
             createdList.Clear();
         }
 
-        private Transform NewTransform(string _name)
+        private PackDataModel NewPack(string _name)
         {
-            GameObject gameObject = new GameObject(_name);
-            createdList.Add(gameObject);
-            return gameObject.transform;
-        }
-
-        private ContainerDataModel NewContainer(string _name)
-        {
-            return new ContainerDataModel
-            {
-                containerName = _name,
-                packsList = new List<PackDataModel>(),
-                modulesList = new List<ModuleDataModel>(),
-                containerPosition = NewTransform("Container_" + _name),
-            };
-        }
-
-        private static PackDataModel NewPack(string _name)
-        {
-            return new PackDataModel { packName = _name, modulesList = new List<ModuleDataModel>() };
+            GameObject packObject = new GameObject($"Pack_{_name}");
+            createdList.Add(packObject);
+            return new PackDataModel { packName = _name, packPosition = packObject.transform };
         }
 
         private ModuleDataModel NewModule(string _name)
         {
-            return new ModuleDataModel { moduleName = _name, cellsList = new List<CellDataModel>(), modulePosition = NewTransform("Module_" + _name) };
+            GameObject moduleObject = new GameObject($"Module_{_name}");
+            createdList.Add(moduleObject);
+            return new ModuleDataModel { moduleName = _name, modulePosition = moduleObject.transform };
         }
 
         [Test]
         public void StartsEmpty()
         {
-            Assert.AreEqual(0, registry.Containers.Count);
-            Assert.AreEqual(0, registry.Packs.Count);
-            Assert.AreEqual(0, registry.Modules.Count);
-            Assert.IsNull(registry.LastPack);
-            Assert.IsNull(registry.LastModule);
+            foreach (DeviceType kind in System.Enum.GetValues(typeof(DeviceType)))
+            {
+                Assert.AreEqual(0, registry.GetNodes(kind).Count);
+                Assert.IsNull(registry.GetLast(kind));
+            }
         }
 
         [Test]
-        public void Add_KeepsOrder_AndLastReturnsTheNewest()
+        public void Add_KeepsOrderPerKind_AndLastReturnsTheNewest()
         {
-            PackDataModel packA = NewPack("A");
-            PackDataModel packB = NewPack("B");
-            ModuleDataModel moduleA = NewModule("A");
-            ModuleDataModel moduleB = NewModule("B");
+            PackDataModel a = NewPack("1");
+            PackDataModel b = NewPack("2");
+            ModuleDataModel module = NewModule("1");
 
-            registry.AddPack(packA, NewTransform("PackA"));
-            registry.AddPack(packB, NewTransform("PackB"));
-            registry.AddModule(moduleA);
-            registry.AddModule(moduleB);
+            Assert.IsTrue(registry.Add(a));
+            Assert.IsTrue(registry.Add(b));
+            Assert.IsTrue(registry.Add(module));
 
-            Assert.AreEqual(2, registry.Packs.Count);
-            Assert.AreSame(packA, registry.Packs[0]);
-            Assert.AreSame(packB, registry.LastPack);
-            Assert.AreSame(moduleB, registry.LastModule);
-            Assert.IsTrue(registry.ContainsModule(moduleA));
+            CollectionAssert.AreEqual(new IDeviceNode[] { a, b }, registry.GetNodes(DeviceType.Pack));
+            Assert.AreSame(b, registry.GetLast(DeviceType.Pack));
+            Assert.AreSame(module, registry.GetLast(DeviceType.Module));
+            Assert.IsNull(registry.GetLast(DeviceType.Cell));
+        }
+
+        [Test]
+        public void Add_SameNodeTwice_IsIgnored()
+        {
+            PackDataModel pack = NewPack("1");
+
+            Assert.IsTrue(registry.Add(pack));
+            Assert.IsFalse(registry.Add(pack));
+            Assert.IsFalse(registry.Add(null));
+            Assert.AreEqual(1, registry.GetNodes(DeviceType.Pack).Count);
         }
 
         [Test]
         public void Find_ByTransform_ReturnsTheRegisteredModel()
         {
-            ContainerDataModel container = NewContainer("1");
             PackDataModel pack = NewPack("1");
-            Transform packTransform = NewTransform("Pack_1");
             ModuleDataModel module = NewModule("1");
-            registry.AddContainer(container);
-            registry.AddPack(pack, packTransform);
-            registry.AddModule(module);
+            registry.Add(pack);
+            registry.Add(module);
 
-            Assert.AreSame(container, registry.FindContainer(container.containerPosition));
-            Assert.AreSame(pack, registry.FindPack(packTransform));
-            Assert.AreSame(module, registry.FindModule(module.modulePosition));
-            Assert.AreSame(packTransform, registry.GetPackTransform(pack));
+            Assert.AreSame(pack, registry.Find(pack.packPosition));
+            Assert.AreSame(module, registry.Find(module.modulePosition));
         }
 
         [Test]
         public void Find_UnknownOrNull_ReturnsNull()
         {
-            Transform stranger = NewTransform("Stranger");
-            registry.AddPack(NewPack("1"), NewTransform("Pack_1"));
+            PackDataModel registered = NewPack("1");
+            PackDataModel stranger = NewPack("2");
+            registry.Add(registered);
 
-            Assert.IsNull(registry.FindContainer(stranger));
-            Assert.IsNull(registry.FindPack(stranger));
-            Assert.IsNull(registry.FindModule(stranger));
-            Assert.IsNull(registry.FindContainer(null));
-            Assert.IsNull(registry.FindPack(null));
-            Assert.IsNull(registry.FindModule(null));
-            Assert.IsNull(registry.GetPackTransform(null));
-            Assert.IsNull(registry.GetPackTransform(NewPack("unregistered")));
+            Assert.IsNull(registry.Find(stranger.packPosition));
+            Assert.IsNull(registry.Find(null));
         }
 
         [Test]
         public void Remove_OnlyTouchesTheRegistry()
         {
-            ContainerDataModel container = NewContainer("1");
             PackDataModel pack = NewPack("1");
-            ModuleDataModel module = NewModule("1");
-            container.packsList.Add(pack);
-            container.modulesList.Add(module);
-            registry.AddContainer(container);
-            registry.AddPack(pack, NewTransform("Pack_1"));
-            registry.AddModule(module);
+            registry.Add(pack);
 
-            Assert.IsTrue(registry.RemovePack(pack));
-            Assert.IsTrue(registry.RemoveModule(module));
-            Assert.IsTrue(registry.RemoveContainer(container));
+            Assert.IsTrue(registry.Remove(pack));
 
-            Assert.AreEqual(0, registry.Packs.Count);
-            Assert.AreEqual(0, registry.Modules.Count);
-            Assert.AreEqual(0, registry.Containers.Count);
-            Assert.AreEqual(1, container.packsList.Count, "부모의 목록은 PackRemover가 정리하므로 등록부는 건드리지 않는다.");
-            Assert.AreEqual(1, container.modulesList.Count);
-            Assert.IsTrue(container.containerPosition != null, "씬 오브젝트도 건드리지 않는다.");
+            Assert.IsFalse(registry.Contains(pack));
+            Assert.IsNull(registry.Find(pack.packPosition));
+            Assert.IsTrue(pack.packPosition != null, "씬 오브젝트는 지우지 않는다.");
         }
 
         [Test]
         public void Remove_Unregistered_ReturnsFalse()
         {
-            Assert.IsFalse(registry.RemovePack(NewPack("x")));
-            Assert.IsFalse(registry.RemoveModule(NewModule("x")));
-            Assert.IsFalse(registry.RemoveContainer(NewContainer("x")));
-            Assert.IsFalse(registry.ContainsContainer(NewContainer("y")));
-        }
-
-        [Test]
-        public void TryUnregisterPackTransform_ReturnsItOnce()
-        {
-            PackDataModel pack = NewPack("1");
-            Transform packTransform = NewTransform("Pack_1");
-            registry.AddPack(pack, packTransform);
-
-            Assert.IsTrue(registry.TryUnregisterPackTransform(pack, out Transform first));
-            Assert.AreSame(packTransform, first);
-            Assert.IsFalse(registry.TryUnregisterPackTransform(pack, out Transform second));
-            Assert.IsNull(second);
-            Assert.IsFalse(registry.TryUnregisterPackTransform(null, out _));
-            Assert.IsNull(registry.GetPackTransform(pack));
+            Assert.IsFalse(registry.Remove(NewPack("1")));
+            Assert.IsFalse(registry.Remove(null));
         }
 
         [Test]
         public void Clear_EmptiesEverything()
         {
-            PackDataModel pack = NewPack("1");
-            registry.AddContainer(NewContainer("1"));
-            registry.AddPack(pack, NewTransform("Pack_1"));
-            registry.AddModule(NewModule("1"));
+            registry.Add(NewPack("1"));
+            registry.Add(NewModule("1"));
 
             registry.Clear();
 
-            Assert.AreEqual(0, registry.Containers.Count);
-            Assert.AreEqual(0, registry.Packs.Count);
-            Assert.AreEqual(0, registry.Modules.Count);
-            Assert.IsNull(registry.GetPackTransform(pack));
+            Assert.AreEqual(0, registry.GetNodes(DeviceType.Pack).Count);
+            Assert.AreEqual(0, registry.GetNodes(DeviceType.Module).Count);
         }
     }
 }

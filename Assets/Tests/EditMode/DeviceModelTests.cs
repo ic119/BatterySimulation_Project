@@ -38,13 +38,14 @@ namespace Incheol.Tests
         {
             IDeviceNode[] nodeArray =
             {
-                new ContainerDataModel { containerName = "c" },
                 new PackDataModel { packName = "p" },
+                new ModuleAssemblyDataModel { moduleAssemblyName = "ma" },
                 new ModuleDataModel { moduleName = "m" },
+                new ParallelAssemblyDataModel { parallelAssemblyName = "pa" },
                 new CellDataModel { cellName = "e" },
             };
-            DeviceType[] kindArray = { DeviceType.Container, DeviceType.Pack, DeviceType.Module, DeviceType.Cell };
-            string[] nameArray = { "c", "p", "m", "e" };
+            DeviceType[] kindArray = { DeviceType.Pack, DeviceType.ModuleAssembly, DeviceType.Module, DeviceType.ParallelAssembly, DeviceType.Cell };
+            string[] nameArray = { "p", "ma", "m", "pa", "e" };
 
             for (int i = 0; i < nodeArray.Length; i++)
             {
@@ -56,19 +57,22 @@ namespace Incheol.Tests
         [Test]
         public void Name_Setter_WritesTheUnderlyingField()
         {
-            ContainerDataModel container = new ContainerDataModel();
             PackDataModel pack = new PackDataModel();
+            ModuleAssemblyDataModel moduleAssembly = new ModuleAssemblyDataModel();
             ModuleDataModel module = new ModuleDataModel();
+            ParallelAssemblyDataModel parallelAssembly = new ParallelAssemblyDataModel();
             CellDataModel cell = new CellDataModel();
 
-            ((IDeviceNode)container).Name = "c";
             ((IDeviceNode)pack).Name = "p";
+            ((IDeviceNode)moduleAssembly).Name = "ma";
             ((IDeviceNode)module).Name = "m";
+            ((IDeviceNode)parallelAssembly).Name = "pa";
             ((IDeviceNode)cell).Name = "e";
 
-            Assert.AreEqual("c", container.containerName);
             Assert.AreEqual("p", pack.packName);
+            Assert.AreEqual("ma", moduleAssembly.moduleAssemblyName);
             Assert.AreEqual("m", module.moduleName);
+            Assert.AreEqual("pa", parallelAssembly.parallelAssemblyName);
             Assert.AreEqual("e", cell.cellName);
         }
         #endregion

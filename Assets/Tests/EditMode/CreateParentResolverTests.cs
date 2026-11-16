@@ -7,244 +7,152 @@ namespace Incheol.Tests
 {
     public class CreateParentResolverTests : FactoryTestBase
     {
-        private GameObject packPrefab;
-        private GameObject modulePrefab;
-        private GameObject cellPrefab;
         private DeviceSelection selection;
+
+        // 한 줄 구조: Pack > ModuleAssembly > Module > ParallelAssembly > Cell
+        private IDeviceNode pack;
+        private IDeviceNode moduleAssembly;
+        private IDeviceNode module;
+        private IDeviceNode parallelAssembly;
+        private IDeviceNode cell;
 
         [SetUp]
         public void SetUp()
         {
-            packPrefab = CreateBodyPrefab("PackPrefab", new Vector3(2, 1, 2));
-            modulePrefab = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
-            cellPrefab = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 0.5f, 0.5f));
+            CreateStandardPrefabs();
             selection = new DeviceSelection();
         }
 
-        private CreateParentResolver.Result Resolve(DeviceType _type, System.Func<ContainerDataModel, string> _fullCheck = null)
+        private void BuildChain()
         {
-            return CreateParentResolver.Resolve(_type, selection, factory, _fullCheck);
+            pack = Make(DeviceType.Pack, null, "1");
+            moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
+            module = Make(DeviceType.Module, moduleAssembly, "1");
+            parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
+            cell = Make(DeviceType.Cell, parallelAssembly, "1");
+        }
+
+        private CreateParentResolver.Result Resolve(DeviceType _type)
+        {
+            return CreateParentResolver.Resolve(_type, selection, factory);
+        }
+
+        private void Select(IDeviceNode _node)
+        {
+            selection.Set(_node, _node.Position);
         }
 
         #region 선택 없음
         [Test]
-        public void NoSelection_UsesTheLatestPackAndModule()
+        public void Pack_NeverHasAParent()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel module = factory.CreateModule(pack, "1", modulePrefab);
+            BuildChain();
+            Select(cell);
 
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
+            CreateParentResolver.Result result = Resolve(DeviceType.Pack);
 
             Assert.IsTrue(result.success);
-            Assert.AreSame(pack, result.parentPack);
-            Assert.AreSame(module, result.parentModule);
-            Assert.IsNull(result.parentContainer);
+            Assert.IsNull(result.parent);
+        }
+
+        [Test]
+        public void NoSelection_UsesTheLatestOfTheParentKind()
+        {
+            BuildChain();
+
+            Assert.AreSame(pack, Resolve(DeviceType.ModuleAssembly).parent);
+            Assert.AreSame(moduleAssembly, Resolve(DeviceType.Module).parent);
+            Assert.AreSame(module, Resolve(DeviceType.ParallelAssembly).parent);
+            Assert.AreSame(parallelAssembly, Resolve(DeviceType.Cell).parent);
+        }
+
+        [Test]
+        public void NoSelection_WithoutAnyParent_Fails()
+        {
+            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
+
+            Assert.IsFalse(result.success);
+            Assert.IsNotEmpty(result.message);
         }
 
         [Test]
         public void NullSelection_BehavesLikeNoSelection()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
+            BuildChain();
 
-            CreateParentResolver.Result result = CreateParentResolver.Resolve(DeviceType.Module, null, factory);
-
-            Assert.IsTrue(result.success);
-            Assert.AreSame(pack, result.parentPack);
-        }
-
-        [Test]
-        public void SelectionOfAnUnknownModel_IsIgnored()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            GameObject stranger = new GameObject("Stranger");
-            selection.Set(new PackDataModel { packName = "x" }, stranger.transform);
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Module);
-            Object.DestroyImmediate(stranger);
+            CreateParentResolver.Result result = CreateParentResolver.Resolve(DeviceType.ModuleAssembly, null, factory);
 
             Assert.IsTrue(result.success);
-            Assert.AreSame(pack, result.parentPack);
+            Assert.AreSame(pack, result.parent);
         }
         #endregion
 
-        #region Container 선택
+        #region 선택한 항목이 바로 위 부모
         [Test]
-        public void Container_Pack_UsesTheSelectedContainer()
+        public void SelectedParentKind_IsTheParent()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack.parentContainer, pack.parentContainer.containerPosition);
+            BuildChain();
+            IDeviceNode otherPack = Make(DeviceType.Pack, null, "2");
+            IDeviceNode otherModuleAssembly = Make(DeviceType.ModuleAssembly, otherPack, "1");
+            Select(otherModuleAssembly);
 
-            CreateParentResolver.Result result = Resolve(DeviceType.Pack, _container => null);
+            Assert.AreSame(otherModuleAssembly, Resolve(DeviceType.Module).parent, "마지막으로 만든 것이 아니라 선택한 항목이 부모여야 한다.");
+        }
+        #endregion
 
-            Assert.IsTrue(result.success);
-            Assert.AreSame(pack.parentContainer, result.parentContainer);
+        #region 선택한 항목이 조상
+        [Test]
+        public void SelectedAncestor_UsesTheLastChildDownTheChain()
+        {
+            BuildChain();
+            Select(pack);
+
+            Assert.AreSame(moduleAssembly, Resolve(DeviceType.Module).parent);
+            Assert.AreSame(module, Resolve(DeviceType.ParallelAssembly).parent);
+            Assert.AreSame(parallelAssembly, Resolve(DeviceType.Cell).parent);
         }
 
         [Test]
-        public void Container_Pack_WhenFull_FailsWithAlarm()
+        public void SelectedAncestor_WithoutIntermediateChild_Fails()
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack.parentContainer, pack.parentContainer.containerPosition);
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Pack, _container => "가득 참");
-
-            Assert.IsFalse(result.success);
-            Assert.AreEqual("가득 참", result.message);
-            Assert.IsTrue(result.showAlarm);
-        }
-
-        [Test]
-        public void Container_Pack_WithoutFullCheck_Succeeds()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack.parentContainer, pack.parentContainer.containerPosition);
-
-            Assert.IsTrue(Resolve(DeviceType.Pack).success);
-        }
-
-        [Test]
-        public void Container_Module_UsesTheLastPackOfThatContainer()
-        {
-            factory.CreatePack("1", packPrefab);
-            PackDataModel second = factory.CreatePack("2", packPrefab);
-            selection.Set(second.parentContainer, second.parentContainer.containerPosition);
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Module);
-
-            Assert.IsTrue(result.success);
-            Assert.AreSame(second, result.parentPack);
-            Assert.AreSame(second.parentContainer, result.parentContainer);
-        }
-
-        [Test]
-        public void Container_Module_WithoutPack_MakesAStandaloneModule()
-        {
-            PackDataModel latest = factory.CreatePack("1", packPrefab);
-            ContainerDataModel empty = factory.CreateContainer("empty");
-            selection.Set(empty, empty.containerPosition);
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Module);
-
-            Assert.IsTrue(result.success);
-            Assert.IsNull(result.parentPack, "선택한 Container에 Pack이 없으면 최근 Pack이 아니라 단독 Module이어야 한다.");
-            Assert.AreSame(empty, result.parentContainer);
-            Assert.AreNotSame(latest, result.parentPack);
-        }
-
-        [Test]
-        public void Container_Cell_FailsWithoutAlarm()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack.parentContainer, pack.parentContainer.containerPosition);
+            pack = Make(DeviceType.Pack, null, "1");
+            Select(pack);
 
             CreateParentResolver.Result result = Resolve(DeviceType.Cell);
 
             Assert.IsFalse(result.success);
-            Assert.IsFalse(result.showAlarm);
-            Assert.IsNotEmpty(result.message);
-        }
-        #endregion
-
-        #region Pack 선택
-        [Test]
-        public void Pack_Module_UsesTheSelectedPack()
-        {
-            factory.CreatePack("1", packPrefab);
-            PackDataModel selected = factory.CreatePack("2", packPrefab);
-            factory.CreatePack("3", packPrefab);
-            selection.Set(selected, factory.GetPackTransform(selected));
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Module);
-
-            Assert.IsTrue(result.success);
-            Assert.AreSame(selected, result.parentPack);
-        }
-
-        [Test]
-        public void Pack_Cell_UsesTheLastModuleOfThatPack()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            factory.CreateModule(pack, "1", modulePrefab);
-            ModuleDataModel last = factory.CreateModule(pack, "2", modulePrefab);
-            selection.Set(pack, factory.GetPackTransform(pack));
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
-
-            Assert.IsTrue(result.success);
-            Assert.AreSame(last, result.parentModule);
-        }
-
-        [Test]
-        public void Pack_Cell_WithoutModule_Fails()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack, factory.GetPackTransform(pack));
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
-
-            Assert.IsFalse(result.success);
-            Assert.IsFalse(result.showAlarm);
-        }
-
-        [Test]
-        public void Pack_Pack_Fails()
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            selection.Set(pack, factory.GetPackTransform(pack));
-
-            CreateParentResolver.Result result = Resolve(DeviceType.Pack);
-
-            Assert.IsFalse(result.success);
+            StringAssert.Contains("Pack", result.message);
             Assert.IsFalse(result.showAlarm);
         }
         #endregion
 
-        #region Module 선택
-        [Test]
-        public void Module_Cell_UsesTheSelectedModule()
+        #region 선택한 항목이 부모보다 아래
+        [TestCase(DeviceType.Cell, DeviceType.Cell)]
+        [TestCase(DeviceType.Cell, DeviceType.Module)]
+        [TestCase(DeviceType.ParallelAssembly, DeviceType.Module)]
+        [TestCase(DeviceType.Module, DeviceType.ModuleAssembly)]
+        public void SelectedBelowTheParentKind_FailsAndNamesTheType(DeviceType _selected, DeviceType _create)
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel selected = factory.CreateModule(pack, "1", modulePrefab);
-            factory.CreateModule(pack, "2", modulePrefab);
-            selection.Set(selected, selected.modulePosition);
+            BuildChain();
+            Select(FindOfKind(_selected));
 
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
-
-            Assert.IsTrue(result.success);
-            Assert.AreSame(selected, result.parentModule);
-        }
-
-        [TestCase(DeviceType.Pack)]
-        [TestCase(DeviceType.Module)]
-        public void Module_PackOrModule_FailsAndNamesTheType(DeviceType _type)
-        {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel module = factory.CreateModule(pack, "1", modulePrefab);
-            selection.Set(module, module.modulePosition);
-
-            CreateParentResolver.Result result = Resolve(_type);
+            CreateParentResolver.Result result = Resolve(_create);
 
             Assert.IsFalse(result.success);
-            Assert.IsFalse(result.showAlarm);
-            StringAssert.Contains(_type.ToString(), result.message);
+            StringAssert.Contains(_create.ToString(), result.message);
+            StringAssert.Contains(_selected.ToString(), result.message);
         }
-        #endregion
 
-        #region Cell 선택
-        [TestCase(DeviceType.Pack)]
-        [TestCase(DeviceType.Module)]
-        [TestCase(DeviceType.Cell)]
-        public void Cell_Anything_Fails(DeviceType _type)
+        private IDeviceNode FindOfKind(DeviceType _kind)
         {
-            PackDataModel pack = factory.CreatePack("1", packPrefab);
-            ModuleDataModel module = factory.CreateModule(pack, "1", modulePrefab);
-            CellDataModel cell = factory.CreateCell(module, "1", cellPrefab);
-            selection.Set(cell, cell.cellPosition);
-
-            CreateParentResolver.Result result = Resolve(_type);
-
-            Assert.IsFalse(result.success);
-            Assert.IsFalse(result.showAlarm);
+            switch (_kind)
+            {
+                case DeviceType.Pack: return pack;
+                case DeviceType.ModuleAssembly: return moduleAssembly;
+                case DeviceType.Module: return module;
+                case DeviceType.ParallelAssembly: return parallelAssembly;
+                default: return cell;
+            }
         }
         #endregion
     }

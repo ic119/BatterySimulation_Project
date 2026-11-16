@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using DeviceType = Incheol.Models.Define.DeviceType;
 
 namespace Incheol.Tests
 {
@@ -98,9 +99,30 @@ namespace Incheol.Tests
             LogAssert.Expect(LogType.Error, new Regex("Destroy may not be called from edit mode"));
         }
 
-        protected Bounds PackBodyBounds(PackDataModel _pack)
+        /// <summary>
+        /// 표준 프리팹 5종. Pack 4x1x4 안에 ModuleAssembly 2x1x2가 4개, ModuleAssembly 안에 Module 1x1x1이 4개,
+        /// Module 안에 ParallelAssembly 1x1x1이 1개, ParallelAssembly 안에 Cell 0.5x1x0.5가 4개 들어간다.
+        /// </summary>
+        protected readonly Dictionary<DeviceType, GameObject> prefabs = new Dictionary<DeviceType, GameObject>();
+
+        protected void CreateStandardPrefabs()
         {
-            Assert.IsTrue(PackLayout.TryGetPackBody(_pack, factory.GetPackTransform(_pack), out Renderer body), "Pack 몸체 Renderer를 찾지 못했다.");
+            prefabs[DeviceType.Pack] = CreateBodyPrefab("PackPrefab", new Vector3(4, 1, 4));
+            prefabs[DeviceType.ModuleAssembly] = CreateBodyPrefab("ModuleAssemblyPrefab", new Vector3(2, 1, 2));
+            prefabs[DeviceType.Module] = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.ParallelAssembly] = CreateBodyPrefab("ParallelAssemblyPrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.Cell] = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 1, 0.5f));
+        }
+
+        /// <summary>_kind의 표준 프리팹으로 _parent 아래에 장치를 만든다.</summary>
+        protected IDeviceNode Make(DeviceType _kind, IDeviceNode _parent, string _name, Vector3 _size = default)
+        {
+            return factory.Create(_kind, _parent, _name, prefabs[_kind], _size);
+        }
+
+        protected static Bounds BodyBounds(IDeviceNode _node)
+        {
+            Assert.IsTrue(DeviceBody.TryGetRenderer(_node.Position, out Renderer body), "몸체 Renderer를 찾지 못했다.");
             return body.bounds;
         }
 
