@@ -2,11 +2,8 @@ using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem;
 
 namespace Incheol.Presenter
 {
@@ -81,11 +78,6 @@ namespace Incheol.Presenter
                 () => DebugLogManager.GenerateErrorMessage<MainSceneManager>("UI_MainScene 프리팹 로드 실패"));
         }
 
-        private void Update()
-        {
-            HandleCreatePackKey();
-        }
-
         private void OnDestroy()
         {
             selection.Changed -= OnSelectionChanged;
@@ -136,27 +128,6 @@ namespace Incheol.Presenter
         #endregion
 
         #region Method
-        /// <summary>
-        /// A키를 누르면 Pack(과 그 아래 ModuleAssembly > Module > ParallelAssembly > Cell)을 만든다. 생성 버튼과 같은 경로를 쓴다.
-        /// 이름 변경 같은 입력 필드에 글자를 치는 중이면 무시한다.
-        /// </summary>
-        private void HandleCreatePackKey()
-        {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null || !keyboard.aKey.wasPressedThisFrame || mainSceneView == null)
-            {
-                return;
-            }
-
-            GameObject focused = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
-            if (focused != null && focused.GetComponent<TMP_InputField>() != null)
-            {
-                return;
-            }
-
-            mainSceneView.CreatePack(true);
-        }
-
         /// <summary>
         /// 탭이 바뀌면 만들어 둔 오브젝트, 두 탭의 트리, 선택(DeviceSelection)을 모두 처음 상태로 되돌린다.
         /// 선택 해제와 카메라 복귀는 mainSceneView.ResetAll이 알리는 SelectionClearRequested에서 처리한다.

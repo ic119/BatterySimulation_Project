@@ -53,6 +53,7 @@ public class UI_MainSceneView : MonoBehaviour
     };
 
     private readonly PackFactory packFactory = new PackFactory();
+    private readonly CellHandler cellHandler = new CellHandler();
 
     // 같은 루트(UI_MainScene)에 붙어 있는 트리 뷰. 생성된 장치를 여기에 알린다.
     private UI_EditorView editorView;
@@ -543,6 +544,74 @@ public class UI_MainSceneView : MonoBehaviour
         {
             PackSelectRequested?.Invoke(pack);
         }
+    }
+
+    /// <summary>
+    /// 기준 Cell 옆에 새 Cell을 하나 만든다. _direction은 월드 +x(Vector3.right) 또는 +z(Vector3.forward)다.
+    /// 기준 Cell은 선택된 Cell이 있으면 그것, 없으면 가장 최근에 만든 Cell이고, 새 Cell은 기준 Cell과 같은 부모 아래에 같은 크기로 만든다.
+    /// 그 방향의 바로 옆자리가 이미 차 있으면 같은 방향으로 한 칸씩 더 가서 첫 빈 자리에 놓고, 부모 몸체 안에 빈 자리가 없으면 만들지 않고 알람으로 알린다.
+    /// 기본 칸 채우기(뒤쪽 -z, 다음 줄 +x)와 달리 방향을 직접 정하는 생성이다. 배치 공식과 생성은 CellHandler.StackingXAxis(+x) / StackingZAxis(+z)가 맡는다.
+    /// 부모에 몸체(Renderer)가 없으면(예: ParallelAssembly) 내부 공간 검사는 건너뛰고, 일정한 간격으로 나열한다. x는 Body끼리 맞닿는 간격(중심 간격 = Cell x 크기), z는 Tag(PlusTag / MinusTag)끼리 맞닿는 간격(중심 간격 = Tag까지 포함한 Cell 길이)이다.
+    /// </summary>
+    public void CreateCellBeside(Vector3 _direction)
+    {
+        int axis;
+        if (_direction.x > 0.5f)
+        {
+            axis = 0;
+        }
+        else if (_direction.z > 0.5f)
+        {
+            axis = 2;
+        }
+        else
+        {
+            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"CreateCellBeside는 +x 또는 +z 방향만 지원합니다 : {_direction}");
+            return;
+        }
+
+        IDeviceNode reference = selection != null && selection.Model != null && selection.Model.Kind == DeviceType.Cell
+            ? selection.Model
+            : packFactory.GetLast(DeviceType.Cell);
+        if (reference == null || reference.Position == null || reference.Parent == null)
+        {
+            DebugLogManager.GenerateWarningMessage<UI_MainSceneView>("CreateCellBeside : 기준이 될 Cell이 없습니다(Pack 생성은 프리팹을 불러오는 동안 비동기라, 생성 직후에는 아직 없을 수 있습니다).");
+            ShowAlarm("기준이 될 Cell이 없습니다. 먼저 Cell을 만들어 주세요.");
+            return;
+        }
+
+        string key = GetPrefabKey(DeviceType.Cell).ToString();
+        AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
+            key,
+            prefab => OnCellBesidePrefabLoaded(prefab, reference, axis),
+            () => DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{key} 로드 실패"));
+    }
+
+    /// <summary>
+    /// 기준 Cell(_reference) 옆에 Cell을 하나 쌓는다. _axis가 0이면 CellHandler.StackingXAxis(+x), 2이면 StackingZAxis(+z)다.
+    /// 배치 공식과 생성은 CellHandler가 맡고, 이 뷰는 이름 번호, 트리 등록, 실패 안내(알람)만 맡는다.
+    /// 프리팹을 기다리는 사이 기준 Cell이 지워졌을 수 있는데, 그 확인도 CellHandler가 한다.
+    /// </summary>
+    private void OnCellBesidePrefabLoaded(GameObject _prefab, IDeviceNode _reference, int _axis)
+    {
+        ApplyPadding();
+
+        countDictionary.TryGetValue(DeviceType.Cell, out int count);
+        string name = (count + 1).ToString();
+
+        string failMessage;
+        IDeviceNode node = _axis == 0
+            ? cellHandler.StackingXAxis(packFactory, _reference, _prefab, name, cellPadding, out failMessage)
+            : cellHandler.StackingZAxis(packFactory, _reference, _prefab, name, cellPadding, out failMessage);
+        if (node == null)
+        {
+            ShowAlarm(failMessage);
+            return;
+        }
+
+        countDictionary[DeviceType.Cell] = count + 1;
+        OnNodeCreated(node);
+        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Cell 생성({(_axis == 0 ? "+x" : "+z")} 방향) : {node.Name} ({node.Parent.Kind} : {node.Parent.Name})");
     }
 
     /// <summary>_parent는 클릭 시점에 CreateParentResolver로 정해진 부모다(프리팹 로드를 기다리는 사이 선택이 바뀌어도 그대로 쓴다).</summary>
