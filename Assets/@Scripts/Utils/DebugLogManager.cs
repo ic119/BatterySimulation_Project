@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Incheol.Utils
 {
-    public class DebugLogManager : MonoBehaviour
+    public class DebugLogManager
     {
         public static void GenerateLogMessage<T>(string message)
         {
