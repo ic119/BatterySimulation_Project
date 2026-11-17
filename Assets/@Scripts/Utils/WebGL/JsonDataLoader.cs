@@ -30,6 +30,9 @@ namespace Incheol.Modules
         public bool isReactParsing = false;
         public bool isReactParsed = false;
 
+        /// <summary>React 데이터 파싱이 끝나 jsonData에 반영된 직후에 발생한다. 인자는 파싱된 저장 데이터. 구독하기 전에 이미 끝났다면 isReactParsed로 확인한다.</summary>
+        public event Action<JsonDataController.SaveJson> ReactParsed;
+
         /// <summary>SendUnityReady 1회만 호출용 (JsonDataLoader 인스턴스 생성 후 React에 알림)</summary>
         private static bool _hasSentUnityReady;
 
@@ -61,6 +64,7 @@ namespace Incheol.Modules
         protected override void OnDestroy()
         {
             CancelReactParse();
+            ReactParsed = null;
             base.OnDestroy();
         }
         #endregion
@@ -300,6 +304,7 @@ namespace Incheol.Modules
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>($"React JsonData 파싱 완료 (packs={packs}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
                         isReactParsing = false;
                         isReactParsed = true;
+                        ReactParsed?.Invoke(jsonData);
                     },
                     token);
             }

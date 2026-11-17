@@ -329,6 +329,25 @@ public class UI_MainSceneView : MonoBehaviour
         LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs => BuildFromJson(data, prefabs));
     }
 
+    /// <summary>
+    /// 이미 읽은 저장 데이터(React가 보낸 것 등)로 모든 장치를 다시 만든다. 프리팹을 불러온 뒤 만들고, 다 만들면 _onBuilt를 부른다.
+    /// 프리팹 로드가 실패하면 _onBuilt는 불리지 않는다.
+    /// </summary>
+    public void LoadFromSaveJson(JsonDataController.SaveJson _data, System.Action _onBuilt = null)
+    {
+        if (_data == null)
+        {
+            ShowAlarm("불러올 데이터가 없습니다.");
+            return;
+        }
+
+        LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs =>
+        {
+            BuildFromJson(_data, prefabs);
+            _onBuilt?.Invoke();
+        });
+    }
+
     /// <summary>DropdownDeviceTypes[_index]부터 끝까지 프리팹을 차례로 불러와 _prefabs에 담고, 다 불러오면 _done을 부른다. 하나라도 실패하면 로그만 남기고 멈춘다.</summary>
     private void LoadPrefabsFrom(int _index, Dictionary<DeviceType, GameObject> _prefabs, System.Action<Dictionary<DeviceType, GameObject>> _done)
     {
