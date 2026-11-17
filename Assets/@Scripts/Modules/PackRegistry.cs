@@ -11,6 +11,9 @@ public class PackRegistry
 {
     private readonly Dictionary<DeviceType, List<IDeviceNode>> nodeDictionary = new Dictionary<DeviceType, List<IDeviceNode>>();
 
+    // deviceId로 모델을 바로 찾기 위한 색인. deviceId가 비어 있는 모델은 넣지 않는다.
+    private readonly Dictionary<string, IDeviceNode> deviceIdDictionary = new Dictionary<string, IDeviceNode>();
+
     public PackRegistry()
     {
         foreach (DeviceType kind in System.Enum.GetValues(typeof(DeviceType)))
@@ -33,13 +36,31 @@ public class PackRegistry
         }
 
         nodeDictionary[_node.Kind].Add(_node);
+
+        string deviceId = _node.Values != null ? _node.Values.deviceId : null;
+        if (!string.IsNullOrEmpty(deviceId))
+        {
+            deviceIdDictionary[deviceId] = _node;
+        }
+
         return true;
     }
 
     /// <summary>등록부에서만 뺀다(씬 오브젝트와 부모의 목록은 건드리지 않는다). 등록되어 있지 않았으면 false.</summary>
     public bool Remove(IDeviceNode _node)
     {
-        return _node != null && nodeDictionary[_node.Kind].Remove(_node);
+        if (_node == null || !nodeDictionary[_node.Kind].Remove(_node))
+        {
+            return false;
+        }
+
+        string deviceId = _node.Values != null ? _node.Values.deviceId : null;
+        if (!string.IsNullOrEmpty(deviceId) && deviceIdDictionary.TryGetValue(deviceId, out IDeviceNode registered) && registered == _node)
+        {
+            deviceIdDictionary.Remove(deviceId);
+        }
+
+        return true;
     }
 
     public bool Contains(IDeviceNode _node)
@@ -76,8 +97,22 @@ public class PackRegistry
         return null;
     }
 
+    /// <summary>_deviceId로 등록된 모델. 비어 있거나 등록되지 않았으면 false.</summary>
+    public bool TryGetByDeviceId(string _deviceId, out IDeviceNode _node)
+    {
+        _node = null;
+        return !string.IsNullOrEmpty(_deviceId) && deviceIdDictionary.TryGetValue(_deviceId, out _node);
+    }
+
+    public bool ContainsDeviceId(string _deviceId)
+    {
+        return !string.IsNullOrEmpty(_deviceId) && deviceIdDictionary.ContainsKey(_deviceId);
+    }
+
     public void Clear()
     {
+        deviceIdDictionary.Clear();
+
         foreach (List<IDeviceNode> list in nodeDictionary.Values)
         {
             list.Clear();

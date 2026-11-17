@@ -38,4 +38,11 @@
         ParallelAssembly,
         Cell
     }
+
+    public enum CellType
+    {
+        Cylindrical,
+        Pouch,
+        Prismatic
+    }
 }

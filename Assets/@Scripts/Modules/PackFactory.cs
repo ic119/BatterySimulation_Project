@@ -131,6 +131,12 @@ public class PackFactory
         return registry.Find(_transform);
     }
 
+    /// <summary>React가 쓰는 deviceId로 모델을 찾는다. 비어 있거나 이 팩토리가 만든 것이 아니면 null.</summary>
+    public IDeviceNode FindByDeviceId(string _deviceId)
+    {
+        return registry.TryGetByDeviceId(_deviceId, out IDeviceNode node) ? node : null;
+    }
+
     /// <summary>_prefab이 있으면 인스턴스화하고, 없으면 빈 GameObject를 만든다.</summary>
     private static GameObject Spawn(GameObject _prefab, string _objectName)
     {
@@ -159,9 +165,16 @@ public class PackFactory
     /// _prefab을 주면 그것을 인스턴스화한다. _size가 주어지면 칸을 찾기 전에 그 크기로 맞추고, _bodyCenter가 주어지면(저장된 파일을 불러올 때) 칸을 찾지 않고 저장 당시 자리에 그대로 둔다.
     /// 부모 몸체 안에 놓을 칸이 없으면 만들지 않고 null을 돌려준다(LastFullMessage에 안내 문구가 담긴다).
     /// </summary>
-    public IDeviceNode Create(DeviceType _kind, IDeviceNode _parent, string _name, GameObject _prefab = null, Vector3 _size = default, Vector3? _bodyCenter = null)
+    public IDeviceNode Create(DeviceType _kind, IDeviceNode _parent, string _name, GameObject _prefab = null, Vector3 _size = default, Vector3? _bodyCenter = null, string _deviceId = null)
     {
         LastFullMessage = string.Empty;
+
+        // deviceId는 React가 장치를 가리키는 열쇠라 겹치면 안 된다. 비어 있으면(Unity에서 직접 만든 장치) 검사하지 않는다.
+        if (registry.ContainsDeviceId(_deviceId))
+        {
+            DebugLogManager.GenerateErrorMessage<PackFactory>($"이미 같은 deviceId가 있어 {_kind}을(를) 만들지 않습니다. deviceId : {_deviceId}, {_kind} : {_name}");
+            return null;
+        }
 
         bool hasParentKind = DeviceHierarchy.TryGetParentKind(_kind, out DeviceType parentKind);
         if (hasParentKind)
@@ -225,7 +238,9 @@ public class PackFactory
         }
 
         IDeviceNode node = NewNode(_kind, _parent, _name, itemObject.transform);
+        node.Values.deviceId = _deviceId;
         registry.Add(node);
+        node.Values.Capture(itemObject.transform);
 
         if (hasParentKind && !PackLayout.IsInsideParent(itemObject.transform, out Vector3 overflow))
         {
@@ -233,6 +248,19 @@ public class PackFactory
         }
 
         return node;
+    }
+
+    /// <summary>만들어 둔 모든 장치 모델의 값(위치, 크기, 몸체 중심, 자식 간격)을 씬의 현재 상태로 다시 채운다. 크기나 간격을 바꾼 뒤, 저장하기 전에 부른다.</summary>
+    public void RefreshValues()
+    {
+        foreach (DeviceType kind in System.Enum.GetValues(typeof(DeviceType)))
+        {
+            IReadOnlyList<IDeviceNode> nodes = GetNodes(kind);
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                nodes[i].Values.Capture(nodes[i].Position);
+            }
+        }
     }
 
     /// <summary>_kind에 맞는 모델을 만들어 _parent의 자식 목록에 넣는다.</summary>

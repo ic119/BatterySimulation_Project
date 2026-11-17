@@ -17,6 +17,9 @@ public interface IDeviceNode
     /// <summary>이 모델의 씬 오브젝트. 저장하지 않으며 만들어지기 전에는 null.</summary>
     Transform Position { get; }
 
+    /// <summary>이 모델이 들고 있는 위치, 크기, 몸체 중심, 자식 간격. 생성할 때 채워지고 Capture로 갱신한다.</summary>
+    DeviceNodeValues Values { get; }
+
     /// <summary>바로 위 계층의 모델. Pack이면 null.</summary>
     IDeviceNode Parent { get; }
 

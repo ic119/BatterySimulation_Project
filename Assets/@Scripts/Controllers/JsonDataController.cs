@@ -27,6 +27,8 @@ public class JsonDataController
     [Serializable]
     public class NodeJson
     {
+        /// <summary>React와 주고받는 장치 식별자. 없는 파일(예전 저장본)은 비어 있다.</summary>
+        public string deviceId;
         public string name;
         public Vector3 position;
         public Vector3 size;
@@ -240,6 +242,9 @@ public class JsonDataController
             return data;
         }
 
+        // 크기와 간격은 생성 뒤에도 바뀌므로, 저장하기 전에 모델 값을 씬의 현재 상태로 맞춘다.
+        _factory.RefreshValues();
+
         IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.Pack);
         for (int i = 0; i < packList.Count; i++)
         {
@@ -283,46 +288,22 @@ public class JsonDataController
     private static void Fill(NodeJson _json, IDeviceNode _node)
     {
         _json.name = _node.Name;
-        Transform target = _node.Position;
-        if (target == null)
+        _json.deviceId = _node.Values.deviceId;
+        if (_node.Position == null)
         {
             return;
         }
 
-        _json.position = target.position;
-        Bounds bounds = GetBodyBounds(target);
-        _json.size = bounds.size;
+        DeviceNodeValues values = _node.Values;
+        _json.position = values.position;
+        _json.size = values.size;
         _json.hasBodyCenter = true;
-        _json.bodyCenter = bounds.center;
-        ReadSpacing(target, _json.childSpacing);
-    }
-
-    /// <summary>_target에 기억된 자식 간격을 _spacing에 옮겨 담는다. 기억된 간격이 없으면 그대로 둔다.</summary>
-    private static void ReadSpacing(Transform _target, SpacingJson _spacing)
-    {
-        if (!_target.TryGetComponent(out SubDeviceSpacingData data))
-        {
-            return;
-        }
-
+        _json.bodyCenter = values.bodyCenter;
         for (int axis = 0; axis < 3; axis++)
         {
-            _spacing.applied[axis] = data.TryGet(axis, out _spacing.values[axis]);
+            _json.childSpacing.values[axis] = values.spacing[axis];
+            _json.childSpacing.applied[axis] = values.spacingApplied[axis];
         }
-    }
-
-    /// <summary>
-    /// 몸체의 월드 bounds. 자식 Body 또는 본인의 Renderer를 쓰고(자식 장비는 섞지 않는다),
-    /// 둘 다 없으면 자식 Renderer 전체를 합친다. Renderer가 없으면 크기 0.
-    /// </summary>
-    private static Bounds GetBodyBounds(Transform _target)
-    {
-        if (DeviceBody.TryGetRenderer(_target, out Renderer bodyRenderer))
-        {
-            return bodyRenderer.bounds;
-        }
-
-        return RendererBounds.TryGetBounds(_target, out Bounds bounds) ? bounds : new Bounds(_target.position, Vector3.zero);
     }
     #endregion
 }

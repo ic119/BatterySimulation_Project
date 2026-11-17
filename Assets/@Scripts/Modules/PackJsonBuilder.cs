@@ -125,7 +125,7 @@ public class PackJsonBuilder
     {
         _prefabs.TryGetValue(_kind, out GameObject prefab);
         Vector3? bodyCenter = _json.hasBodyCenter ? _json.bodyCenter : (Vector3?)null;
-        IDeviceNode node = packFactory.Create(_kind, _parent, _json.name, prefab, _json.size, bodyCenter);
+        IDeviceNode node = packFactory.Create(_kind, _parent, _json.name, prefab, _json.size, bodyCenter, _json.deviceId);
         if (node == null)
         {
             return null;
