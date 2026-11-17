@@ -1,4 +1,4 @@
-using Incheol.Models.Define;
+﻿using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
@@ -22,6 +22,7 @@ namespace Incheol.Presenter
         private UI_SelectedDeviceNameView nameView;
         private UI_MainSceneView mainSceneView;
         private UI_TabBarView tabBarView;
+        private DeviceGridGraphManager gridGraph;
 
         private readonly DeviceSelection selection = new DeviceSelection();
 
@@ -48,6 +49,9 @@ namespace Incheol.Presenter
         // React의 OnEssListUpdated로 여러 장치를 보여 주는 중이면 true. 다른 선택이 들어오면 필터를 먼저 걷어낸다.
         private bool isReactFilterActive;
         private SelectionPanels panels;
+        #endregion
+
+        #region R&D Variable
         #endregion
 
         #region LifeCycle
@@ -109,6 +113,7 @@ namespace Incheol.Presenter
                 mainSceneView.SelectionClearRequested -= OnSelectionClearRequested;
                 mainSceneView.ObjectCreated -= ShowIfInSelection;
                 mainSceneView.ObjectCreated -= ApplySpacingToCreated;
+                mainSceneView.ObjectCreated -= FollowCreatedPack;
                 mainSceneView.PackSelectRequested -= OnPackSelectRequested;
             }
 
@@ -263,6 +268,7 @@ namespace Incheol.Presenter
                 mainSceneView.SelectionClearRequested += OnSelectionClearRequested;
                 mainSceneView.ObjectCreated += ShowIfInSelection;
                 mainSceneView.ObjectCreated += ApplySpacingToCreated;
+                mainSceneView.ObjectCreated += FollowCreatedPack;
                 mainSceneView.PackSelectRequested += OnPackSelectRequested;
             }
 
@@ -285,6 +291,10 @@ namespace Incheol.Presenter
                 reactBridge.OnEssSelectedReceived += OnReactEssSelected;
                 reactBridge.OnEssListUpdateReceived += OnReactEssListUpdated;
             }
+
+            // 그래프는 가장 최근에 만든 Pack을 따라간다. Pack이 생기기 전에는 숨긴다.
+            gridGraph = FindAnyObjectByType<DeviceGridGraphManager>();
+            gridGraph?.SetTarget(null);
         }
 
         /// <summary>
@@ -450,6 +460,21 @@ namespace Incheol.Presenter
             }
 
             mainSceneView.LoadFromSaveJson(_data, ReactBridge.SendSceneLoaded);
+        }
+
+        /// <summary>새로 생성된 _created가 Pack이면 좌표 그래프가 그 Pack 중심을 기준으로 그려지게 한다.</summary>
+        private void FollowCreatedPack(Transform _created)
+        {
+            if (gridGraph == null || _created == null || mainSceneView == null)
+            {
+                return;
+            }
+
+            IDeviceNode node = mainSceneView.PackFactory.Find(_created);
+            if (node != null && node.Kind == DeviceType.Pack)
+            {
+                gridGraph.SetTarget(_created);
+            }
         }
 
         /// <summary>

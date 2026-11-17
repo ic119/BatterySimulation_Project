@@ -1,12 +1,16 @@
 using System.Collections.Generic;
+using Incheol.Modules;
 using System.Globalization;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using DeviceType = Incheol.Models.Define.DeviceType;
 
 /// <summary>
 /// 바닥과 두 벽면으로 구성된 독립적인 3차원 좌표 그래프.
 /// 그래프 x = 로컬 X, 그래프 y = 로컬 Z(횡방향), 그래프 z = 로컬 Y(높이).
-/// 이 오브젝트의 위치가 원점이며 회전은 반영하되 부모 스케일은 반영하지 않는다.
+/// 기본은 이 오브젝트의 위치가 원점이며 회전은 반영하되 부모 스케일은 반영하지 않는다.
+/// SetTarget을 한 번 부르면 Pack 추적 모드가 되어, 그래프 박스의 중심이 Pack 몸체 중심에 오고
+/// 축 길이가 Pack 몸체 크기(x, 깊이z = 그래프 y, 높이y = 그래프 z)를 따라간다. 대상이 없으면 숨긴다.
 /// </summary>
 public class DeviceGridGraphManager : MonoBehaviour
 {
@@ -66,6 +70,8 @@ public class DeviceGridGraphManager : MonoBehaviour
     private float _tickLength;
     private float _labelSize;
     private bool _dirty = true;
+    private Transform _target;
+    private bool _followTarget;
 
     public float XLength { get { return _xLength; } set { SetAxisLengths(value, _yLength, _zLength); } }
     public float YLength { get { return _yLength; } set { SetAxisLengths(_xLength, value, _zLength); } }
@@ -107,11 +113,35 @@ public class DeviceGridGraphManager : MonoBehaviour
 
     private void LateUpdate()
     {
+        bool hasBounds = true;
+        Bounds packBounds = default;
+        if (_followTarget)
+        {
+            hasBounds = TryGetTargetBounds(out packBounds);
+            if (hasBounds)
+            {
+                float x = Mathf.Max(packBounds.size.x, 0.001f);
+                float y = Mathf.Max(packBounds.size.z, 0.001f);
+                float z = Mathf.Max(packBounds.size.y, 0.001f);
+                if (!Mathf.Approximately(x, _xLength) || !Mathf.Approximately(y, _yLength) || !Mathf.Approximately(z, _zLength))
+                    SetAxisLengths(x, y, z);
+            }
+        }
+
         if (_dirty)
             RefreshGraph();
 
         if (_graphRoot == null) return;
-        _graphRoot.SetPositionAndRotation(transform.position, transform.rotation);
+        if (_followTarget)
+        {
+            _graphRoot.gameObject.SetActive(isActiveAndEnabled && hasBounds);
+            if (!hasBounds) return;
+            _graphRoot.SetPositionAndRotation(GetTargetOrigin(packBounds.center), transform.rotation);
+        }
+        else
+        {
+            _graphRoot.SetPositionAndRotation(transform.position, transform.rotation);
+        }
         Camera cam = _viewCamera != null ? _viewCamera : _cachedCamera;
         if (cam == null)
         {
@@ -133,6 +163,38 @@ public class DeviceGridGraphManager : MonoBehaviour
     #endregion
 
     #region Method
+    /// <summary>
+    /// 그래프가 따라갈 Pack을 지정한다. 호출하면 Pack 추적 모드가 되며, null이면(또는 대상이 파괴되면) 그래프를 숨긴다.
+    /// 그래프 박스 중심이 Pack 몸체(자식 Body) 중심에 오고 축 길이는 몸체 크기를 따라 바뀐다.
+    /// </summary>
+    public void SetTarget(Transform pack)
+    {
+        _target = pack;
+        _followTarget = true;
+        _dirty = true;
+    }
+
+    private bool TryGetTargetBounds(out Bounds bounds)
+    {
+        bounds = default;
+        if (_target == null)
+            return false;
+        // 몸체(Body) Renderer가 있으면 그 크기를 쓰고, 프리팹에 몸체가 없으면 자식 Renderer를 모두 감싼 크기로 대신한다.
+        if (DeviceSizeCalculator.TryGetSizeRenderer(_target, DeviceType.Pack, out Renderer body) && body != null)
+        {
+            bounds = body.bounds;
+            return true;
+        }
+        return RendererBounds.TryGetBounds(_target, out bounds);
+    }
+
+    // 그래프 박스(로컬 x, 높이 z, 깊이 y 순서의 Vector3(x, z, y)) 중심을 worldCenter에 맞추는 원점.
+    private Vector3 GetTargetOrigin(Vector3 worldCenter)
+    {
+        Vector3 halfLocal = new Vector3(_xLength * 0.5f, _zLength * 0.5f, _yLength * 0.5f);
+        return worldCenter - transform.rotation * halfLocal;
+    }
+
     /// <summary>軸ごとの長さを設定する。値は有限の正数が必要。</summary>
     public void SetAxisLengths(float xLength, float yLength, float zLength)
     {
