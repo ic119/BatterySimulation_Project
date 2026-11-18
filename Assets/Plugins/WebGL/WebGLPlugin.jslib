@@ -21,29 +21,6 @@ mergeInto(LibraryManager.library, {
     }
   },
 
-  // <Unity → React> (요청 명칭): OnEssSelectedFromUnity → onEssSelectedFromUnity
-  OnEssSelectedFromUnity: function (message) {
-    var msg = UTF8ToString(message)
-    if (typeof console !== 'undefined' && console.log) {
-      console.log('[WebGLPlugin] OnEssSelectedFromUnity:', msg)
-    }
-
-    try {
-      if (typeof window.dispatchReactUnityEvent === 'function') {
-        window.dispatchReactUnityEvent('OnEssSelectedFromUnity', msg)
-      }
-
-
-      if (typeof window.OnEssSelectedFromUnity === 'function') {
-        window.OnEssSelectedFromUnity(msg)
-      }
-    } catch (err) {
-      if (typeof console !== 'undefined' && console.error) {
-        console.error('[WebGLPlugin] OnEssSelectedFromUnity error:', err)
-      }
-    }
-  },
-
   // <Unity → React> Scene 로딩 완료 시 isLoaded 알림
   OnSceneLoaded: function (message) {
     var msg = UTF8ToString(message);

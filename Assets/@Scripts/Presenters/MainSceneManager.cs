@@ -26,28 +26,6 @@ namespace Incheol.Presenter
 
         private readonly DeviceSelection selection = new DeviceSelection();
 
-        /// <summary>React → Unity 선택 신호(OnEssSelected)의 페이로드. 예) {"deviceId":"P-1"}. deviceId는 문자열로 보낸다.</summary>
-        [System.Serializable]
-        private class ReactDevicePayload
-        {
-            public string deviceId;
-        }
-
-        /// <summary>React → Unity 뷰 필터(OnEssListUpdated)의 페이로드. 예) {"list":[{"deviceId":"P-1"},{"deviceId":"M-3"}]}. list가 비어 있으면 원복이다.</summary>
-        [System.Serializable]
-        private class ReactDeviceListPayload
-        {
-            public System.Collections.Generic.List<ReactDevicePayload> list = new System.Collections.Generic.List<ReactDevicePayload>();
-        }
-
-        // 구독할 때 잡아 둔 브리지. 종료 중 Instance를 다시 부르면 새로 만들어지므로 해제할 때는 이 참조를 쓴다.
-        private ReactBridge reactBridge;
-
-        // React가 보낸 선택을 적용하는 동안 true. 이때 일어난 선택 변경은 React로 다시 보내지 않는다(에코 방지).
-        private bool isApplyingReactSelection;
-
-        // React의 OnEssListUpdated로 여러 장치를 보여 주는 중이면 true. 다른 선택이 들어오면 필터를 먼저 걷어낸다.
-        private bool isReactFilterActive;
         private SelectionPanels panels;
         #endregion
 
@@ -263,156 +241,6 @@ namespace Incheol.Presenter
             gridGraph?.SetTarget(null);
         }
 
-        /// <summary>
-        /// React에서 장치를 선택했을 때(OnEssSelected). deviceId로 장치를 찾아 트리에서 클릭한 것과 같은 방식으로 선택한다.
-        /// 이미 그 장치가 선택돼 있으면 아무것도 하지 않는다(SelectItem은 같은 장치를 다시 누르면 해제하는 토글이라 React 신호로 해제되면 안 된다).
-        /// </summary>
-        private void OnReactEssSelected(string _json)
-        {
-            ReactDevicePayload payload;
-            try
-            {
-                payload = JsonUtility.FromJson<ReactDevicePayload>(_json);
-            }
-            catch (System.Exception exception)
-            {
-                DebugLogManager.GenerateErrorMessage<MainSceneManager>($"OnEssSelected JSON 파싱 실패 : {exception.Message}");
-                return;
-            }
-
-            if (payload == null || string.IsNullOrEmpty(payload.deviceId))
-            {
-                DebugLogManager.GenerateErrorMessage<MainSceneManager>($"OnEssSelected에 deviceId가 없습니다 : {_json}");
-                return;
-            }
-
-            if (mainSceneView == null)
-            {
-                return;
-            }
-
-            IDeviceNode node = mainSceneView.PackFactory.FindByDeviceId(payload.deviceId);
-            if (node == null || node.Position == null)
-            {
-                DebugLogManager.GenerateWarningMessage<MainSceneManager>($"deviceId에 해당하는 장치가 없습니다 : {payload.deviceId}");
-                return;
-            }
-
-            if (selection.Model == node)
-            {
-                return;
-            }
-
-            isApplyingReactSelection = true;
-            try
-            {
-                SelectItem(node, node.Position);
-            }
-            finally
-            {
-                isApplyingReactSelection = false;
-            }
-        }
-
-        /// <summary>
-        /// React에서 보여 줄 장치 목록이 왔을 때(OnEssListUpdated). 목록의 deviceId에 해당하는 장치만 보이게 하고 카메라를 맞춘다.
-        /// list가 비어 있으면 원복(모두 숨기고 선택 해제, 카메라 처음 시점)이다. 목록에 없는 deviceId는 건너뛰고, 하나도 못 찾으면 현재 상태를 그대로 둔다.
-        /// </summary>
-        private void OnReactEssListUpdated(string _json)
-        {
-            ReactDeviceListPayload payload;
-            try
-            {
-                payload = JsonUtility.FromJson<ReactDeviceListPayload>(_json);
-            }
-            catch (System.Exception exception)
-            {
-                DebugLogManager.GenerateErrorMessage<MainSceneManager>($"OnEssListUpdated JSON 파싱 실패 : {exception.Message}");
-                return;
-            }
-
-            if (mainSceneView == null)
-            {
-                return;
-            }
-
-            if (payload == null || payload.list == null || payload.list.Count == 0)
-            {
-                RestoreReactView();
-                return;
-            }
-
-            PackFactory packFactory = mainSceneView.PackFactory;
-            System.Collections.Generic.List<IDeviceNode> nodes = new System.Collections.Generic.List<IDeviceNode>(payload.list.Count);
-            System.Collections.Generic.HashSet<IDeviceNode> seen = new System.Collections.Generic.HashSet<IDeviceNode>();
-            for (int i = 0; i < payload.list.Count; i++)
-            {
-                string deviceId = payload.list[i] != null ? payload.list[i].deviceId : null;
-                IDeviceNode node = packFactory.FindByDeviceId(deviceId);
-                if (node == null || node.Position == null)
-                {
-                    DebugLogManager.GenerateWarningMessage<MainSceneManager>($"OnEssListUpdated : deviceId에 해당하는 장치가 없습니다 : {deviceId}");
-                    continue;
-                }
-
-                if (seen.Add(node))
-                {
-                    nodes.Add(node);
-                }
-            }
-
-            if (nodes.Count == 0)
-            {
-                return;
-            }
-
-            // 하나만 선택돼 있던 상태는 목록과 섞이지 않게 먼저 푼다(선택 해제로 보이던 것은 숨겨지고 카메라는 아래에서 다시 맞춘다).
-            if (selection.Model != null)
-            {
-                DeselectItem();
-            }
-
-            DeviceViewFilter.ShowOnly(packFactory, nodes);
-            isReactFilterActive = true;
-
-            if (cameraView != null)
-            {
-                cameraView.Track(nodes[0].Position, packFactory.Root);
-            }
-        }
-
-        /// <summary>OnEssListUpdated의 원복. 선택과 필터를 풀어 모두 숨기고 카메라를 처음 시점으로 되돌린다.</summary>
-        private void RestoreReactView()
-        {
-            if (selection.Model != null)
-            {
-                DeselectItem();
-            }
-
-            ClearReactFilter();
-
-            if (cameraView != null)
-            {
-                cameraView.ResetView();
-            }
-        }
-
-        /// <summary>여러 장치를 보여 주던 필터가 켜져 있으면 모두 숨기고 끈다. 꺼져 있으면 아무것도 하지 않는다.</summary>
-        private void ClearReactFilter()
-        {
-            if (!isReactFilterActive)
-            {
-                return;
-            }
-
-            isReactFilterActive = false;
-
-            if (mainSceneView != null)
-            {
-                DeviceViewFilter.HideAll(mainSceneView.PackFactory);
-            }
-        }
-
         /// <summary>React가 보낸 장비 데이터(JsonDataLoader가 파싱을 마친 것)로 장면을 다시 만든다. OnSceneLoaded 응답은 JsonDataLoader가 OnPartSelected 파싱 직후에 보낸다.</summary>
         private void OnReactParsed(JsonDataController.SaveJson _data)
         {
@@ -490,9 +318,6 @@ namespace Incheol.Presenter
             {
                 return;
             }
-
-            // 여러 장치를 보여 주던 필터가 있으면 걷어내고 하나만 보여 준다.
-            ClearReactFilter();
 
             if (selection.Model == _model)
             {

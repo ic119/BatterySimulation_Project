@@ -13,7 +13,7 @@ namespace Incheol.Modules
 {
     /// <summary>
     /// JSON 문자열(React 전달 / Addressable 로컬 파일)을 저장 데이터(JsonDataController.SaveJson)로 파싱해 보관한다.
-    /// - React: ReactBridge.OnSectorEssListLoaded → LoadFromReactJson. 새 데이터가 오면 진행 중이던 이전 파싱은 취소된다.
+    /// - React: LoadFromReactJson. 새 데이터가 오면 진행 중이던 이전 파싱은 취소된다.
     /// - isReactParsing / isReactParsed 로 파싱 진행 상태를 다른 컨트롤러가 폴링할 수 있다.
     /// - 파싱은 프레임을 나누어 처리하고, 끝난 뒤 한 번에 jsonData에 커밋해 부분 상태가 노출되지 않게 한다.
     /// </summary>

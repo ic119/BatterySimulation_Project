@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Incheol.Modules
 {
     /// <summary>
-    /// 여러 장치를 한꺼번에 보이게 하는 표시 규칙(React의 OnEssListUpdated). 선택 하나를 다루는 DeviceVisibility와 달리 "보일 장치의 집합"을 다룬다.
+    /// 여러 장치를 한꺼번에 보이게 하는 표시 규칙. 선택 하나를 다루는 DeviceVisibility와 달리 "보일 장치의 집합"을 다룬다.
     /// 오브젝트는 비활성화하지 않고 Renderer만 켜고 끈다(DeviceVisibility와 같은 규칙).
     /// 기본 상태는 모두 숨김이므로 원복은 HideAll이다.
     /// </summary>
