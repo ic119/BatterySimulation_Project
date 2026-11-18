@@ -18,11 +18,11 @@ namespace Incheol.Tests
         [Test]
         public void CreatePack_PlacesPacksInOneRowWithPadding()
         {
-            factory.SetPadding(DeviceType.Pack, 1.0f);
+            factory.SetPadding(DeviceType.pack, 1.0f);
 
-            IDeviceNode first = Make(DeviceType.Pack, null, "1");
-            IDeviceNode second = Make(DeviceType.Pack, null, "2");
-            IDeviceNode third = Make(DeviceType.Pack, null, "3");
+            IDeviceNode first = Make(DeviceType.pack, null, "1");
+            IDeviceNode second = Make(DeviceType.pack, null, "2");
+            IDeviceNode third = Make(DeviceType.pack, null, "3");
 
             Bounds b0 = BodyBounds(first);
             Bounds b1 = BodyBounds(second);
@@ -38,7 +38,7 @@ namespace Incheol.Tests
         [Test]
         public void CreatePack_WithSize_ResizesBody()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1", new Vector3(8, 2, 6));
+            IDeviceNode pack = Make(DeviceType.pack, null, "1", new Vector3(8, 2, 6));
 
             Vector3 size = BodyBounds(pack).size;
             Assert.AreEqual(8.0f, size.x, Tolerance);
@@ -49,10 +49,10 @@ namespace Incheol.Tests
         [Test]
         public void CreatePack_WithAParent_ReturnsNull()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
 
             LogAssert.Expect(LogType.Error, new Regex("부모를 가질 수 없습니다"));
-            Assert.IsNull(Make(DeviceType.Pack, pack, "2"));
+            Assert.IsNull(Make(DeviceType.pack, pack, "2"));
         }
         #endregion
 
@@ -61,18 +61,18 @@ namespace Incheol.Tests
         public void Create_FillsParentUntilFull_AndStaysInside()
         {
             // 4 x 1 x 4 Pack에 2 x 1 x 2 ModuleAssembly는 4개까지 들어간다.
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
             Bounds packBounds = BodyBounds(pack);
 
             for (int i = 0; i < 4; i++)
             {
-                IDeviceNode moduleAssembly = Make(DeviceType.ModuleAssembly, pack, (i + 1).ToString());
+                IDeviceNode moduleAssembly = Make(DeviceType.moduleassembly, pack, (i + 1).ToString());
                 Assert.IsNotNull(moduleAssembly, $"{i + 1}번째 ModuleAssembly는 만들어져야 한다.");
                 AssertInside(packBounds, RendererBounds(moduleAssembly.Position), $"{i + 1}번째 ModuleAssembly가 Pack 밖에 놓였다.");
             }
 
             ExpectNoSpaceLogs();
-            Assert.IsNull(Make(DeviceType.ModuleAssembly, pack, "5"));
+            Assert.IsNull(Make(DeviceType.moduleassembly, pack, "5"));
             Assert.IsNotEmpty(factory.LastFullMessage);
             Assert.AreEqual(4, pack.Children.Count);
         }
@@ -81,32 +81,32 @@ namespace Incheol.Tests
         public void Create_PaddingReducesCapacity()
         {
             // 여백 2면 칸이 4 x 4 가 되어 Pack 하나에 ModuleAssembly는 1개뿐이다.
-            factory.SetPadding(DeviceType.ModuleAssembly, 2.0f);
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
+            factory.SetPadding(DeviceType.moduleassembly, 2.0f);
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
 
-            Assert.IsNotNull(Make(DeviceType.ModuleAssembly, pack, "1"));
+            Assert.IsNotNull(Make(DeviceType.moduleassembly, pack, "1"));
 
             ExpectNoSpaceLogs();
-            Assert.IsNull(Make(DeviceType.ModuleAssembly, pack, "2"));
+            Assert.IsNull(Make(DeviceType.moduleassembly, pack, "2"));
         }
 
         [Test]
         public void CreateCell_FillsParallelAssemblyUntilFull()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
-            IDeviceNode moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
-            IDeviceNode module = Make(DeviceType.Module, moduleAssembly, "1");
-            IDeviceNode parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
+            IDeviceNode moduleAssembly = Make(DeviceType.moduleassembly, pack, "1");
+            IDeviceNode module = Make(DeviceType.module, moduleAssembly, "1");
+            IDeviceNode parallelAssembly = Make(DeviceType.parallelassembly, module, "1");
 
             for (int i = 0; i < 4; i++)
             {
-                IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, (i + 1).ToString());
+                IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, (i + 1).ToString());
                 Assert.IsNotNull(cell, $"{i + 1}번째 Cell은 만들어져야 한다.");
                 Assert.IsTrue(PackLayout.IsInsideParent(cell.Position, out Vector3 overflow), $"{i + 1}번째 Cell이 ParallelAssembly 밖으로 {overflow} 벗어났다.");
             }
 
             ExpectNoSpaceLogs();
-            Assert.IsNull(Make(DeviceType.Cell, parallelAssembly, "5"));
+            Assert.IsNull(Make(DeviceType.cell, parallelAssembly, "5"));
             Assert.AreEqual(4, parallelAssembly.Children.Count);
         }
         #endregion
@@ -118,34 +118,34 @@ namespace Incheol.Tests
             PackDataModel stranger = new PackDataModel { packName = "x" };
 
             LogAssert.Expect(LogType.Error, new Regex("생성된 Pack이"));
-            Assert.IsNull(Make(DeviceType.ModuleAssembly, stranger, "1"));
+            Assert.IsNull(Make(DeviceType.moduleassembly, stranger, "1"));
         }
 
         [Test]
         public void Create_WithoutParent_ReturnsNull()
         {
             LogAssert.Expect(LogType.Error, new Regex("생성된 ParallelAssembly이"));
-            Assert.IsNull(Make(DeviceType.Cell, null, "1"));
+            Assert.IsNull(Make(DeviceType.cell, null, "1"));
         }
 
         [Test]
         public void Create_WithWrongParentKind_ReturnsNull()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
 
             // Module의 부모는 ModuleAssembly여야 한다.
             LogAssert.Expect(LogType.Error, new Regex("생성된 ModuleAssembly이"));
-            Assert.IsNull(Make(DeviceType.Module, pack, "1"));
+            Assert.IsNull(Make(DeviceType.module, pack, "1"));
         }
 
         [Test]
         public void Create_LinksParentAndChildren()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
-            IDeviceNode moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
-            IDeviceNode module = Make(DeviceType.Module, moduleAssembly, "1");
-            IDeviceNode parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
+            IDeviceNode moduleAssembly = Make(DeviceType.moduleassembly, pack, "1");
+            IDeviceNode module = Make(DeviceType.module, moduleAssembly, "1");
+            IDeviceNode parallelAssembly = Make(DeviceType.parallelassembly, module, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
 
             Assert.IsNull(pack.Parent);
             Assert.AreSame(pack, moduleAssembly.Parent);
@@ -166,9 +166,9 @@ namespace Incheol.Tests
         [Test]
         public void Find_ReturnsTheModelOfEachTransform()
         {
-            IDeviceNode pack = Make(DeviceType.Pack, null, "1");
-            IDeviceNode moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
-            IDeviceNode module = Make(DeviceType.Module, moduleAssembly, "1");
+            IDeviceNode pack = Make(DeviceType.pack, null, "1");
+            IDeviceNode moduleAssembly = Make(DeviceType.moduleassembly, pack, "1");
+            IDeviceNode module = Make(DeviceType.module, moduleAssembly, "1");
 
             Assert.AreSame(pack, factory.Find(pack.Position));
             Assert.AreSame(moduleAssembly, factory.Find(moduleAssembly.Position));
@@ -181,13 +181,13 @@ namespace Incheol.Tests
         [Test]
         public void GetLast_ReturnsTheNewestOfEachKind()
         {
-            IDeviceNode first = Make(DeviceType.Pack, null, "1");
-            IDeviceNode second = Make(DeviceType.Pack, null, "2");
+            IDeviceNode first = Make(DeviceType.pack, null, "1");
+            IDeviceNode second = Make(DeviceType.pack, null, "2");
 
-            Assert.AreSame(second, factory.GetLast(DeviceType.Pack));
-            Assert.AreNotSame(first, factory.GetLast(DeviceType.Pack));
-            Assert.IsNull(factory.GetLast(DeviceType.Cell));
-            Assert.AreEqual(2, factory.GetNodes(DeviceType.Pack).Count);
+            Assert.AreSame(second, factory.GetLast(DeviceType.pack));
+            Assert.AreNotSame(first, factory.GetLast(DeviceType.pack));
+            Assert.IsNull(factory.GetLast(DeviceType.cell));
+            Assert.AreEqual(2, factory.GetNodes(DeviceType.pack).Count);
         }
         #endregion
     }

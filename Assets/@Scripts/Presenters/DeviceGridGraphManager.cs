@@ -180,7 +180,7 @@ public class DeviceGridGraphManager : MonoBehaviour
         if (_target == null)
             return false;
         // 몸체(Body) Renderer가 있으면 그 크기를 쓰고, 프리팹에 몸체가 없으면 자식 Renderer를 모두 감싼 크기로 대신한다.
-        if (DeviceSizeCalculator.TryGetSizeRenderer(_target, DeviceType.Pack, out Renderer body) && body != null)
+        if (DeviceSizeCalculator.TryGetSizeRenderer(_target, DeviceType.pack, out Renderer body) && body != null)
         {
             bounds = body.bounds;
             return true;

@@ -471,7 +471,7 @@ namespace Incheol.Presenter
             }
 
             IDeviceNode node = mainSceneView.PackFactory.Find(_created);
-            if (node != null && node.Kind == DeviceType.Pack)
+            if (node != null && node.Kind == DeviceType.pack)
             {
                 gridGraph.SetTarget(_created);
             }
@@ -561,7 +561,7 @@ namespace Incheol.Presenter
         /// </summary>
         public void ShowIfInSelection(Transform _created)
         {
-            if (_created == null || selection.Target == null || selection.Kind == DeviceType.Cell)
+            if (_created == null || selection.Target == null || selection.Kind == DeviceType.cell)
             {
                 return;
             }

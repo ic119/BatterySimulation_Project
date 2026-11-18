@@ -11,11 +11,11 @@ namespace Incheol.Modules
         /// <summary>위에서 아래로의 계층 순서. 인덱스가 깊이다.</summary>
         private static readonly DeviceType[] Order =
         {
-            DeviceType.Pack,
-            DeviceType.ModuleAssembly,
-            DeviceType.Module,
-            DeviceType.ParallelAssembly,
-            DeviceType.Cell,
+            DeviceType.pack,
+            DeviceType.moduleassembly,
+            DeviceType.module,
+            DeviceType.parallelassembly,
+            DeviceType.cell,
         };
 
         /// <summary>_kind의 깊이(Pack = 0 ... Cell = 4).</summary>
@@ -74,12 +74,12 @@ namespace Incheol.Modules
             _moduleCount = 0;
             _cellCount = 0;
 
-            foreach (IDeviceNode module in GetDescendants(_pack, DeviceType.Module))
+            foreach (IDeviceNode module in GetDescendants(_pack, DeviceType.module))
             {
                 _moduleCount++;
             }
 
-            foreach (IDeviceNode cell in GetDescendants(_pack, DeviceType.Cell))
+            foreach (IDeviceNode cell in GetDescendants(_pack, DeviceType.cell))
             {
                 _cellCount++;
             }

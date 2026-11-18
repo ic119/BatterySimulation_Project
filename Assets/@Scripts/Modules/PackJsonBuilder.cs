@@ -48,7 +48,7 @@ public class PackJsonBuilder
         for (int p = 0; p < _data.packs.Count; p++)
         {
             JsonDataController.PackJson packJson = _data.packs[p];
-            IDeviceNode pack = CreateNode(DeviceType.Pack, null, packJson, _prefabs);
+            IDeviceNode pack = CreateNode(DeviceType.pack, null, packJson, _prefabs);
             if (pack == null)
             {
                 result.skippedCount += CountAll(packJson);
@@ -68,7 +68,7 @@ public class PackJsonBuilder
 
     private void BuildModuleAssembly(IDeviceNode _pack, JsonDataController.ModuleAssemblyJson _json, System.Collections.Generic.IReadOnlyDictionary<DeviceType, GameObject> _prefabs)
     {
-        IDeviceNode moduleAssembly = CreateNode(DeviceType.ModuleAssembly, _pack, _json, _prefabs);
+        IDeviceNode moduleAssembly = CreateNode(DeviceType.moduleassembly, _pack, _json, _prefabs);
         if (moduleAssembly == null)
         {
             result.skippedCount += CountAll(_json);
@@ -85,7 +85,7 @@ public class PackJsonBuilder
 
     private void BuildModule(IDeviceNode _moduleAssembly, JsonDataController.ModuleJson _json, System.Collections.Generic.IReadOnlyDictionary<DeviceType, GameObject> _prefabs)
     {
-        IDeviceNode module = CreateNode(DeviceType.Module, _moduleAssembly, _json, _prefabs);
+        IDeviceNode module = CreateNode(DeviceType.module, _moduleAssembly, _json, _prefabs);
         if (module == null)
         {
             result.skippedCount += CountAll(_json);
@@ -102,7 +102,7 @@ public class PackJsonBuilder
 
     private void BuildParallelAssembly(IDeviceNode _module, JsonDataController.ParallelAssemblyJson _json, System.Collections.Generic.IReadOnlyDictionary<DeviceType, GameObject> _prefabs)
     {
-        IDeviceNode parallelAssembly = CreateNode(DeviceType.ParallelAssembly, _module, _json, _prefabs);
+        IDeviceNode parallelAssembly = CreateNode(DeviceType.parallelassembly, _module, _json, _prefabs);
         if (parallelAssembly == null)
         {
             result.skippedCount += CountAll(_json);
@@ -111,7 +111,7 @@ public class PackJsonBuilder
 
         for (int i = 0; i < _json.cells.Count; i++)
         {
-            if (CreateNode(DeviceType.Cell, parallelAssembly, _json.cells[i], _prefabs) == null)
+            if (CreateNode(DeviceType.cell, parallelAssembly, _json.cells[i], _prefabs) == null)
             {
                 result.skippedCount++;
             }
@@ -132,7 +132,7 @@ public class PackJsonBuilder
         }
 
         // 몸체 중심이 없는 Pack은 저장된 pivot 위치에 둔다. 몸체 중심이 있으면 Create가 저장 당시 몸체 자리에 이미 놓았고, Pack 아래 항목은 칸에 놓인 자리를 그대로 둔다.
-        if (!_json.hasBodyCenter && _kind == DeviceType.Pack && node.Position != null)
+        if (!_json.hasBodyCenter && _kind == DeviceType.pack && node.Position != null)
         {
             node.Position.position = _json.position;
         }
@@ -148,19 +148,19 @@ public class PackJsonBuilder
         int number = int.TryParse(_name, out int parsed) ? parsed : 0;
         switch (_kind)
         {
-            case DeviceType.Pack:
+            case DeviceType.pack:
                 result.packCount = Mathf.Max(result.packCount, number);
                 break;
-            case DeviceType.ModuleAssembly:
+            case DeviceType.moduleassembly:
                 result.moduleAssemblyCount = Mathf.Max(result.moduleAssemblyCount, number);
                 break;
-            case DeviceType.Module:
+            case DeviceType.module:
                 result.moduleCount = Mathf.Max(result.moduleCount, number);
                 break;
-            case DeviceType.ParallelAssembly:
+            case DeviceType.parallelassembly:
                 result.parallelAssemblyCount = Mathf.Max(result.parallelAssemblyCount, number);
                 break;
-            case DeviceType.Cell:
+            case DeviceType.cell:
                 result.cellCount = Mathf.Max(result.cellCount, number);
                 break;
         }

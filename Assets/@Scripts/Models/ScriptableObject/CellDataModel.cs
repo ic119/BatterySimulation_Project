@@ -14,7 +14,7 @@ public class CellDataModel : IDeviceNode
     /// <summary>이 Cell이 속한 ParallelAssembly. 순환 참조라 직렬화하지 않는다.</summary>
     [NonSerialized] public ParallelAssemblyDataModel parentParallelAssembly;
 
-    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.Cell;
+    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.cell;
     public string Name { get => cellName; set => cellName = value; }
     public Transform Position => cellPosition;
     public DeviceNodeValues Values => values;

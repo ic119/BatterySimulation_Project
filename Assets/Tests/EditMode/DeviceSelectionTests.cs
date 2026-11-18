@@ -31,7 +31,7 @@ namespace Incheol.Tests
             selection.Changed += () =>
             {
                 count++;
-                hadSelectionInHandler = selection.HasSelection && selection.Model == pack && selection.Kind == DeviceType.Pack;
+                hadSelectionInHandler = selection.HasSelection && selection.Model == pack && selection.Kind == DeviceType.pack;
             };
 
             selection.Set(pack, target.transform);

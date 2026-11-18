@@ -44,7 +44,7 @@ public class UI_SimulationStepList
         int version = ++itemVersion;
         contentRect.DestroyChildren();
 
-        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Pack)
+        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.pack)
         {
             return;
         }

@@ -11,14 +11,14 @@ namespace Incheol.Modules
         /// true일 때 Pack / Module은 자식까지 모든 Renderer를 켜고, Cell은 본인의 Renderer만 켜고 같은 루트 아래의 나머지 Renderer는 모두 끈다.
         /// 오브젝트는 비활성화하지 않아 자식만 따로 보여줄 수 있다.
         /// </summary>
-        public static void SetVisible(Transform _target, bool _visible, DeviceType _kind = DeviceType.Pack)
+        public static void SetVisible(Transform _target, bool _visible, DeviceType _kind = DeviceType.pack)
         {
             if (_target == null)
             {
                 return;
             }
 
-            if (_visible && _kind == DeviceType.Cell)
+            if (_visible && _kind == DeviceType.cell)
             {
                 Renderer[] allRendererArray = _target.root.GetComponentsInChildren<Renderer>(true);
                 for (int i = 0; i < allRendererArray.Length; i++)

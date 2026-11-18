@@ -69,12 +69,12 @@ namespace Incheol.Modules
         {
             Clear();
 
-            foreach (IDeviceNode module in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Module))
+            foreach (IDeviceNode module in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.module))
             {
                 AddRenderer(moduleRenderers, module.Position);
             }
 
-            foreach (IDeviceNode cell in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Cell))
+            foreach (IDeviceNode cell in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.cell))
             {
                 AddRenderer(cellRenderers, cell.Position);
             }

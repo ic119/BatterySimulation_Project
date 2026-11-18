@@ -24,15 +24,15 @@ namespace Incheol.Tests
         /// <summary>Pack 2개. 첫 Pack에 ModuleAssembly 2개, 그중 첫 번째에 Module 1개 > ParallelAssembly 1개 > Cell 2개.</summary>
         private void BuildSampleStructure()
         {
-            IDeviceNode pack1 = Make(DeviceType.Pack, null, "1");
-            Make(DeviceType.Pack, null, "2");
+            IDeviceNode pack1 = Make(DeviceType.pack, null, "1");
+            Make(DeviceType.pack, null, "2");
 
-            IDeviceNode moduleAssembly1 = Make(DeviceType.ModuleAssembly, pack1, "1");
-            Make(DeviceType.ModuleAssembly, pack1, "2");
-            IDeviceNode module = Make(DeviceType.Module, moduleAssembly1, "1");
-            IDeviceNode parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
-            Make(DeviceType.Cell, parallelAssembly, "1");
-            Make(DeviceType.Cell, parallelAssembly, "2");
+            IDeviceNode moduleAssembly1 = Make(DeviceType.moduleassembly, pack1, "1");
+            Make(DeviceType.moduleassembly, pack1, "2");
+            IDeviceNode module = Make(DeviceType.module, moduleAssembly1, "1");
+            IDeviceNode parallelAssembly = Make(DeviceType.parallelassembly, module, "1");
+            Make(DeviceType.cell, parallelAssembly, "1");
+            Make(DeviceType.cell, parallelAssembly, "2");
         }
 
         private static void AssertSameVector(Vector3 _expected, Vector3 _actual, string _what)
@@ -158,7 +158,7 @@ namespace Incheol.Tests
             PackJsonBuilder.Result result = NewBuilder(factory).Build(data, Prefabs());
 
             Assert.AreEqual(0, result.packCount);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.Pack).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.pack).Count);
         }
 
         [Test]

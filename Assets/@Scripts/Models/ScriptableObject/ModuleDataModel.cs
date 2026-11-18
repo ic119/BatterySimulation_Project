@@ -13,7 +13,7 @@ public class ModuleDataModel : IDeviceNode
     /// <summary>이 Module이 속한 ModuleAssembly. 순환 참조라 직렬화하지 않는다.</summary>
     [NonSerialized] public ModuleAssemblyDataModel parentModuleAssembly;
 
-    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.Module;
+    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.module;
     public string Name { get => moduleName; set => moduleName = value; }
     public Transform Position => modulePosition;
     public DeviceNodeValues Values => values;

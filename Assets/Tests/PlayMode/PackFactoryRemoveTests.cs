@@ -18,28 +18,28 @@ namespace Incheol.Tests
         {
             // Pack 4x1x4 > ModuleAssembly 2x1x2 (4개) > Module 1x1x1 (4개) > ParallelAssembly 1x1x1 (1개) > Cell 0.5x1x0.5 (4개)
             CreateStandardPrefabs();
-            pack = Make(DeviceType.Pack, null, "1");
-            moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
-            module = Make(DeviceType.Module, moduleAssembly, "1");
-            parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
+            pack = Make(DeviceType.pack, null, "1");
+            moduleAssembly = Make(DeviceType.moduleassembly, pack, "1");
+            module = Make(DeviceType.module, moduleAssembly, "1");
+            parallelAssembly = Make(DeviceType.parallelassembly, module, "1");
         }
 
         [Test]
         public void Remove_Cell_RemovesFromParentAndRegistry()
         {
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
 
             Assert.IsTrue(factory.Remove(cell));
 
             Assert.AreEqual(0, parallelAssembly.Children.Count);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.Cell).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.cell).Count);
             Assert.IsNull(factory.Find(cell.Position));
         }
 
         [UnityTest]
         public IEnumerator Remove_Cell_DestroysTheSceneObject()
         {
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
             GameObject cellObject = cell.Position.gameObject;
 
             factory.Remove(cell);
@@ -51,7 +51,7 @@ namespace Incheol.Tests
         [Test]
         public void Remove_Cell_IsDetachedAndHiddenImmediately()
         {
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
             Transform cellTransform = cell.Position;
 
             factory.Remove(cell);
@@ -66,12 +66,12 @@ namespace Incheol.Tests
             IDeviceNode[] cells = new IDeviceNode[4];
             for (int i = 0; i < cells.Length; i++)
             {
-                cells[i] = Make(DeviceType.Cell, parallelAssembly, (i + 1).ToString());
+                cells[i] = Make(DeviceType.cell, parallelAssembly, (i + 1).ToString());
             }
 
             // 가득 찬 ParallelAssembly에서 하나를 지우면 같은 프레임에 새 Cell이 그 칸에 들어간다.
             Assert.IsTrue(factory.Remove(cells[1]));
-            IDeviceNode replacement = Make(DeviceType.Cell, parallelAssembly, "5");
+            IDeviceNode replacement = Make(DeviceType.cell, parallelAssembly, "5");
 
             Assert.IsNotNull(replacement);
             Assert.AreEqual(4, parallelAssembly.Children.Count);
@@ -80,7 +80,7 @@ namespace Incheol.Tests
         [Test]
         public void Remove_UnknownOrTwiceOrNull_ReturnsFalse()
         {
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
             PackDataModel stranger = new PackDataModel { packName = "x" };
 
             Assert.IsTrue(factory.Remove(cell));
@@ -92,7 +92,7 @@ namespace Incheol.Tests
         [UnityTest]
         public IEnumerator Remove_Module_RemovesEverythingBelowIt()
         {
-            IDeviceNode cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            IDeviceNode cell = Make(DeviceType.cell, parallelAssembly, "1");
             GameObject moduleObject = module.Position.gameObject;
             GameObject cellObject = cell.Position.gameObject;
 
@@ -100,9 +100,9 @@ namespace Incheol.Tests
             yield return null;
 
             Assert.AreEqual(0, moduleAssembly.Children.Count);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.Module).Count);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.ParallelAssembly).Count);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.Cell).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.module).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.parallelassembly).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.cell).Count);
             Assert.IsTrue(moduleObject == null);
             Assert.IsTrue(cellObject == null);
         }
@@ -110,24 +110,24 @@ namespace Incheol.Tests
         [Test]
         public void Remove_ModuleAssembly_KeepsItsSiblings()
         {
-            IDeviceNode sibling = Make(DeviceType.ModuleAssembly, pack, "2");
+            IDeviceNode sibling = Make(DeviceType.moduleassembly, pack, "2");
 
             Assert.IsTrue(factory.Remove(moduleAssembly));
 
             CollectionAssert.AreEqual(new[] { sibling }, pack.Children);
-            Assert.AreEqual(1, factory.GetNodes(DeviceType.ModuleAssembly).Count);
-            Assert.AreEqual(0, factory.GetNodes(DeviceType.Module).Count, "지운 ModuleAssembly 아래 항목은 모두 등록부에서 빠져야 한다.");
+            Assert.AreEqual(1, factory.GetNodes(DeviceType.moduleassembly).Count);
+            Assert.AreEqual(0, factory.GetNodes(DeviceType.module).Count, "지운 ModuleAssembly 아래 항목은 모두 등록부에서 빠져야 한다.");
         }
 
         [Test]
         public void Remove_ModuleAssembly_FreesItsSlotInTheSameFrame()
         {
-            IDeviceNode second = Make(DeviceType.ModuleAssembly, pack, "2");
-            Make(DeviceType.ModuleAssembly, pack, "3");
-            Make(DeviceType.ModuleAssembly, pack, "4");
+            IDeviceNode second = Make(DeviceType.moduleassembly, pack, "2");
+            Make(DeviceType.moduleassembly, pack, "3");
+            Make(DeviceType.moduleassembly, pack, "4");
 
             Assert.IsTrue(factory.Remove(second));
-            IDeviceNode replacement = Make(DeviceType.ModuleAssembly, pack, "5");
+            IDeviceNode replacement = Make(DeviceType.moduleassembly, pack, "5");
 
             Assert.IsNotNull(replacement);
             Assert.AreEqual(4, pack.Children.Count);
@@ -136,7 +136,7 @@ namespace Incheol.Tests
         [UnityTest]
         public IEnumerator Remove_Pack_RemovesEverythingAndTheObject()
         {
-            Make(DeviceType.Cell, parallelAssembly, "1");
+            Make(DeviceType.cell, parallelAssembly, "1");
             GameObject packObject = pack.Position.gameObject;
 
             Assert.IsTrue(factory.Remove(pack));
@@ -153,22 +153,22 @@ namespace Incheol.Tests
         [Test]
         public void Remove_Pack_FreesItsPlaceInRoot()
         {
-            IDeviceNode second = Make(DeviceType.Pack, null, "2");
+            IDeviceNode second = Make(DeviceType.pack, null, "2");
             Bounds firstBounds = BodyBounds(pack);
 
             Assert.IsTrue(factory.Remove(pack));
-            IDeviceNode replacement = Make(DeviceType.Pack, null, "3");
+            IDeviceNode replacement = Make(DeviceType.pack, null, "3");
 
             Assert.IsNotNull(replacement);
             Assert.AreNotSame(second, replacement);
-            Assert.AreEqual(2, factory.GetNodes(DeviceType.Pack).Count);
+            Assert.AreEqual(2, factory.GetNodes(DeviceType.pack).Count);
             Assert.AreEqual(firstBounds.size, BodyBounds(replacement).size);
         }
 
         [UnityTest]
         public IEnumerator Clear_DestroysRootAndResetsTheFactory()
         {
-            Make(DeviceType.Cell, parallelAssembly, "1");
+            Make(DeviceType.cell, parallelAssembly, "1");
             GameObject rootObject = factory.Root.gameObject;
 
             factory.Clear();

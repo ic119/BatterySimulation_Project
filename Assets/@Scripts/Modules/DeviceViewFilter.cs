@@ -19,7 +19,7 @@ namespace Incheol.Modules
                 return;
             }
 
-            IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.Pack);
+            IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.pack);
             for (int i = 0; i < packList.Count; i++)
             {
                 DeviceVisibility.SetVisible(packList[i].Position, false);
@@ -47,7 +47,7 @@ namespace Incheol.Modules
                     continue;
                 }
 
-                if (_nodes[i].Kind == DeviceType.Cell)
+                if (_nodes[i].Kind == DeviceType.cell)
                 {
                     Renderer[] rendererArray = target.GetComponentsInChildren<Renderer>(true);
                     for (int r = 0; r < rendererArray.Length; r++)

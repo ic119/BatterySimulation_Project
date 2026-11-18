@@ -107,11 +107,11 @@ namespace Incheol.Tests
 
         protected void CreateStandardPrefabs()
         {
-            prefabs[DeviceType.Pack] = CreateBodyPrefab("PackPrefab", new Vector3(4, 1, 4));
-            prefabs[DeviceType.ModuleAssembly] = CreateBodyPrefab("ModuleAssemblyPrefab", new Vector3(2, 1, 2));
-            prefabs[DeviceType.Module] = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
-            prefabs[DeviceType.ParallelAssembly] = CreateBodyPrefab("ParallelAssemblyPrefab", new Vector3(1, 1, 1));
-            prefabs[DeviceType.Cell] = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 1, 0.5f));
+            prefabs[DeviceType.pack] = CreateBodyPrefab("PackPrefab", new Vector3(4, 1, 4));
+            prefabs[DeviceType.moduleassembly] = CreateBodyPrefab("ModuleAssemblyPrefab", new Vector3(2, 1, 2));
+            prefabs[DeviceType.module] = CreateBodyPrefab("ModulePrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.parallelassembly] = CreateBodyPrefab("ParallelAssemblyPrefab", new Vector3(1, 1, 1));
+            prefabs[DeviceType.cell] = CreateCellPrefab("CellPrefab", new Vector3(0.5f, 1, 0.5f));
         }
 
         /// <summary>_kind의 표준 프리팹으로 _parent 아래에 장치를 만든다.</summary>

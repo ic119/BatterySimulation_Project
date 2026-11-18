@@ -242,7 +242,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
         // Pack 외의 장치를 키울 때 부모 몸체 밖으로 나가면 막는다.
         DeviceType kind = selection.Kind;
-        if (kind != DeviceType.Pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
+        if (kind != DeviceType.pack && !DeviceSizeCalculator.FitsInParent(target, kind, current, newSize, out Vector3 maxSize))
         {
             // 최소 크기 위반과 같이, 타이핑 중에는 아무것도 바꾸지 않고 입력을 끝낼 때 / 버튼을 누를 때 최대 크기로 되돌린다.
             if (!_log)
@@ -271,7 +271,7 @@ public class UI_DeviceScaleView : MonoBehaviour
         }
 
         // Pack은 같은 Root의 다른 Pack과 겹치면 막는다. 타이핑 중에는 아무것도 바꾸지 않고, 입력을 끝낼 때 / 버튼을 누를 때 현재 크기로 되돌린다.
-        if (kind == DeviceType.Pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
+        if (kind == DeviceType.pack && DeviceSizeCalculator.OverlapsSiblings(target, current, newSize, out _))
         {
             if (!_log)
             {
@@ -326,7 +326,7 @@ public class UI_DeviceScaleView : MonoBehaviour
 
     private bool TryGetOwnSize(Transform _target, out Vector3 _size)
     {
-        DeviceType kind = selection != null ? selection.Kind : DeviceType.Pack;
+        DeviceType kind = selection != null ? selection.Kind : DeviceType.pack;
         return DeviceSizeCalculator.TryGetOwnSize(_target, kind, out _size);
     }
     #endregion

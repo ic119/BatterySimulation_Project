@@ -45,11 +45,11 @@ public class UI_MainSceneView : MonoBehaviour
 
     private static readonly DeviceType[] DropdownDeviceTypes =
     {
-        DeviceType.Pack,
-        DeviceType.ModuleAssembly,
-        DeviceType.Module,
-        DeviceType.ParallelAssembly,
-        DeviceType.Cell,
+        DeviceType.pack,
+        DeviceType.moduleassembly,
+        DeviceType.module,
+        DeviceType.parallelassembly,
+        DeviceType.cell,
     };
 
     private readonly PackFactory packFactory = new PackFactory();
@@ -234,7 +234,7 @@ public class UI_MainSceneView : MonoBehaviour
     private void OnClickNewButton()
     {
         // Dropdown에서 선택된 종류를 생성한다. Dropdown이 없으면 Pack.
-        DeviceType type = DeviceType.Pack;
+        DeviceType type = DeviceType.pack;
         if (newDropdown != null && newDropdown.value >= 0 && newDropdown.value < DropdownDeviceTypes.Length)
         {
             type = DropdownDeviceTypes[newDropdown.value];
@@ -389,14 +389,14 @@ public class UI_MainSceneView : MonoBehaviour
         PackJsonBuilder.Result result = builder.Build(_data, _prefabs);
 
         countDictionary.Clear();
-        countDictionary[DeviceType.Pack] = result.packCount;
-        countDictionary[DeviceType.ModuleAssembly] = result.moduleAssemblyCount;
-        countDictionary[DeviceType.Module] = result.moduleCount;
-        countDictionary[DeviceType.ParallelAssembly] = result.parallelAssemblyCount;
-        countDictionary[DeviceType.Cell] = result.cellCount;
+        countDictionary[DeviceType.pack] = result.packCount;
+        countDictionary[DeviceType.moduleassembly] = result.moduleAssemblyCount;
+        countDictionary[DeviceType.module] = result.moduleCount;
+        countDictionary[DeviceType.parallelassembly] = result.parallelAssemblyCount;
+        countDictionary[DeviceType.cell] = result.cellCount;
         skippedCount = result.skippedCount;
 
-        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.GetNodes(DeviceType.Pack).Count}개, Module {packFactory.GetNodes(DeviceType.Module).Count}개, 건너뜀 {skippedCount}개");
+        DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Json 불러오기 완료 : Pack {packFactory.GetNodes(DeviceType.pack).Count}개, Module {packFactory.GetNodes(DeviceType.module).Count}개, 건너뜀 {skippedCount}개");
         ShowAlarm(skippedCount == 0 ? "불러왔습니다." : $"불러왔지만 공간이 없어 {skippedCount}개는 만들지 못했습니다.");
     }
 
@@ -432,10 +432,10 @@ public class UI_MainSceneView : MonoBehaviour
     {
         switch (_type)
         {
-            case DeviceType.Pack: return AddressableAssetKey.PackPrefab;
-            case DeviceType.ModuleAssembly: return AddressableAssetKey.ModuleAssemblyPrefab;
-            case DeviceType.Module: return AddressableAssetKey.ModulePrefab;
-            case DeviceType.ParallelAssembly: return AddressableAssetKey.ParallelAssemblyPrefab;
+            case DeviceType.pack: return AddressableAssetKey.PackPrefab;
+            case DeviceType.moduleassembly: return AddressableAssetKey.ModuleAssemblyPrefab;
+            case DeviceType.module: return AddressableAssetKey.ModulePrefab;
+            case DeviceType.parallelassembly: return AddressableAssetKey.ParallelAssemblyPrefab;
             default: return AddressableAssetKey.Cell_PouchType;
         }
     }
@@ -443,11 +443,11 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>생성할 종류 사이의 여백 설정을 PackFactory에 넘긴다. 만들기 직전에 부른다.</summary>
     private void ApplyPadding()
     {
-        packFactory.SetPadding(DeviceType.Pack, packPadding);
-        packFactory.SetPadding(DeviceType.ModuleAssembly, moduleAssemblyPadding);
-        packFactory.SetPadding(DeviceType.Module, modulePadding);
-        packFactory.SetPadding(DeviceType.ParallelAssembly, parallelAssemblyPadding);
-        packFactory.SetPadding(DeviceType.Cell, cellPadding);
+        packFactory.SetPadding(DeviceType.pack, packPadding);
+        packFactory.SetPadding(DeviceType.moduleassembly, moduleAssemblyPadding);
+        packFactory.SetPadding(DeviceType.module, modulePadding);
+        packFactory.SetPadding(DeviceType.parallelassembly, parallelAssemblyPadding);
+        packFactory.SetPadding(DeviceType.cell, cellPadding);
     }
 
     /// <summary>
@@ -477,7 +477,7 @@ public class UI_MainSceneView : MonoBehaviour
     /// <summary>Pack을 만든다(아래 ModuleAssembly > Module > ParallelAssembly > Cell도 하나씩 함께 만든다). 생성 버튼, 단축키가 같이 쓴다.</summary>
     public void CreatePack(bool _selectCreated = false)
     {
-        CreateObject(DeviceType.Pack, _selectCreated);
+        CreateObject(DeviceType.pack, _selectCreated);
     }
 
     /// <summary>Addressable의 프리팹을 불러와 _type 종류를 생성한다. 선택된 항목이 있으면 그 항목의 하위에 만든다.</summary>
@@ -497,7 +497,7 @@ public class UI_MainSceneView : MonoBehaviour
         }
 
         // Pack은 만들 때 ModuleAssembly > Module > ParallelAssembly > Cell을 하나씩 함께 만들므로 5종 프리팹을 모두 불러온다.
-        if (_type == DeviceType.Pack)
+        if (_type == DeviceType.pack)
         {
             LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs => CreatePackWithChildren(prefabs, _selectCreated));
             return;
@@ -570,9 +570,9 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        IDeviceNode reference = selection != null && selection.Model != null && selection.Model.Kind == DeviceType.Cell
+        IDeviceNode reference = selection != null && selection.Model != null && selection.Model.Kind == DeviceType.cell
             ? selection.Model
-            : packFactory.GetLast(DeviceType.Cell);
+            : packFactory.GetLast(DeviceType.cell);
         if (reference == null || reference.Position == null || reference.Parent == null)
         {
             DebugLogManager.GenerateWarningMessage<UI_MainSceneView>("CreateCellBeside : 기준이 될 Cell이 없습니다(Pack 생성은 프리팹을 불러오는 동안 비동기라, 생성 직후에는 아직 없을 수 있습니다).");
@@ -580,7 +580,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        string key = GetPrefabKey(DeviceType.Cell).ToString();
+        string key = GetPrefabKey(DeviceType.cell).ToString();
         AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
             key,
             prefab => OnCellBesidePrefabLoaded(prefab, reference, axis),
@@ -596,7 +596,7 @@ public class UI_MainSceneView : MonoBehaviour
     {
         ApplyPadding();
 
-        countDictionary.TryGetValue(DeviceType.Cell, out int count);
+        countDictionary.TryGetValue(DeviceType.cell, out int count);
         string name = (count + 1).ToString();
 
         string failMessage;
@@ -609,7 +609,7 @@ public class UI_MainSceneView : MonoBehaviour
             return;
         }
 
-        countDictionary[DeviceType.Cell] = count + 1;
+        countDictionary[DeviceType.cell] = count + 1;
         OnNodeCreated(node);
         DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"Cell 생성({(_axis == 0 ? "+x" : "+z")} 방향) : {node.Name} ({node.Parent.Kind} : {node.Parent.Name})");
     }

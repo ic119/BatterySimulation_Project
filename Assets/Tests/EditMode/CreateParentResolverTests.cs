@@ -25,11 +25,11 @@ namespace Incheol.Tests
 
         private void BuildChain()
         {
-            pack = Make(DeviceType.Pack, null, "1");
-            moduleAssembly = Make(DeviceType.ModuleAssembly, pack, "1");
-            module = Make(DeviceType.Module, moduleAssembly, "1");
-            parallelAssembly = Make(DeviceType.ParallelAssembly, module, "1");
-            cell = Make(DeviceType.Cell, parallelAssembly, "1");
+            pack = Make(DeviceType.pack, null, "1");
+            moduleAssembly = Make(DeviceType.moduleassembly, pack, "1");
+            module = Make(DeviceType.module, moduleAssembly, "1");
+            parallelAssembly = Make(DeviceType.parallelassembly, module, "1");
+            cell = Make(DeviceType.cell, parallelAssembly, "1");
         }
 
         private CreateParentResolver.Result Resolve(DeviceType _type)
@@ -49,7 +49,7 @@ namespace Incheol.Tests
             BuildChain();
             Select(cell);
 
-            CreateParentResolver.Result result = Resolve(DeviceType.Pack);
+            CreateParentResolver.Result result = Resolve(DeviceType.pack);
 
             Assert.IsTrue(result.success);
             Assert.IsNull(result.parent);
@@ -60,16 +60,16 @@ namespace Incheol.Tests
         {
             BuildChain();
 
-            Assert.AreSame(pack, Resolve(DeviceType.ModuleAssembly).parent);
-            Assert.AreSame(moduleAssembly, Resolve(DeviceType.Module).parent);
-            Assert.AreSame(module, Resolve(DeviceType.ParallelAssembly).parent);
-            Assert.AreSame(parallelAssembly, Resolve(DeviceType.Cell).parent);
+            Assert.AreSame(pack, Resolve(DeviceType.moduleassembly).parent);
+            Assert.AreSame(moduleAssembly, Resolve(DeviceType.module).parent);
+            Assert.AreSame(module, Resolve(DeviceType.parallelassembly).parent);
+            Assert.AreSame(parallelAssembly, Resolve(DeviceType.cell).parent);
         }
 
         [Test]
         public void NoSelection_WithoutAnyParent_Fails()
         {
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
+            CreateParentResolver.Result result = Resolve(DeviceType.cell);
 
             Assert.IsFalse(result.success);
             Assert.IsNotEmpty(result.message);
@@ -80,7 +80,7 @@ namespace Incheol.Tests
         {
             BuildChain();
 
-            CreateParentResolver.Result result = CreateParentResolver.Resolve(DeviceType.ModuleAssembly, null, factory);
+            CreateParentResolver.Result result = CreateParentResolver.Resolve(DeviceType.moduleassembly, null, factory);
 
             Assert.IsTrue(result.success);
             Assert.AreSame(pack, result.parent);
@@ -92,11 +92,11 @@ namespace Incheol.Tests
         public void SelectedParentKind_IsTheParent()
         {
             BuildChain();
-            IDeviceNode otherPack = Make(DeviceType.Pack, null, "2");
-            IDeviceNode otherModuleAssembly = Make(DeviceType.ModuleAssembly, otherPack, "1");
+            IDeviceNode otherPack = Make(DeviceType.pack, null, "2");
+            IDeviceNode otherModuleAssembly = Make(DeviceType.moduleassembly, otherPack, "1");
             Select(otherModuleAssembly);
 
-            Assert.AreSame(otherModuleAssembly, Resolve(DeviceType.Module).parent, "마지막으로 만든 것이 아니라 선택한 항목이 부모여야 한다.");
+            Assert.AreSame(otherModuleAssembly, Resolve(DeviceType.module).parent, "마지막으로 만든 것이 아니라 선택한 항목이 부모여야 한다.");
         }
         #endregion
 
@@ -107,18 +107,18 @@ namespace Incheol.Tests
             BuildChain();
             Select(pack);
 
-            Assert.AreSame(moduleAssembly, Resolve(DeviceType.Module).parent);
-            Assert.AreSame(module, Resolve(DeviceType.ParallelAssembly).parent);
-            Assert.AreSame(parallelAssembly, Resolve(DeviceType.Cell).parent);
+            Assert.AreSame(moduleAssembly, Resolve(DeviceType.module).parent);
+            Assert.AreSame(module, Resolve(DeviceType.parallelassembly).parent);
+            Assert.AreSame(parallelAssembly, Resolve(DeviceType.cell).parent);
         }
 
         [Test]
         public void SelectedAncestor_WithoutIntermediateChild_Fails()
         {
-            pack = Make(DeviceType.Pack, null, "1");
+            pack = Make(DeviceType.pack, null, "1");
             Select(pack);
 
-            CreateParentResolver.Result result = Resolve(DeviceType.Cell);
+            CreateParentResolver.Result result = Resolve(DeviceType.cell);
 
             Assert.IsFalse(result.success);
             StringAssert.Contains("Pack", result.message);
@@ -127,10 +127,10 @@ namespace Incheol.Tests
         #endregion
 
         #region 선택한 항목이 부모보다 아래
-        [TestCase(DeviceType.Cell, DeviceType.Cell)]
-        [TestCase(DeviceType.Cell, DeviceType.Module)]
-        [TestCase(DeviceType.ParallelAssembly, DeviceType.Module)]
-        [TestCase(DeviceType.Module, DeviceType.ModuleAssembly)]
+        [TestCase(DeviceType.cell, DeviceType.cell)]
+        [TestCase(DeviceType.cell, DeviceType.module)]
+        [TestCase(DeviceType.parallelassembly, DeviceType.module)]
+        [TestCase(DeviceType.module, DeviceType.moduleassembly)]
         public void SelectedBelowTheParentKind_FailsAndNamesTheType(DeviceType _selected, DeviceType _create)
         {
             BuildChain();
@@ -147,10 +147,10 @@ namespace Incheol.Tests
         {
             switch (_kind)
             {
-                case DeviceType.Pack: return pack;
-                case DeviceType.ModuleAssembly: return moduleAssembly;
-                case DeviceType.Module: return module;
-                case DeviceType.ParallelAssembly: return parallelAssembly;
+                case DeviceType.pack: return pack;
+                case DeviceType.moduleassembly: return moduleAssembly;
+                case DeviceType.module: return module;
+                case DeviceType.parallelassembly: return parallelAssembly;
                 default: return cell;
             }
         }

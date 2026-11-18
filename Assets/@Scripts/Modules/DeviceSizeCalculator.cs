@@ -21,7 +21,7 @@ namespace Incheol.Modules
                 return true;
             }
 
-            if (_kind == DeviceType.Cell)
+            if (_kind == DeviceType.cell)
             {
                 return false;
             }
@@ -92,7 +92,7 @@ namespace Incheol.Modules
         public static bool FitsInParent(Transform _child, DeviceType _kind, Bounds _current, Vector3 _newSize, out Vector3 _maxSize)
         {
             _maxSize = _newSize;
-            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, DeviceType.Pack, out Renderer parentBody))
+            if (_child.parent == null || !TryGetSizeRenderer(_child.parent, DeviceType.pack, out Renderer parentBody))
             {
                 return true;
             }

@@ -193,7 +193,7 @@ public class UI_SimulationControl : MonoBehaviour
             return;
         }
 
-        bool isPackSelected = selection != null && selection.Model != null && selection.Kind == DeviceType.Pack;
+        bool isPackSelected = selection != null && selection.Model != null && selection.Kind == DeviceType.pack;
         simulationRoot.SetActive(isPackSelected);
     }
 
@@ -320,7 +320,7 @@ public class UI_SimulationControl : MonoBehaviour
         }
 
         bool hasStep = false;
-        if (selection != null && selection.HasSelection && selection.Kind == DeviceType.Pack
+        if (selection != null && selection.HasSelection && selection.Kind == DeviceType.pack
             && selection.Target.TryGetComponent(out SimulationData holder))
         {
             hasStep = holder.Model.StepCount != 0;
@@ -416,7 +416,7 @@ public class UI_SimulationControl : MonoBehaviour
             resultOwner = container;
         }
 
-        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.Pack
+        if (selection == null || !selection.HasSelection || selection.Kind != DeviceType.pack
             || !selection.Target.TryGetComponent(out SimulationData holder) || !runner.Start(holder.Model))
         {
             DebugLogManager.GenerateWarningMessage<UI_SimulationControl>("실행할 시뮬레이션 작업이 없거나 이미 실행 중입니다.");

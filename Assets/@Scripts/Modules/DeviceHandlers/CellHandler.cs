@@ -14,7 +14,7 @@ namespace Incheol.Modules
     /// </summary>
     public class CellHandler : DeviceNodeHandler
     {
-        public override DeviceType Kind => DeviceType.Cell;
+        public override DeviceType Kind => DeviceType.cell;
 
         /// <summary>같은 방향으로 빈 자리를 찾아 나가는 최대 칸 수.</summary>
         private const int MaxStep = 1000;
@@ -184,7 +184,7 @@ namespace Incheol.Modules
             }
 
             // 크기는 넘기지 않는다. DeviceBody.Resize는 Body가 단위 크기 메시라는 전제라 모델 메시를 쓰는 Cell에는 쓸 수 없다. 대신 아래에서 기준 Cell의 스케일을 복사한다.
-            IDeviceNode node = _factory.Create(DeviceType.Cell, parent, _name, _prefab, default, placed.center);
+            IDeviceNode node = _factory.Create(DeviceType.cell, parent, _name, _prefab, default, placed.center);
             if (node == null)
             {
                 _failMessage = string.IsNullOrEmpty(_factory.LastFullMessage) ? "Cell을 만들지 못했습니다." : _factory.LastFullMessage;

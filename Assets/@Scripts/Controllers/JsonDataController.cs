@@ -245,7 +245,7 @@ public class JsonDataController
         // 크기와 간격은 생성 뒤에도 바뀌므로, 저장하기 전에 모델 값을 씬의 현재 상태로 맞춘다.
         _factory.RefreshValues();
 
-        IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.Pack);
+        IReadOnlyList<IDeviceNode> packList = _factory.GetNodes(DeviceType.pack);
         for (int i = 0; i < packList.Count; i++)
         {
             PackJson packJson = new PackJson();

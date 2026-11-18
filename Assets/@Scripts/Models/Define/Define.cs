@@ -32,11 +32,11 @@
 
     public enum DeviceType
     {
-        Pack,
-        ModuleAssembly,
-        Module,
-        ParallelAssembly,
-        Cell
+        pack,
+        moduleassembly,
+        module,
+        parallelassembly,
+        cell
     }
 
     public enum CellType

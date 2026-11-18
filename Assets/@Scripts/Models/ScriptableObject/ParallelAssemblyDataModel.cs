@@ -13,7 +13,7 @@ public class ParallelAssemblyDataModel : IDeviceNode
     /// <summary>이 ParallelAssembly가 속한 Module. 순환 참조라 직렬화하지 않는다.</summary>
     [NonSerialized] public ModuleDataModel parentModule;
 
-    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.ParallelAssembly;
+    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.parallelassembly;
     public string Name { get => parallelAssemblyName; set => parallelAssemblyName = value; }
     public Transform Position => parallelAssemblyPosition;
     public DeviceNodeValues Values => values;

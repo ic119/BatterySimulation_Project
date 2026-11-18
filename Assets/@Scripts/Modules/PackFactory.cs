@@ -268,25 +268,25 @@ public class PackFactory
     {
         switch (_kind)
         {
-            case DeviceType.ModuleAssembly:
+            case DeviceType.moduleassembly:
                 {
                     ModuleAssemblyDataModel moduleAssembly = new ModuleAssemblyDataModel { moduleAssemblyName = _name, moduleAssemblyPosition = _position, parentPack = (PackDataModel)_parent };
                     moduleAssembly.parentPack.moduleAssembliesList.Add(moduleAssembly);
                     return moduleAssembly;
                 }
-            case DeviceType.Module:
+            case DeviceType.module:
                 {
                     ModuleDataModel module = new ModuleDataModel { moduleName = _name, modulePosition = _position, parentModuleAssembly = (ModuleAssemblyDataModel)_parent };
                     module.parentModuleAssembly.modulesList.Add(module);
                     return module;
                 }
-            case DeviceType.ParallelAssembly:
+            case DeviceType.parallelassembly:
                 {
                     ParallelAssemblyDataModel parallelAssembly = new ParallelAssemblyDataModel { parallelAssemblyName = _name, parallelAssemblyPosition = _position, parentModule = (ModuleDataModel)_parent };
                     parallelAssembly.parentModule.parallelAssembliesList.Add(parallelAssembly);
                     return parallelAssembly;
                 }
-            case DeviceType.Cell:
+            case DeviceType.cell:
                 {
                     CellDataModel cell = new CellDataModel { cellName = _name, cellPosition = _position, parentParallelAssembly = (ParallelAssemblyDataModel)_parent };
                     cell.parentParallelAssembly.cellsList.Add(cell);

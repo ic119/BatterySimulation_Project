@@ -64,10 +64,10 @@ namespace Incheol.Tests
             Assert.IsTrue(registry.Add(b));
             Assert.IsTrue(registry.Add(module));
 
-            CollectionAssert.AreEqual(new IDeviceNode[] { a, b }, registry.GetNodes(DeviceType.Pack));
-            Assert.AreSame(b, registry.GetLast(DeviceType.Pack));
-            Assert.AreSame(module, registry.GetLast(DeviceType.Module));
-            Assert.IsNull(registry.GetLast(DeviceType.Cell));
+            CollectionAssert.AreEqual(new IDeviceNode[] { a, b }, registry.GetNodes(DeviceType.pack));
+            Assert.AreSame(b, registry.GetLast(DeviceType.pack));
+            Assert.AreSame(module, registry.GetLast(DeviceType.module));
+            Assert.IsNull(registry.GetLast(DeviceType.cell));
         }
 
         [Test]
@@ -78,7 +78,7 @@ namespace Incheol.Tests
             Assert.IsTrue(registry.Add(pack));
             Assert.IsFalse(registry.Add(pack));
             Assert.IsFalse(registry.Add(null));
-            Assert.AreEqual(1, registry.GetNodes(DeviceType.Pack).Count);
+            Assert.AreEqual(1, registry.GetNodes(DeviceType.pack).Count);
         }
 
         [Test]
@@ -132,8 +132,8 @@ namespace Incheol.Tests
 
             registry.Clear();
 
-            Assert.AreEqual(0, registry.GetNodes(DeviceType.Pack).Count);
-            Assert.AreEqual(0, registry.GetNodes(DeviceType.Module).Count);
+            Assert.AreEqual(0, registry.GetNodes(DeviceType.pack).Count);
+            Assert.AreEqual(0, registry.GetNodes(DeviceType.module).Count);
         }
     }
 }

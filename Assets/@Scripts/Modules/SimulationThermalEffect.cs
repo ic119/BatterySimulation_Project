@@ -56,12 +56,12 @@ namespace Incheol.Modules
         {
             Target target = new Target { view = _view };
 
-            foreach (IDeviceNode module in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Module))
+            foreach (IDeviceNode module in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.module))
             {
                 AddHeatCandidate(target, module.Position);
             }
 
-            foreach (IDeviceNode cell in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.Cell))
+            foreach (IDeviceNode cell in DeviceHierarchy.GetDescendants(_pack, Incheol.Models.Define.DeviceType.cell))
             {
                 AddHeatCandidate(target, cell.Position);
             }

@@ -12,7 +12,7 @@ public class PackDataModel : IDeviceNode
     /// <summary>이 Pack의 씬 오브젝트. Root 바로 아래에 놓인다. 저장하지 않는다.</summary>
     [NonSerialized] public Transform packPosition;
 
-    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.Pack;
+    public Incheol.Models.Define.DeviceType Kind => Incheol.Models.Define.DeviceType.pack;
     public string Name { get => packName; set => packName = value; }
     public Transform Position => packPosition;
     public DeviceNodeValues Values => values;

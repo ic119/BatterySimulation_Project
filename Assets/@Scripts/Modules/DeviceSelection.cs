@@ -25,7 +25,7 @@ namespace Incheol.Modules
         /// 현재 선택된 항목의 종류. 
         /// 선택이 없으면 의미 없는 값(Pack)이므로 HasSelection이 true일 때만 사용
         /// </summary>
-        public DeviceType Kind => Model != null ? Model.Kind : DeviceType.Pack;
+        public DeviceType Kind => Model != null ? Model.Kind : DeviceType.pack;
 
         /// <summary>
         /// 모델과 씬 오브젝트가 모두 있는 선택이 있는지의 여부

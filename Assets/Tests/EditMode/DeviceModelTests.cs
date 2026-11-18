@@ -44,7 +44,7 @@ namespace Incheol.Tests
                 new ParallelAssemblyDataModel { parallelAssemblyName = "pa" },
                 new CellDataModel { cellName = "e" },
             };
-            DeviceType[] kindArray = { DeviceType.Pack, DeviceType.ModuleAssembly, DeviceType.Module, DeviceType.ParallelAssembly, DeviceType.Cell };
+            DeviceType[] kindArray = { DeviceType.pack, DeviceType.moduleassembly, DeviceType.module, DeviceType.parallelassembly, DeviceType.cell };
             string[] nameArray = { "p", "ma", "m", "pa", "e" };
 
             for (int i = 0; i < nodeArray.Length; i++)
@@ -100,7 +100,7 @@ namespace Incheol.Tests
             Assert.IsTrue(selection.HasSelection);
             Assert.AreSame(module, selection.Model);
             Assert.AreSame(target, selection.Target);
-            Assert.AreEqual(DeviceType.Module, selection.Kind);
+            Assert.AreEqual(DeviceType.module, selection.Kind);
 
             selection.Clear();
 
@@ -117,7 +117,7 @@ namespace Incheol.Tests
             selection.Set(new CellDataModel { cellName = "1" }, null);
 
             Assert.IsFalse(selection.HasSelection);
-            Assert.AreEqual(DeviceType.Cell, selection.Kind);
+            Assert.AreEqual(DeviceType.cell, selection.Kind);
         }
         #endregion
 
@@ -164,7 +164,7 @@ namespace Incheol.Tests
             cell1.GetComponent<Renderer>().enabled = true;
             cell2.GetComponent<Renderer>().enabled = true;
 
-            DeviceVisibility.SetVisible(cell1.transform, true, DeviceType.Cell);
+            DeviceVisibility.SetVisible(cell1.transform, true, DeviceType.cell);
 
             Assert.IsFalse(body.GetComponent<Renderer>().enabled);
             Assert.IsTrue(cell1.GetComponent<Renderer>().enabled);
@@ -175,7 +175,7 @@ namespace Incheol.Tests
         public void SetVisible_NullTarget_DoesNothing()
         {
             Assert.DoesNotThrow(() => DeviceVisibility.SetVisible(null, true));
-            Assert.DoesNotThrow(() => DeviceVisibility.SetVisible(null, false, DeviceType.Cell));
+            Assert.DoesNotThrow(() => DeviceVisibility.SetVisible(null, false, DeviceType.cell));
         }
         #endregion
     }
