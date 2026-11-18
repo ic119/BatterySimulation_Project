@@ -1,4 +1,5 @@
-﻿using Incheol.Utils;
+﻿using Incheol.Models;
+using Incheol.Utils;
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
@@ -7,15 +8,15 @@ namespace Incheol.Modules
 {
     /// <summary>
     /// React(웹페이지) ↔ Unity(WebGL) 통신 브리지.
-    /// - React → Unity: unityInstance.SendMessage("MonitoringBridge", 메서드명, json) 으로 호출되는 public 메서드들.
+    /// - React → Unity: unityInstance.SendMessage("BatteryBridge", 메서드명, json) 으로 호출되는 public 메서드들.
     ///   수신한 JSON은 이벤트로 구독자에게 전달한다. (SendMessage는 메인 스레드에서 호출되므로 별도 디스패처 없이 바로 처리)
     /// - Unity → React: Send* 정적 메서드 → WebGLPlugin.jslib → window.dispatchReactUnityEvent / window.&lt;이름&gt;
-    /// React가 SendMessage의 대상 오브젝트 이름으로 "MonitoringBridge"를 쓰므로 GameObject 이름은 클래스명과 달라도 반드시 이 값을 유지한다.
+    /// React가 SendMessage의 대상 오브젝트 이름으로 "BatteryBridge"를 쓰므로 GameObject 이름은 클래스명과 달라도 반드시 이 값을 유지한다.
     /// </summary>
     public class ReactBridge : MonoBehaviour
     {
         #region Variable
-        private const string GameObjectName = "MonitoringBridge";
+        private const string GameObjectName = "BatteryBridge";
 
         private static ReactBridge _instance;
         public static ReactBridge Instance
@@ -31,14 +32,25 @@ namespace Incheol.Modules
         }
 
         // React → Unity 수신 이벤트 (페이로드는 원본 JSON 문자열)
-        public event Action<string> OnSectorEssListLoadedReceived;
-        public event Action<string> OnEssSelectedReceived;
-        public event Action<string> OnEssListUpdateReceived;
-        public event Action<string> OnEssEventListReceived;
+        public event Action<string> OnPartSelectedReceived; // React에서 좌측 Tree구조에서 장비를 클릭했을 때, 해당 장비에 대한 데이터를 Unity로 전송
 
-        public event Action<string> OnBatterySelectedReceived; // 장비 선택 시 해당 장비 정보 수신
-        public event Action<string> OnBatteryUpdatedReceived;
-        public event Action<string> OnBatteryListLoadedReceived;
+        /// <summary>가장 최근 OnPartSelected로 받은 requestId. 아직 받은 적이 없으면 0.</summary>
+        public static int LastPartRequestId { get; private set; }
+
+        [Serializable]
+        private class SceneUpdatedPayload
+        {
+            public bool isUpdated;
+            public int requestId;
+        }
+
+        [Serializable]
+        private class SceneLoadedPayload
+        {
+            public bool isLoaded;
+            public int requestId;
+        }
+
         #endregion
 
         #region LifeCycle
@@ -74,59 +86,38 @@ namespace Incheol.Modules
 
         private void OnDestroy()
         {
-            OnSectorEssListLoadedReceived = null;
-            OnEssSelectedReceived = null;
-            OnEssListUpdateReceived = null;
-            OnEssEventListReceived = null;
-
-            OnBatterySelectedReceived = null;
-            OnBatteryUpdatedReceived = null;
-            OnBatteryListLoadedReceived = null;
+            OnPartSelectedReceived = null;
         }
         #endregion
 
         #region Method (React → Unity)
-        public void OnSectorEssListLoaded(string _json)
+        /// <summary>React → Unity: 부품 JSON({ requestId, part }) 수신 진입점. 파싱은 OnPartSelectedReceived 구독자(JsonDataLoader)가 맡는다.</summary>
+        public void OnPartSelected(string _json)
         {
-            Receive(nameof(OnSectorEssListLoaded), _json, OnSectorEssListLoadedReceived);
+            CacheLastPartRequestId(_json);
+            Receive(nameof(OnPartSelected), _json, OnPartSelectedReceived);
+        }
 
-            // JsonDataLoader를 통해 파싱 및 내부 데이터 반영
+        /// <summary>OnPartSelected로 받은 JSON의 requestId를 저장해 둔다. SendSceneLoaded가 이 값을 그대로 돌려준다.</summary>
+        private static void CacheLastPartRequestId(string _json)
+        {
             if (string.IsNullOrEmpty(_json))
             {
                 return;
             }
 
-            JsonDataLoader loader = JsonDataLoader.Instance;
-            if (loader == null)
-            {
-                DebugLogManager.GenerateErrorMessage<ReactBridge>("[ReactBridge] JsonDataLoader.Instance is null - cannot parse incoming data");
-                return;
-            }
-
             try
             {
-                loader.LoadFromReactJson(_json);
-                DebugLogManager.GenerateLogMessage<ReactBridge>("[ReactBridge] Delegated to JsonDataLoader.LoadFromReactJson");
+                PartHeaderRoot header = JsonUtility.FromJson<PartHeaderRoot>(_json);
+                if (header != null)
+                {
+                    LastPartRequestId = header.requestId;
+                }
             }
             catch (Exception e)
             {
-                DebugLogManager.GenerateErrorMessage<ReactBridge>($"[ReactBridge] Delegation to JsonDataLoader failed: {e.Message}");
+                DebugLogManager.GenerateErrorMessage<ReactBridge>($"[ReactBridge] OnPartSelected requestId 읽기 실패: {e.Message}");
             }
-        }
-
-        public void OnEssSelected(string _json)
-        {
-            Receive(nameof(OnEssSelected), _json, OnEssSelectedReceived);
-        }
-
-        public void OnEssListUpdated(string _json)
-        {
-            Receive(nameof(OnEssListUpdated), _json, OnEssListUpdateReceived);
-        }
-
-        public void OnEssEventList(string _json)
-        {
-            Receive(nameof(OnEssEventList), _json, OnEssEventListReceived);
         }
 
         private void Receive(string _name, string _json, Action<string> _handlers)
@@ -154,32 +145,12 @@ namespace Incheol.Modules
         #region Method (Unity → React)
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")]
-        private static extern void OnEssSelectedFromUnity(string message);
-        [DllImport("__Internal")]
         private static extern void OnUnityReady(string message);
         [DllImport("__Internal")]
         private static extern void OnSceneLoaded(string message);
         [DllImport("__Internal")]
         private static extern void OnSceneUpdated(string message);
 #endif
-
-        /// <summary>Unity → React: Unity에서 ESS를 선택했을 때 호출. 예) {"deviceId":"..."}</summary>
-        public static void SendEssSelectedFromUnity(string _json)
-        {
-#if UNITY_WEBGL && !UNITY_EDITOR
-            try
-            {
-                OnEssSelectedFromUnity(_json ?? string.Empty);
-            }
-            catch (Exception e)
-            {
-                DebugLogManager.GenerateErrorMessage<ReactBridge>($"OnEssSelectedFromUnity failed: {e.Message}");
-            }
-#else
-            DebugLogManager.GenerateLogMessage<ReactBridge>($"(Editor) Unity → React OnEssSelectedFromUnity: {_json}");
-#endif
-        }
-
         /// <summary>Unity → React: Bootstrap 완료 시 호출. JSON {"isReady":true} 전달.</summary>
         public static void SendUnityReady()
         {
@@ -198,10 +169,13 @@ namespace Incheol.Modules
 #endif
         }
 
-        /// <summary>Unity → React: 씬 로딩 완료 시 호출. JSON {"isLoaded":true} 전달.</summary>
+        /// <summary>
+        /// Unity → React: 씬 로딩 완료 시 호출. JSON {"isLoaded":true,"requestId":N} 전달.
+        /// requestId는 가장 최근 OnPartSelected로 받은 값을 그대로 돌려준다.
+        /// </summary>
         public static void SendSceneLoaded()
         {
-            const string payload = "{\"isLoaded\":true}";
+            string payload = JsonUtility.ToJson(new SceneLoadedPayload { isLoaded = true, requestId = LastPartRequestId });
 #if UNITY_WEBGL && !UNITY_EDITOR
             try
             {
@@ -216,10 +190,13 @@ namespace Incheol.Modules
 #endif
         }
 
-        /// <summary>Unity → React: 오브젝트 Setting 이후 호출. JSON {"isUpdated":true} 전달.</summary>
+        /// <summary>
+        /// Unity → React: 오브젝트 Setting 이후 호출. JSON {"isUpdated":true,"requestId":N} 전달.
+        /// requestId는 가장 최근 OnPartSelected로 받은 값을 그대로 돌려준다.
+        /// </summary>
         public static void SendSceneUpdated()
         {
-            const string payload = "{\"isUpdated\":true}";
+            string payload = JsonUtility.ToJson(new SceneUpdatedPayload { isUpdated = true, requestId = LastPartRequestId });
 #if UNITY_WEBGL && !UNITY_EDITOR
             try
             {

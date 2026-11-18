@@ -47,6 +47,23 @@ namespace Incheol.Modules
         #endregion
 
         #region LifeCycle
+        private ReactBridge _subscribedBridge;
+
+        private void Start()
+        {
+            // React → Unity 부품 JSON(OnPartSelected)을 ReactBridge 이벤트로 받아 파싱한다.
+            _subscribedBridge = ReactBridge.Instance;
+            if (_subscribedBridge != null)
+            {
+                _subscribedBridge.OnPartSelectedReceived += OnPartSelectedReceived;
+            }
+        }
+
+        private void OnPartSelectedReceived(string _json)
+        {
+            LoadFromPartJson(_json);
+        }
+
         /// <summary>
         /// React에 OnUnityReady를 알린다. 최초 1회만 전송되며 이후 호출은 무시한다.
         /// MainSceneManager가 UI 프리팹 인스턴스화와 BindViews를 마친 직후에 호출한다.
@@ -69,6 +86,12 @@ namespace Incheol.Modules
 
         protected override void OnDestroy()
         {
+            if (_subscribedBridge != null)
+            {
+                _subscribedBridge.OnPartSelectedReceived -= OnPartSelectedReceived;
+                _subscribedBridge = null;
+            }
+
             CancelReactParse();
             ReactParsed = null;
             base.OnDestroy();

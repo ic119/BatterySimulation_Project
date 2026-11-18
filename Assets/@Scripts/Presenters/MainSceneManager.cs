@@ -90,7 +90,6 @@ namespace Incheol.Presenter
 
         private void OnDestroy()
         {
-            selection.Changed -= OnSelectionChanged;
 
             if (editorView != null)
             {
@@ -123,11 +122,6 @@ namespace Incheol.Presenter
                 mainSceneView.PackSelectRequested -= OnPackSelectRequested;
             }
 
-            if (reactBridge != null)
-            {
-                reactBridge.OnEssSelectedReceived -= OnReactEssSelected;
-                reactBridge.OnEssListUpdateReceived -= OnReactEssListUpdated;
-            }
 
             if (JsonDataLoader.Instance != null)
             {
@@ -162,32 +156,7 @@ namespace Incheol.Presenter
             SelectItem(_model, _target);
         }
 
-        /// <summary>
-        /// Unity에서 장치가 선택되면 그 deviceId를 React에 알린다(OnEssSelectedFromUnity). 예) {"deviceId":"P-1"}
-        /// React가 보낸 선택을 적용하는 중이거나, 선택 해제이거나, deviceId가 없는(Unity에서 직접 만든) 장치이면 보내지 않는다.
-        /// </summary>
-        private void SendSelectionToReact()
-        {
-            if (isApplyingReactSelection || selection.Model == null)
-            {
-                return;
-            }
 
-            string deviceId = selection.Model.Values != null ? selection.Model.Values.deviceId : null;
-            if (string.IsNullOrEmpty(deviceId))
-            {
-                return;
-            }
-
-            ReactBridge.SendEssSelectedFromUnity(JsonUtility.ToJson(new ReactDevicePayload { deviceId = deviceId }));
-        }
-
-        /// <summary>선택이 바뀌었을 때(선택 / 해제) 선택에 따라 달라지는 패널을 모두 갱신한다.</summary>
-        private void OnSelectionChanged()
-        {
-            panels.RefreshAll();
-            SendSelectionToReact();
-        }
 
         private void OnTreeChanged()
         {
@@ -239,7 +208,6 @@ namespace Incheol.Presenter
             UI_SimulationResultView simulationResultView = FindView<UI_SimulationResultView>(_root);
 
             panels.Bind(propertiesView, scaleView, spacingView, structureView, nameView, createCountView, simulationControl, editorView, simulationTreeView);
-            selection.Changed += OnSelectionChanged;
 
             simulationControl?.Init(selection, editorView, mainSceneView != null ? mainSceneView.PackFactory : null, simulationResultView);
             scaleView?.Init(selection);
@@ -288,14 +256,6 @@ namespace Incheol.Presenter
                 {
                     OnReactParsed(jsonLoader.jsonData);
                 }
-            }
-
-            // React가 장치를 선택하면 같은 deviceId의 장치를 선택한다.
-            reactBridge = ReactBridge.Instance;
-            if (reactBridge != null)
-            {
-                reactBridge.OnEssSelectedReceived += OnReactEssSelected;
-                reactBridge.OnEssListUpdateReceived += OnReactEssListUpdated;
             }
 
             // 그래프는 가장 최근에 만든 Pack을 따라간다. Pack이 생기기 전에는 숨긴다.
