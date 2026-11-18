@@ -1,3 +1,4 @@
+﻿using System.Collections.Generic;
 using DeviceType = Incheol.Models.Define.DeviceType;
 
 namespace Incheol.Modules
@@ -6,5 +7,6 @@ namespace Incheol.Modules
     public class ModuleHandler : DeviceNodeHandler
     {
         public override DeviceType Kind => DeviceType.module;
+        public List<ParallelAssemblyDataModel> parallelAssemblyList = new List<ParallelAssemblyDataModel>();
     }
 }
