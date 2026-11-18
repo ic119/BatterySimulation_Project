@@ -1,4 +1,5 @@
 using DeviceType = Incheol.Models.Define.DeviceType;
+using StackingAxisType = Incheol.Models.Define.StackingAxisType;
 using Incheol.Utils;
 using System.Collections.Generic;
 using UnityEngine;
@@ -39,6 +40,16 @@ namespace Incheol.Modules
 
             /// <summary>그 축의 Cell 사이 여백. 부모에 사용자가 정한 자식 간격이 있으면 그 값, 없으면 Cell 여백.</summary>
             public float Spacing;
+        }
+
+        /// <summary>
+        /// JSON stackingAxis에 따라 쌓는다. React의 "Y"는 Unity의 x축(StackingXAxis), "X"는 Unity의 z축(StackingZAxis)으로 처리한다.
+        /// </summary>
+        public IDeviceNode StackingByAxis(PackFactory _factory, IDeviceNode _reference, GameObject _prefab, string _name, float _cellPadding, StackingAxisType _axis, out string _failMessage)
+        {
+            return _axis == StackingAxisType.Y
+                ? StackingXAxis(_factory, _reference, _prefab, _name, _cellPadding, out _failMessage)
+                : StackingZAxis(_factory, _reference, _prefab, _name, _cellPadding, out _failMessage);
         }
 
         /// <summary>
@@ -189,6 +200,12 @@ namespace Incheol.Modules
             {
                 _failMessage = string.IsNullOrEmpty(_factory.LastFullMessage) ? "Cell을 만들지 못했습니다." : _factory.LastFullMessage;
                 return null;
+            }
+
+            // 기준 Cell이 JSON 사양(종류, 쌓는 축, 크기)을 가지고 있으면 새 Cell 모델에도 복사한다.
+            if (node is CellDataModel createdModel && _reference is CellDataModel referenceModel)
+            {
+                createdModel.CopySpecFrom(referenceModel);
             }
 
             // 기준 Cell과 같은 크기로 맞춘다(사용자가 크기를 바꿨을 수 있다).
