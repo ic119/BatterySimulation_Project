@@ -56,12 +56,18 @@ namespace Incheol.Modules
             if (_subscribedBridge != null)
             {
                 _subscribedBridge.OnPartSelectedReceived += OnPartSelectedReceived;
+                _subscribedBridge.OnPartUpdatedReceived += OnPartUpdatedReceived;
             }
         }
 
         private void OnPartSelectedReceived(string _json)
         {
             LoadFromPartJson(_json);
+        }
+
+        private void OnPartUpdatedReceived(string _json)
+        {
+            LoadFromPartUpdatedJson(_json);
         }
 
         /// <summary>
@@ -89,6 +95,7 @@ namespace Incheol.Modules
             if (_subscribedBridge != null)
             {
                 _subscribedBridge.OnPartSelectedReceived -= OnPartSelectedReceived;
+                _subscribedBridge.OnPartUpdatedReceived -= OnPartUpdatedReceived;
                 _subscribedBridge = null;
             }
 
@@ -437,6 +444,86 @@ namespace Incheol.Modules
 
             DebugLogManager.GenerateLogMessage<JsonDataLoader>(
                 $"[JsonDataLoader] Part JSON 파싱 완료 (requestId={header.requestId}, kind={deviceType})");
+            return true;
+        }
+
+        /// <summary>
+        /// React가 OnPartUpdated로 보낸 Pack 전체 JSON({ requestId, part })을 파싱한다.
+        /// OnPartSelected와 달리 kind로 종류를 나누지 않고, part가 존재하는지만 확인한 뒤
+        /// Pack → ModuleAssembly → Module → ParallelAssembly → Cell 트리 전체를 파싱한다.
+        /// 성공하면 true, 실패하면 에러 로그를 남기고 false.
+        /// </summary>
+        public bool LoadFromPartUpdatedJson(string _json)
+        {
+            if (string.IsNullOrEmpty(_json))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>("[JsonDataLoader] LoadFromPartUpdatedJson: null or empty payload");
+                return false;
+            }
+
+            // part 존재 여부 필수 체크. JsonUtility는 없거나 null인 part도 빈 기본 인스턴스로 채우므로, 원본에 part 객체가 있는지 먼저 확인한다.
+            if (!System.Text.RegularExpressions.Regex.IsMatch(_json, "\"part\"\\s*:\\s*\\{"))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>("[JsonDataLoader] Part Updated JSON에 part가 없습니다.");
+                return false;
+            }
+
+            PartRoot<PackPartJson> root;
+            try
+            {
+                root = JsonUtility.FromJson<PartRoot<PackPartJson>>(_json);
+            }
+            catch (Exception e)
+            {
+                string preview = _json.Length > 128 ? _json.Substring(0, 128) + "..." : _json;
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Part Updated JSON 파싱 실패: {e.Message} preview={preview}");
+                return false;
+            }
+
+            if (root == null || root.part == null)
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>(
+                    $"[JsonDataLoader] Part Updated JSON에 part가 없습니다. requestId={(root != null ? root.requestId : -1)}");
+                return false;
+            }
+
+            // 트리를 훑어 종류별 개수를 센다. JsonUtility는 없는 하위 객체도 빈 인스턴스로 채우므로 id가 있는 것만 센다.
+            int moduleAssemblies = 0;
+            int modules = 0;
+            int parallelAssemblies = 0;
+            int cells = 0;
+
+            root.part.moduleAssemblies ??= new List<ModuleAssemblyPartJson>();
+            foreach (ModuleAssemblyPartJson moduleAssembly in root.part.moduleAssemblies)
+            {
+                if (moduleAssembly == null)
+                {
+                    continue;
+                }
+
+                moduleAssemblies++;
+                moduleAssembly.modules ??= new List<ModulePartJson>();
+                foreach (ModulePartJson module in moduleAssembly.modules)
+                {
+                    if (module == null)
+                    {
+                        continue;
+                    }
+
+                    modules++;
+                    if (module.parallelAssembly != null && !string.IsNullOrEmpty(module.parallelAssembly.id))
+                    {
+                        parallelAssemblies++;
+                        if (module.parallelAssembly.cell != null && !string.IsNullOrEmpty(module.parallelAssembly.cell.id))
+                        {
+                            cells++;
+                        }
+                    }
+                }
+            }
+
+            DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                $"[JsonDataLoader] Part Updated JSON 파싱 완료 (requestId={root.requestId}, id={root.part.id}, name={root.part.name}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
             return true;
         }
         #endregion

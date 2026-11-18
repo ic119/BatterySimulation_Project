@@ -32,9 +32,10 @@ namespace Incheol.Modules
         }
 
         // React → Unity 수신 이벤트 (페이로드는 원본 JSON 문자열)
-        public event Action<string> OnPartSelectedReceived; // React에서 좌측 Tree구조에서 장비를 클릭했을 때, 해당 장비에 대한 데이터를 Unity로 전송
+        public event Action<string> OnPartSelectedReceived; // React화면에서 좌측 Tree구조에서 장비를 클릭했을 때, 해당 장비에 대한 데이터를 Unity로 전송
+        public event Action<string> OnPartUpdatedReceived; // React화면에서 우측하단 Apply 버튼 클릭 시, Pack 전체에 대한 장비 데이터를 Unity로 전송
 
-        /// <summary>가장 최근 OnPartSelected로 받은 requestId. 아직 받은 적이 없으면 0.</summary>
+        /// <summary>가장 최근 OnPartSelected / OnPartUpdated로 받은 requestId. 아직 받은 적이 없으면 0.</summary>
         public static int LastPartRequestId { get; private set; }
 
         [Serializable]
@@ -87,6 +88,7 @@ namespace Incheol.Modules
         private void OnDestroy()
         {
             OnPartSelectedReceived = null;
+            OnPartUpdatedReceived = null;
         }
         #endregion
 
@@ -98,7 +100,16 @@ namespace Incheol.Modules
             Receive(nameof(OnPartSelected), _json, OnPartSelectedReceived);
         }
 
-        /// <summary>OnPartSelected로 받은 JSON의 requestId를 저장해 둔다. SendSceneLoaded가 이 값을 그대로 돌려준다.</summary>
+        /// <summary>React → Unity: Apply 시 전달되는 Pack 전체 JSON({ requestId, part }) 수신 진입점. 파싱은 OnPartUpdatedReceived 구독자(JsonDataLoader)가 맡는다.</summary>
+        public void OnPartUpdated(string _json)
+        {
+            CacheLastPartRequestId(_json);
+            Receive(nameof(OnPartUpdated), _json, OnPartUpdatedReceived);
+        }
+
+
+
+        /// <summary>OnPartSelected / OnPartUpdated로 받은 JSON의 requestId를 저장해 둔다. SendSceneLoaded / SendSceneUpdated가 이 값을 그대로 돌려준다.</summary>
         private static void CacheLastPartRequestId(string _json)
         {
             if (string.IsNullOrEmpty(_json))
