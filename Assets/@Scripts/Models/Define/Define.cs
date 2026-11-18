@@ -41,6 +41,7 @@
 
     public enum CellType
     {
+        None,
         Cylindrical,
         Pouch,
         Prismatic
@@ -50,5 +51,14 @@
     {
         X,
         Y
+    }
+
+    public enum TopologyType
+    {
+        None,
+        Hexagonal,
+        NStack,
+        SingleStack,
+        Square
     }
 }
