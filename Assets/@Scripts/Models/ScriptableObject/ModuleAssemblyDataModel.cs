@@ -105,6 +105,20 @@ public class ModuleAssemblyDataModel : IDeviceNode
         }
     }
 
+    /// <summary>_source의 JSON 사양(축, 간격, 층 수)을 복사한다. 식별자, 이름, 씬 상태, 하위 목록은 복사하지 않는다.</summary>
+    public void CopySpecFrom(ModuleAssemblyDataModel _source)
+    {
+        if (_source == null)
+        {
+            return;
+        }
+
+        jsonPosition = _source.jsonPosition;
+        stackingAxis = _source.stackingAxis;
+        interModuleGap = _source.interModuleGap;
+        numLevels = _source.numLevels;
+    }
+
     /// <summary>이 ModuleAssembly가 속한 Pack. 순환 참조라 직렬화하지 않는다.</summary>
     [NonSerialized] public PackDataModel parentPack;
 

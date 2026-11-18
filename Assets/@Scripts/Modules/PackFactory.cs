@@ -164,9 +164,10 @@ public class PackFactory
     /// _kind 종류의 장치를 만들고 등록한다. Pack은 _parent가 null이어야 하고, 나머지는 바로 위 종류의 _parent(이 팩토리가 만든 것)가 있어야 한다.
     /// _prefab을 주면 그것을 인스턴스화한다. _size가 주어지면 칸을 찾기 전에 그 크기로 맞추고, _bodyCenter가 주어지면(저장된 파일을 불러올 때) 칸을 찾지 않고 저장 당시 자리에 그대로 둔다.
     /// 부모 몸체 안에 놓을 칸이 없으면 만들지 않고 null을 돌려준다(LastFullMessage에 안내 문구가 담긴다).
+    /// _standalone이 true이면 부모 없이 단독으로 만든다(부모 종류가 있는 ModuleAssembly ~ Cell도 Pack처럼 Root 아래에 놓이고 Parent가 null이다). 일부 부품만 받아 보여 줄 때 쓴다.
     /// _prebuilt를 주면 새 모델을 만들지 않고 그 모델(현재는 CellDataModel만)에 씬 오브젝트와 부모를 연결해 등록한다. 만들지 못하면 _prebuilt는 건드리지 않는다.
     /// </summary>
-    public IDeviceNode Create(DeviceType _kind, IDeviceNode _parent, string _name, GameObject _prefab = null, Vector3 _size = default, Vector3? _bodyCenter = null, string _deviceId = null, IDeviceNode _prebuilt = null)
+    public IDeviceNode Create(DeviceType _kind, IDeviceNode _parent, string _name, GameObject _prefab = null, Vector3 _size = default, Vector3? _bodyCenter = null, string _deviceId = null, IDeviceNode _prebuilt = null, bool _standalone = false)
     {
         LastFullMessage = string.Empty;
 
@@ -177,7 +178,7 @@ public class PackFactory
             return null;
         }
 
-        bool hasParentKind = DeviceHierarchy.TryGetParentKind(_kind, out DeviceType parentKind);
+        bool hasParentKind = DeviceHierarchy.TryGetParentKind(_kind, out DeviceType parentKind) && !_standalone;
         if (hasParentKind)
         {
             if (_parent == null || _parent.Kind != parentKind || !registry.Contains(_parent) || _parent.Position == null)
@@ -269,7 +270,7 @@ public class PackFactory
     /// 모델은 새로 만들지 않고 _data 자체를 씬 오브젝트에 연결해 등록한다(deviceId는 _data.values.deviceId).
     /// 크기가 지정되지 않았으면(0 이하) 프리팹 본래 크기로 만든다. 부모 안에 놓을 칸이 없거나 deviceId가 겹치면 null이며 _data는 그대로다.
     /// </summary>
-    public IDeviceNode CreateCell(ParallelAssemblyDataModel _parent, CellDataModel _data, GameObject _prefab = null, Vector3? _bodyCenter = null)
+    public IDeviceNode CreateCell(ParallelAssemblyDataModel _parent, CellDataModel _data, GameObject _prefab = null, Vector3? _bodyCenter = null, bool _standalone = false)
     {
         if (_data == null)
         {
@@ -277,7 +278,7 @@ public class PackFactory
             return null;
         }
 
-        return Create(DeviceType.cell, _parent, _data.cellName, _prefab, _data.BodySize, _bodyCenter, _data.values.deviceId, _data);
+        return Create(DeviceType.cell, _parent, _data.cellName, _prefab, _data.BodySize, _bodyCenter, _data.values.deviceId, _data, _standalone);
     }
 
     /// <summary>_kind에 맞는 모델을 만들어 _parent의 자식 목록에 넣는다. _prebuilt가 있으면(Cell만 지원) 새로 만들지 않고 그 모델을 연결한다.</summary>
@@ -287,20 +288,20 @@ public class PackFactory
         {
             case DeviceType.moduleassembly:
                 {
-                    ModuleAssemblyDataModel moduleAssembly = new ModuleAssemblyDataModel { moduleAssemblyName = _name, moduleAssemblyPosition = _position, parentPack = (PackDataModel)_parent };
-                    moduleAssembly.parentPack.moduleAssembliesList.Add(moduleAssembly);
+                    ModuleAssemblyDataModel moduleAssembly = new ModuleAssemblyDataModel { moduleAssemblyName = _name, moduleAssemblyPosition = _position, parentPack = _parent as PackDataModel };
+                    moduleAssembly.parentPack?.moduleAssembliesList.Add(moduleAssembly);
                     return moduleAssembly;
                 }
             case DeviceType.module:
                 {
-                    ModuleDataModel module = new ModuleDataModel { moduleName = _name, modulePosition = _position, parentModuleAssembly = (ModuleAssemblyDataModel)_parent };
-                    module.parentModuleAssembly.modulesList.Add(module);
+                    ModuleDataModel module = new ModuleDataModel { moduleName = _name, modulePosition = _position, parentModuleAssembly = _parent as ModuleAssemblyDataModel };
+                    module.parentModuleAssembly?.modulesList.Add(module);
                     return module;
                 }
             case DeviceType.parallelassembly:
                 {
-                    ParallelAssemblyDataModel parallelAssembly = new ParallelAssemblyDataModel { parallelAssemblyName = _name, parallelAssemblyPosition = _position, parentModule = (ModuleDataModel)_parent };
-                    parallelAssembly.parentModule.parallelAssembliesList.Add(parallelAssembly);
+                    ParallelAssemblyDataModel parallelAssembly = new ParallelAssemblyDataModel { parallelAssemblyName = _name, parallelAssemblyPosition = _position, parentModule = _parent as ModuleDataModel };
+                    parallelAssembly.parentModule?.parallelAssembliesList.Add(parallelAssembly);
                     return parallelAssembly;
                 }
             case DeviceType.cell:
@@ -309,8 +310,8 @@ public class PackFactory
                     {
                         // 이미 만들어 둔 모델(React 데이터 등)을 그대로 쓴다. ParallelAssemblyDataModel.ApplyFrom이 이미 목록에 넣어 뒀을 수 있으므로 중복해서 넣지 않는다.
                         prebuiltCell.cellPosition = _position;
-                        prebuiltCell.parentParallelAssembly = (ParallelAssemblyDataModel)_parent;
-                        if (!prebuiltCell.parentParallelAssembly.cellsList.Contains(prebuiltCell))
+                        prebuiltCell.parentParallelAssembly = _parent as ParallelAssemblyDataModel;
+                        if (prebuiltCell.parentParallelAssembly != null && !prebuiltCell.parentParallelAssembly.cellsList.Contains(prebuiltCell))
                         {
                             prebuiltCell.parentParallelAssembly.cellsList.Add(prebuiltCell);
                         }
@@ -318,8 +319,8 @@ public class PackFactory
                         return prebuiltCell;
                     }
 
-                    CellDataModel cell = new CellDataModel { cellName = _name, cellPosition = _position, parentParallelAssembly = (ParallelAssemblyDataModel)_parent };
-                    cell.parentParallelAssembly.cellsList.Add(cell);
+                    CellDataModel cell = new CellDataModel { cellName = _name, cellPosition = _position, parentParallelAssembly = _parent as ParallelAssemblyDataModel };
+                    cell.parentParallelAssembly?.cellsList.Add(cell);
                     return cell;
                 }
             default:

@@ -95,6 +95,19 @@ public class PackDataModel : IDeviceNode
         }
     }
 
+    /// <summary>_source의 JSON 사양(축, 간격)을 복사한다. 식별자, 이름, 씬 상태, 하위 목록은 복사하지 않는다.</summary>
+    public void CopySpecFrom(PackDataModel _source)
+    {
+        if (_source == null)
+        {
+            return;
+        }
+
+        jsonPosition = _source.jsonPosition;
+        stackingAxis = _source.stackingAxis;
+        interModuleAssemblyGap = _source.interModuleAssemblyGap;
+    }
+
     /// <summary>이 Pack의 씬 오브젝트. Root 바로 아래에 놓인다. 저장하지 않는다.</summary>
     [NonSerialized] public Transform packPosition;
 
