@@ -36,6 +36,15 @@ namespace Incheol.Modules
         /// <summary>React 데이터 파싱이 끝나 jsonData에 반영된 직후에 발생한다. 인자는 파싱된 저장 데이터. 구독하기 전에 이미 끝났다면 isReactParsed로 확인한다.</summary>
         public event Action<JsonDataController.SaveJson> ReactParsed;
 
+        /// <summary>
+        /// 가장 최근 OnPartSelected로 받아 저장한 부품 모델. part.kind에 해당하는 최상단 모델이며(Pack ~ Cell), 그 아래 하위 모델까지 채워져 있다.
+        /// 파싱·저장에 실패하면 이전 값이 유지된다.
+        /// </summary>
+        public IDeviceNode SelectedPart { get; private set; }
+
+        /// <summary>가장 최근 OnPartUpdated로 받아 저장한 Pack 모델(Pack부터 Cell까지 전체). 저장에 실패하면 이전 값이 유지된다.</summary>
+        public PackDataModel UpdatedPack { get; private set; }
+
         /// <summary>SendUnityReady 1회만 호출용 (MainSceneManager가 뷰 바인딩을 끝낸 뒤 NotifyUnityReady로 React에 알림)</summary>
         private static bool _hasSentUnityReady;
 
@@ -407,36 +416,81 @@ namespace Incheol.Modules
                     case DeviceType.pack:
                     {
                         PackPartJson part = JsonUtility.FromJson<PartRoot<PackPartJson>>(_json).part;
+                        // 최상단(pack)부터 최하위(Cell)까지 모델에 저장한다.
+                        PackDataModel model = new PackDataModel();
+                        if (!model.ApplyFrom(part))
+                        {
+                            DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Pack 저장 실패 (id={part.id}, requestId={header.requestId})");
+                            return false;
+                        }
+
+                        SelectedPart = model;
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                            $"[JsonDataLoader] Pack 파싱 완료 (id={part.id}, name={part.name}, moduleAssemblies={part.moduleAssemblies.Count})");
+                            $"[JsonDataLoader] Pack 파싱·저장 완료 (id={part.id}, name={part.name}, moduleAssemblies={part.moduleAssemblies.Count})");
                         break;
                     }
                     case DeviceType.moduleassembly:
                     {
                         ModuleAssemblyPartJson part = JsonUtility.FromJson<PartRoot<ModuleAssemblyPartJson>>(_json).part;
+                        // 최상단(moduleassembly)부터 최하위(Cell)까지 모델에 저장한다.
+                        ModuleAssemblyDataModel model = new ModuleAssemblyDataModel();
+                        if (!model.ApplyFrom(part))
+                        {
+                            DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] ModuleAssembly 저장 실패 (id={part.id}, requestId={header.requestId})");
+                            return false;
+                        }
+
+                        SelectedPart = model;
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                            $"[JsonDataLoader] ModuleAssembly 파싱 완료 (id={part.id}, name={part.name}, modules={part.modules.Count}, numLevels={part.numLevels})");
+                            $"[JsonDataLoader] ModuleAssembly 파싱·저장 완료 (id={part.id}, name={part.name}, modules={part.modules.Count}, numLevels={part.numLevels})");
                         break;
                     }
                     case DeviceType.module:
                     {
                         ModulePartJson part = JsonUtility.FromJson<PartRoot<ModulePartJson>>(_json).part;
+                        // 최상단(module)부터 최하위(Cell)까지 모델에 저장한다.
+                        ModuleDataModel model = new ModuleDataModel();
+                        if (!model.ApplyFrom(part))
+                        {
+                            DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Module 저장 실패 (id={part.id}, requestId={header.requestId})");
+                            return false;
+                        }
+
+                        SelectedPart = model;
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                            $"[JsonDataLoader] Module 파싱 완료 (id={part.id}, name={part.name}, topology={part.topology}, numSeriesAssemblies={part.numSeriesAssemblies})");
+                            $"[JsonDataLoader] Module 파싱·저장 완료 (id={part.id}, name={part.name}, topology={part.topology}, numSeriesAssemblies={part.numSeriesAssemblies})");
                         break;
                     }
                     case DeviceType.parallelassembly:
                     {
                         ParallelAssemblyPartJson part = JsonUtility.FromJson<PartRoot<ParallelAssemblyPartJson>>(_json).part;
+                        // 최상단(parallelassembly)부터 최하위(Cell)까지 모델에 저장한다.
+                        ParallelAssemblyDataModel model = new ParallelAssemblyDataModel();
+                        if (!model.ApplyFrom(part))
+                        {
+                            DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] ParallelAssembly 저장 실패 (id={part.id}, requestId={header.requestId})");
+                            return false;
+                        }
+
+                        SelectedPart = model;
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                            $"[JsonDataLoader] ParallelAssembly 파싱 완료 (id={part.id}, name={part.name}, numParallelCells={part.numParallelCells}, rows={part.rows})");
+                            $"[JsonDataLoader] ParallelAssembly 파싱·저장 완료 (id={part.id}, name={part.name}, numParallelCells={part.numParallelCells}, rows={part.rows})");
                         break;
                     }
                     case DeviceType.cell:
                     {
                         CellPartJson part = JsonUtility.FromJson<PartRoot<CellPartJson>>(_json).part;
+                        // 최상단(cell)부터 최하위(Cell)까지 모델에 저장한다.
+                        CellDataModel model = new CellDataModel();
+                        if (!model.ApplyFrom(part))
+                        {
+                            DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Cell 저장 실패 (id={part.id}, requestId={header.requestId})");
+                            return false;
+                        }
+
+                        SelectedPart = model;
                         DebugLogManager.GenerateLogMessage<JsonDataLoader>(
-                            $"[JsonDataLoader] Cell 파싱 완료 (id={part.id}, name={part.name}, shape={part.geometry?.shape})");
+                            $"[JsonDataLoader] Cell 파싱·저장 완료 (id={part.id}, name={part.name}, shape={part.geometry?.shape})");
                         break;
                     }
                     default:
@@ -530,6 +584,15 @@ namespace Incheol.Modules
                 }
             }
 
+            // 최상단 Pack부터 Cell까지 전체를 새 모델에 저장한다. 실패하면 이전 UpdatedPack을 유지한다.
+            PackDataModel pack = new PackDataModel();
+            if (!pack.ApplyFrom(root.part))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Pack 저장 실패 (id={root.part.id}, requestId={root.requestId})");
+                return false;
+            }
+
+            UpdatedPack = pack;
             DebugLogManager.GenerateLogMessage<JsonDataLoader>(
                 $"[JsonDataLoader] Part Updated JSON 파싱 완료 (requestId={root.requestId}, id={root.part.id}, name={root.part.name}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
             return true;
