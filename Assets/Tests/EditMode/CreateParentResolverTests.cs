@@ -121,7 +121,7 @@ namespace Incheol.Tests
             CreateParentResolver.Result result = Resolve(DeviceType.cell);
 
             Assert.IsFalse(result.success);
-            StringAssert.Contains("Pack", result.message);
+            StringAssert.Contains(DeviceType.pack.ToString(), result.message);
             Assert.IsFalse(result.showAlarm);
         }
         #endregion

@@ -117,14 +117,14 @@ namespace Incheol.Tests
         {
             PackDataModel stranger = new PackDataModel { packName = "x" };
 
-            LogAssert.Expect(LogType.Error, new Regex("생성된 Pack이"));
+            LogAssert.Expect(LogType.Error, new Regex($"생성된 {DeviceType.pack}이"));
             Assert.IsNull(Make(DeviceType.moduleassembly, stranger, "1"));
         }
 
         [Test]
         public void Create_WithoutParent_ReturnsNull()
         {
-            LogAssert.Expect(LogType.Error, new Regex("생성된 ParallelAssembly이"));
+            LogAssert.Expect(LogType.Error, new Regex($"생성된 {DeviceType.parallelassembly}이"));
             Assert.IsNull(Make(DeviceType.cell, null, "1"));
         }
 
@@ -134,7 +134,7 @@ namespace Incheol.Tests
             IDeviceNode pack = Make(DeviceType.pack, null, "1");
 
             // Module의 부모는 ModuleAssembly여야 한다.
-            LogAssert.Expect(LogType.Error, new Regex("생성된 ModuleAssembly이"));
+            LogAssert.Expect(LogType.Error, new Regex($"생성된 {DeviceType.moduleassembly}이"));
             Assert.IsNull(Make(DeviceType.module, pack, "1"));
         }
 

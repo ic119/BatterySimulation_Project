@@ -46,7 +46,7 @@ public static class DeviceBody
     /// <summary>
     /// _target의 크기를 월드 크기 _size로 바꾼다. 크기의 어느 축이든 0 이하이면(= 지정하지 않음) 아무것도 하지 않는다.
     /// Pack / Module처럼 자식 Body가 크기를 가지면 Body의 좌측 바닥 뒤쪽 모서리(min.x, min.y, max.z)를 고정한 채 +x, +y, -z 방향으로 바꾸고(Scale 패널과 같은 규칙),
-    /// Cell처럼 본인이 몸체면 중심을 유지한 채 스케일을 바꾼다. 몸체는 단위 크기 메시(Cube 등)라는 전제다.
+    /// Cell처럼 본인이 몸체면 중심을 유지한 채 스케일을 바꾼다. 몸체 메시가 단위 크기가 아니어도 현재 월드 크기 대비 비율로 스케일을 정하므로 월드 크기가 _size가 된다.
     /// </summary>
     public static void Resize(Transform _target, Vector3 _size)
     {
@@ -60,10 +60,15 @@ public static class DeviceBody
         {
             Bounds current = bodyRenderer.bounds;
             Vector3 parentScale = _target.lossyScale;
+
+            // 현재 월드 크기 대비 비율로 스케일을 바꿔, 메시가 단위 크기가 아니어도(예: Cell 프리팹의 Body) 월드 크기가 _size가 되게 한다.
+            // 단위 크기 메시(Cube 등)에서는 _size / 부모 스케일과 같은 값이다. 현재 크기를 잴 수 없는 축(0)만 예전 방식으로 계산한다.
+            Vector3 currentSize = current.size;
+            Vector3 bodyScale = body.localScale;
             body.localScale = new Vector3(
-                DivideSafe(_size.x, parentScale.x),
-                DivideSafe(_size.y, parentScale.y),
-                DivideSafe(_size.z, parentScale.z));
+                currentSize.x > 0.0f ? bodyScale.x * _size.x / currentSize.x : DivideSafe(_size.x, parentScale.x),
+                currentSize.y > 0.0f ? bodyScale.y * _size.y / currentSize.y : DivideSafe(_size.y, parentScale.y),
+                currentSize.z > 0.0f ? bodyScale.z * _size.z / currentSize.z : DivideSafe(_size.z, parentScale.z));
             body.position = new Vector3(
                 current.min.x + _size.x * 0.5f,
                 current.min.y + _size.y * 0.5f,

@@ -26,6 +26,24 @@ public class CellDataModel : IDeviceNode
     public float height;
 
     /// <summary>
+    /// 이 Cell 몸체(Body)의 Unity 월드 크기. mm를 월드 단위(m)로 바꾼 값이다.
+    /// 축 대응: x = thickness(Cell이 +x로 쌓이는 방향), y = height, z = length(Tag가 달린 방향).
+    /// 세 값 중 하나라도 0 이하이면 지정하지 않은 것으로 보고 default(0)를 돌려준다.
+    /// </summary>
+    public Vector3 BodySize
+    {
+        get
+        {
+            if (thickness <= 0.0f || height <= 0.0f || length <= 0.0f)
+            {
+                return default;
+            }
+
+            return new Vector3(DeviceUnit.FromMm(thickness), DeviceUnit.FromMm(height), DeviceUnit.FromMm(length));
+        }
+    }
+
+    /// <summary>
     /// React가 보낸 cell JSON 값을 이 모델에 저장한다.
     /// geometry.shape는 CellType, stackingAxis는 StackingAxisType(둘 다 대소문자 무시)으로 비교하며,
     /// 알 수 없는 값이면 아무것도 바꾸지 않고 false를 반환한다.
@@ -60,6 +78,24 @@ public class CellDataModel : IDeviceNode
         thickness = _json.geometry.thickness;
         height = _json.geometry.height;
         return true;
+    }
+
+    /// <summary>
+    /// _source의 JSON 값(종류, 쌓는 축, 크기)을 이 모델에 복사한다. 쌓아서 만든 Cell이 기준 Cell과 같은 사양이 되게 할 때 쓴다.
+    /// 식별자(deviceId), 이름, 씬 상태(values), jsonPosition은 복사하지 않는다.
+    /// </summary>
+    public void CopySpecFrom(CellDataModel _source)
+    {
+        if (_source == null)
+        {
+            return;
+        }
+
+        cellType = _source.cellType;
+        stackingAxis = _source.stackingAxis;
+        length = _source.length;
+        thickness = _source.thickness;
+        height = _source.height;
     }
 
     /// <summary>이 Cell이 속한 ParallelAssembly. 순환 참조라 직렬화하지 않는다.</summary>
