@@ -1,3 +1,6 @@
+using Incheol.Models;
+using Incheol.Models.Define;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Utils;
 using System;
 using System.Collections.Generic;
@@ -312,6 +315,103 @@ namespace Incheol.Modules
             {
                 // 더 최신 React 데이터가 도착해 취소됨 - 플래그는 새 작업이 소유하므로 건드리지 않음
             }
+        }
+
+        /// <summary>
+        /// React로부터 전달된 부품 JSON({ requestId, part })을 파싱한다.
+        /// part 존재 여부를 먼저 확인하고, part.kind를 DeviceType으로 변환해 종류별로 분기한다.
+        /// 성공하면 true, 실패하면 에러 로그를 남기고 false.
+        /// </summary>
+        public bool LoadFromPartJson(string _json)
+        {
+            if (string.IsNullOrEmpty(_json))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>("[JsonDataLoader] LoadFromPartJson: null or empty payload");
+                return false;
+            }
+
+            // 1단계: requestId와 kind만 읽어 part 존재 여부와 부품 종류를 확인한다.
+            PartHeaderRoot header;
+            try
+            {
+                header = JsonUtility.FromJson<PartHeaderRoot>(_json);
+            }
+            catch (Exception e)
+            {
+                string preview = _json.Length > 128 ? _json.Substring(0, 128) + "..." : _json;
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] Part JSON 파싱 실패: {e.Message} preview={preview}");
+                return false;
+            }
+
+            // part 존재 여부 필수 체크 (JsonUtility는 없는 객체를 기본 인스턴스로 채우므로 kind까지 확인)
+            if (header == null || header.part == null || string.IsNullOrEmpty(header.part.kind))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>(
+                    $"[JsonDataLoader] Part JSON에 part 또는 part.kind가 없습니다. requestId={(header != null ? header.requestId : -1)}");
+                return false;
+            }
+
+            if (!Enum.TryParse(header.part.kind, true, out DeviceType deviceType) || !Enum.IsDefined(typeof(DeviceType), deviceType))
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>(
+                    $"[JsonDataLoader] 알 수 없는 part.kind: '{header.part.kind}' (requestId={header.requestId})");
+                return false;
+            }
+
+            // 2단계: 종류별로 실제 타입으로 다시 파싱한다.
+            try
+            {
+                switch (deviceType)
+                {
+                    case DeviceType.pack:
+                    {
+                        PackPartJson part = JsonUtility.FromJson<PartRoot<PackPartJson>>(_json).part;
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                            $"[JsonDataLoader] Pack 파싱 완료 (id={part.id}, name={part.name}, moduleAssemblies={part.moduleAssemblies.Count})");
+                        break;
+                    }
+                    case DeviceType.moduleassembly:
+                    {
+                        ModuleAssemblyPartJson part = JsonUtility.FromJson<PartRoot<ModuleAssemblyPartJson>>(_json).part;
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                            $"[JsonDataLoader] ModuleAssembly 파싱 완료 (id={part.id}, name={part.name}, modules={part.modules.Count}, numLevels={part.numLevels})");
+                        break;
+                    }
+                    case DeviceType.module:
+                    {
+                        ModulePartJson part = JsonUtility.FromJson<PartRoot<ModulePartJson>>(_json).part;
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                            $"[JsonDataLoader] Module 파싱 완료 (id={part.id}, name={part.name}, topology={part.topology}, numSeriesAssemblies={part.numSeriesAssemblies})");
+                        break;
+                    }
+                    case DeviceType.parallelassembly:
+                    {
+                        ParallelAssemblyPartJson part = JsonUtility.FromJson<PartRoot<ParallelAssemblyPartJson>>(_json).part;
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                            $"[JsonDataLoader] ParallelAssembly 파싱 완료 (id={part.id}, name={part.name}, numParallelCells={part.numParallelCells}, rows={part.rows})");
+                        break;
+                    }
+                    case DeviceType.cell:
+                    {
+                        CellPartJson part = JsonUtility.FromJson<PartRoot<CellPartJson>>(_json).part;
+                        DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                            $"[JsonDataLoader] Cell 파싱 완료 (id={part.id}, name={part.name}, shape={part.geometry?.shape})");
+                        break;
+                    }
+                    default:
+                        DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] 처리되지 않은 DeviceType: {deviceType}");
+                        return false;
+                }
+            }
+            catch (Exception e)
+            {
+                DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"[JsonDataLoader] {deviceType} 파싱 실패: {e.Message} (requestId={header.requestId})");
+                return false;
+            }
+
+            DebugLogManager.GenerateLogMessage<JsonDataLoader>(
+                $"[JsonDataLoader] Part JSON 파싱 완료 (requestId={header.requestId}, kind={deviceType})");
+            return true;
         }
         #endregion
     }
