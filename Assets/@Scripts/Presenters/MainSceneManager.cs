@@ -78,6 +78,12 @@ namespace Incheol.Presenter
                     SceneManager.MoveGameObjectToScene(instance, gameObject.scene);
                     BindViews(instance);
                     DebugLogManager.GenerateLogMessage<MainSceneManager>("UI_MainScene 프리팹 인스턴스화 완료");
+
+                    // UI 인스턴스화와 뷰 바인딩(React 이벤트 구독 포함)이 끝났으므로 React에 준비 완료를 알린다.
+                    if (JsonDataLoader.Instance != null)
+                    {
+                        JsonDataLoader.Instance.NotifyUnityReady();
+                    }
                 },
                 () => DebugLogManager.GenerateErrorMessage<MainSceneManager>("UI_MainScene 프리팹 로드 실패"));
         }

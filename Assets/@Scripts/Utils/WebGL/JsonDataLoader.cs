@@ -36,7 +36,7 @@ namespace Incheol.Modules
         /// <summary>React 데이터 파싱이 끝나 jsonData에 반영된 직후에 발생한다. 인자는 파싱된 저장 데이터. 구독하기 전에 이미 끝났다면 isReactParsed로 확인한다.</summary>
         public event Action<JsonDataController.SaveJson> ReactParsed;
 
-        /// <summary>SendUnityReady 1회만 호출용 (JsonDataLoader 인스턴스 생성 후 React에 알림)</summary>
+        /// <summary>SendUnityReady 1회만 호출용 (MainSceneManager가 뷰 바인딩을 끝낸 뒤 NotifyUnityReady로 React에 알림)</summary>
         private static bool _hasSentUnityReady;
 
         /// <summary>진행 중인 React 파싱 작업 취소용. 새 데이터 수신 시 이전 작업을 취소한다.</summary>
@@ -47,12 +47,16 @@ namespace Incheol.Modules
         #endregion
 
         #region LifeCycle
-        private void Start()
+        /// <summary>
+        /// React에 OnUnityReady를 알린다. 최초 1회만 전송되며 이후 호출은 무시한다.
+        /// MainSceneManager가 UI 프리팹 인스턴스화와 BindViews를 마친 직후에 호출한다.
+        /// </summary>
+        public void NotifyUnityReady()
         {
-#if UNITY_WEBGL && !UNITY_EDITOR
             if (_hasSentUnityReady)
                 return;
             _hasSentUnityReady = true;
+
             try
             {
                 ReactBridge.SendUnityReady();
@@ -61,7 +65,6 @@ namespace Incheol.Modules
             {
                 DebugLogManager.GenerateErrorMessage<JsonDataLoader>($"SendUnityReady failed: {e.Message}");
             }
-#endif
         }
 
         protected override void OnDestroy()

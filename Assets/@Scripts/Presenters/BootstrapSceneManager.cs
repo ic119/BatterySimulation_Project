@@ -7,7 +7,7 @@ namespace Incheol.Presenter
 {
     /// <summary>
     /// BootstrapScene의 진입점. 필요한 매니저를 순서대로 초기화(SequenceManager)한 뒤 첫 씬으로 전환한다.
-    /// 순서: Addressable 초기화 → 로딩바 생성 → SceneLoadManager 초기화(SceneDataModelSO/AddressableAssetModelSO 로드) → 첫 씬 전환.
+    /// 순서: Addressable 초기화 → 로딩바 생성 → SceneLoadManager 초기화(SceneDataModelSO/AddressableAssetModelSO 로드) → JsonDataLoader 준비 → 첫 씬 전환.
     /// </summary>
     public class BootstrapSceneManager : MonoBehaviour
     {
@@ -83,6 +83,26 @@ namespace Incheol.Presenter
             }
         }
 
+        private class JsonDataLoaderManage : ISequenceStep
+        {
+            public string StepName => "Initialize Json Data Loader";
+
+            public async Awaitable<bool> Execute(CancellationToken _cancellationToken)
+            {
+                // Instance 접근 시 씬에 없으면 자동 생성된다(씬 전환 유지). OnUnityReady는 여기서 보내지 않고, MainSceneManager가 UI 바인딩을 끝낸 뒤 JsonDataLoader.NotifyUnityReady로 보낸다.
+                if (JsonDataLoader.Instance == null)
+                {
+                    DebugLogManager.GenerateErrorMessage<BootstrapSceneManager>("JsonDataLoader.Instance가 null입니다.");
+                    return false;
+                }
+
+                // 한 프레임 양보해 JsonDataLoader.Start()가 실행되도록 한다.
+                await Awaitable.NextFrameAsync(_cancellationToken);
+
+                return true;
+            }
+        }
+
         private class ChangeSceneManage : ISequenceStep
         {
             private readonly string sceneTag;
@@ -123,6 +143,7 @@ namespace Incheol.Presenter
                 new AddressableAssetManage(),
                 new LoadingBarManage(),
                 new LoadSceneManage(),
+                new JsonDataLoaderManage(),
                 new ChangeSceneManage(firstSceneTag),
             };
 
