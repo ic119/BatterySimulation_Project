@@ -62,12 +62,20 @@ namespace Incheol.Modules
 
         private void OnPartSelectedReceived(string _json)
         {
-            LoadFromPartJson(_json);
+            // 파싱이 성공하면 React에 OnSceneLoaded로 응답한다. requestId는 ReactBridge가 OnPartSelected 수신 시 저장해 둔 값이 실린다.
+            if (LoadFromPartJson(_json))
+            {
+                ReactBridge.SendSceneLoaded();
+            }
         }
 
         private void OnPartUpdatedReceived(string _json)
         {
-            LoadFromPartUpdatedJson(_json);
+            // 파싱이 성공하면 React에 OnSceneUpdated로 응답한다. requestId는 ReactBridge가 OnPartUpdated 수신 시 저장해 둔 값이 실린다.
+            if (LoadFromPartUpdatedJson(_json))
+            {
+                ReactBridge.SendSceneUpdated();
+            }
         }
 
         /// <summary>

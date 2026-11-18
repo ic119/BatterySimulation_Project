@@ -379,8 +379,6 @@ namespace Incheol.Presenter
             {
                 cameraView.Track(nodes[0].Position, packFactory.Root);
             }
-
-            ReactBridge.SendSceneUpdated();
         }
 
         /// <summary>OnEssListUpdated의 원복. 선택과 필터를 풀어 모두 숨기고 카메라를 처음 시점으로 되돌린다.</summary>
@@ -397,8 +395,6 @@ namespace Incheol.Presenter
             {
                 cameraView.ResetView();
             }
-
-            ReactBridge.SendSceneUpdated();
         }
 
         /// <summary>여러 장치를 보여 주던 필터가 켜져 있으면 모두 숨기고 끈다. 꺼져 있으면 아무것도 하지 않는다.</summary>
@@ -417,7 +413,7 @@ namespace Incheol.Presenter
             }
         }
 
-        /// <summary>React가 보낸 장비 데이터(JsonDataLoader가 파싱을 마친 것)로 장면을 다시 만들고, 다 만들면 React에 알린다.</summary>
+        /// <summary>React가 보낸 장비 데이터(JsonDataLoader가 파싱을 마친 것)로 장면을 다시 만든다. OnSceneLoaded 응답은 JsonDataLoader가 OnPartSelected 파싱 직후에 보낸다.</summary>
         private void OnReactParsed(JsonDataController.SaveJson _data)
         {
             if (mainSceneView == null)
@@ -425,7 +421,7 @@ namespace Incheol.Presenter
                 return;
             }
 
-            mainSceneView.LoadFromSaveJson(_data, ReactBridge.SendSceneLoaded);
+            mainSceneView.LoadFromSaveJson(_data);
         }
 
         /// <summary>새로 생성된 _created가 Pack이면 좌표 그래프가 그 Pack 중심을 기준으로 그려지게 한다.</summary>
