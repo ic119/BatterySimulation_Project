@@ -104,6 +104,8 @@ namespace Incheol.Presenter
             if (JsonDataLoader.Instance != null)
             {
                 JsonDataLoader.Instance.ReactParsed -= OnReactParsed;
+                JsonDataLoader.Instance.SelectedPartParsed -= OnSelectedPartParsed;
+                JsonDataLoader.Instance.UpdatedPackParsed -= OnUpdatedPackParsed;
             }
 
             DeviceAxisGraphManager.SetSelectedOwner(null);
@@ -229,6 +231,8 @@ namespace Incheol.Presenter
             if (jsonLoader != null)
             {
                 jsonLoader.ReactParsed += OnReactParsed;
+                jsonLoader.SelectedPartParsed += OnSelectedPartParsed;
+                jsonLoader.UpdatedPackParsed += OnUpdatedPackParsed;
 
                 if (jsonLoader.isReactParsed)
                 {
@@ -250,6 +254,42 @@ namespace Incheol.Presenter
             }
 
             mainSceneView.LoadFromSaveJson(_data);
+        }
+
+        /// <summary>OnPartSelected로 받은 부품(part.kind 최상단)을 Cell까지 씬에 만들고, 다 만들면 React에 OnSceneLoaded로 응답한다. 실패하면 로그만 남기고 응답하지 않는다.</summary>
+        private void OnSelectedPartParsed(IDeviceNode _spec)
+        {
+            if (mainSceneView == null)
+            {
+                DebugLogManager.GenerateErrorMessage<MainSceneManager>("MainSceneView가 없어 부품을 만들지 못했습니다.");
+                return;
+            }
+
+            mainSceneView.BuildFromPart(_spec, built =>
+            {
+                if (built)
+                {
+                    ReactBridge.SendSceneLoaded();
+                }
+            });
+        }
+
+        /// <summary>OnPartUpdated로 받은 Pack 전체를 씬에 만들고, 다 만들면 React에 OnSceneUpdated로 응답한다. 실패하면 로그만 남기고 응답하지 않는다.</summary>
+        private void OnUpdatedPackParsed(PackDataModel _pack)
+        {
+            if (mainSceneView == null)
+            {
+                DebugLogManager.GenerateErrorMessage<MainSceneManager>("MainSceneView가 없어 Pack을 만들지 못했습니다.");
+                return;
+            }
+
+            mainSceneView.BuildFromPart(_pack, built =>
+            {
+                if (built)
+                {
+                    ReactBridge.SendSceneUpdated();
+                }
+            });
         }
 
         /// <summary>새로 생성된 _created가 Pack이면 좌표 그래프가 그 Pack 중심을 기준으로 그려지게 한다.</summary>

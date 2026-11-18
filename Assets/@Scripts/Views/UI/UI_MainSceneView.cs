@@ -349,6 +349,51 @@ public class UI_MainSceneView : MonoBehaviour
         });
     }
 
+    /// <summary>
+    /// React가 보낸 부품 모델(_spec, Pack ~ Cell 중 하나)로 지금 있는 것을 모두 지우고 Cell까지 만든다. 프리팹을 불러온 뒤 만들고, 다 만들면 _onBuilt(성공 여부)를 부른다.
+    /// 만드는 일은 PartBuilder가 하고, 이 뷰는 만들어진 것을 숨겨 두고 트리에 추가한 뒤 최상단 부품을 선택해 보이게 한다. 실패하면 로그만 남기고 만들다 만 것은 지운다.
+    /// 프리팹 로드가 실패하면 _onBuilt는 불리지 않는다. Cell 프리팹은 CellType과 상관없이 Cell_PouchType 하나를 쓴다.
+    /// </summary>
+    public void BuildFromPart(IDeviceNode _spec, System.Action<bool> _onBuilt = null)
+    {
+        if (_spec == null)
+        {
+            DebugLogManager.GenerateErrorMessage<UI_MainSceneView>("만들 부품이 없습니다.");
+            _onBuilt?.Invoke(false);
+            return;
+        }
+
+        LoadPrefabsFrom(0, new Dictionary<DeviceType, GameObject>(), prefabs =>
+        {
+            SelectionClearRequested?.Invoke();
+            ClearTrees();
+            packFactory.Clear();
+
+            PartBuilder builder = new PartBuilder(packFactory, OnNodeCreated);
+            IDeviceNode root = builder.Build(_spec, prefabs);
+            if (root == null)
+            {
+                SelectionClearRequested?.Invoke();
+                ClearTrees();
+                packFactory.Clear();
+                DebugLogManager.GenerateErrorMessage<UI_MainSceneView>($"{_spec.Kind} 부품을 만들지 못했습니다.");
+                _onBuilt?.Invoke(false);
+                return;
+            }
+
+            countDictionary.Clear();
+            foreach (DeviceType type in DropdownDeviceTypes)
+            {
+                countDictionary[type] = packFactory.GetNodes(type).Count;
+            }
+
+            skippedCount = 0;
+            PackSelectRequested?.Invoke(root);
+            DebugLogManager.GenerateLogMessage<UI_MainSceneView>($"부품 생성 완료 : {root.Kind} {root.Name}, Cell {packFactory.GetNodes(DeviceType.cell).Count}개");
+            _onBuilt?.Invoke(true);
+        });
+    }
+
     /// <summary>DropdownDeviceTypes[_index]부터 끝까지 프리팹을 차례로 불러와 _prefabs에 담고, 다 불러오면 _done을 부른다. 하나라도 실패하면 로그만 남기고 멈춘다.</summary>
     private void LoadPrefabsFrom(int _index, Dictionary<DeviceType, GameObject> _prefabs, System.Action<Dictionary<DeviceType, GameObject>> _done)
     {

@@ -45,6 +45,12 @@ namespace Incheol.Modules
         /// <summary>가장 최근 OnPartUpdated로 받아 저장한 Pack 모델(Pack부터 Cell까지 전체). 저장에 실패하면 이전 값이 유지된다.</summary>
         public PackDataModel UpdatedPack { get; private set; }
 
+        /// <summary>OnPartSelected 파싱·저장이 끝난 직후 발생한다. 인자는 part.kind 최상단 모델(SelectedPart). 구독자가 씬에 만들고 React에 OnSceneLoaded로 응답한다.</summary>
+        public event Action<IDeviceNode> SelectedPartParsed;
+
+        /// <summary>OnPartUpdated 파싱·저장이 끝난 직후 발생한다. 인자는 Pack 전체 모델(UpdatedPack). 구독자가 씬에 만들고 React에 OnSceneUpdated로 응답한다.</summary>
+        public event Action<PackDataModel> UpdatedPackParsed;
+
         /// <summary>SendUnityReady 1회만 호출용 (MainSceneManager가 뷰 바인딩을 끝낸 뒤 NotifyUnityReady로 React에 알림)</summary>
         private static bool _hasSentUnityReady;
 
@@ -71,19 +77,31 @@ namespace Incheol.Modules
 
         private void OnPartSelectedReceived(string _json)
         {
-            // 파싱이 성공하면 React에 OnSceneLoaded로 응답한다. requestId는 ReactBridge가 OnPartSelected 수신 시 저장해 둔 값이 실린다.
+            // 파싱·저장이 성공하면 구독자(MainSceneManager)가 씬에 만들고, 다 만든 뒤 OnSceneLoaded로 응답한다.
             if (LoadFromPartJson(_json))
             {
-                ReactBridge.SendSceneLoaded();
+                if (SelectedPartParsed == null)
+                {
+                    DebugLogManager.GenerateWarningMessage<JsonDataLoader>("[JsonDataLoader] SelectedPartParsed 구독자가 없어 씬에 만들지 못했습니다.");
+                    return;
+                }
+
+                SelectedPartParsed.Invoke(SelectedPart);
             }
         }
 
         private void OnPartUpdatedReceived(string _json)
         {
-            // 파싱이 성공하면 React에 OnSceneUpdated로 응답한다. requestId는 ReactBridge가 OnPartUpdated 수신 시 저장해 둔 값이 실린다.
+            // 파싱·저장이 성공하면 구독자(MainSceneManager)가 씬에 만들고, 다 만든 뒤 OnSceneUpdated로 응답한다.
             if (LoadFromPartUpdatedJson(_json))
             {
-                ReactBridge.SendSceneUpdated();
+                if (UpdatedPackParsed == null)
+                {
+                    DebugLogManager.GenerateWarningMessage<JsonDataLoader>("[JsonDataLoader] UpdatedPackParsed 구독자가 없어 씬에 만들지 못했습니다.");
+                    return;
+                }
+
+                UpdatedPackParsed.Invoke(UpdatedPack);
             }
         }
 
@@ -118,6 +136,8 @@ namespace Incheol.Modules
 
             CancelReactParse();
             ReactParsed = null;
+            SelectedPartParsed = null;
+            UpdatedPackParsed = null;
             base.OnDestroy();
         }
         #endregion
