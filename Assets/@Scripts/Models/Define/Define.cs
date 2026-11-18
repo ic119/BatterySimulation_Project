@@ -45,4 +45,10 @@
         Pouch,
         Prismatic
     }
+
+    public enum StackingAxisType
+    {
+        X,
+        Y
+    }
 }
