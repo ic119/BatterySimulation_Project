@@ -21,9 +21,6 @@ public class DeviceGridGraphManager : MonoBehaviour
     [SerializeField, Min(0.001f)] private float _yLength = 1f;
     [SerializeField, Min(0.001f)] private float _zLength = 1f;
 
-    [Tooltip("Z(높이)축을 원래 자리(x = 끝)에서 -x 방향으로 옮기는 정도. x축 길이에 대한 비율이며 0이면 원래 자리, 1이면 x = 0.")]
-    [SerializeField, Range(0f, 1f)] private float _zAxisShiftXRatio = 0.25f;
-
     [Header("Ticks")]
     [Tooltip("각 축을 나눌 구간 수. 10이면 0부터 끝까지 11개의 눈금을 표시한다.")]
     [SerializeField, Range(1, 100)] private int _xDivisions = 10;
@@ -76,9 +73,6 @@ public class DeviceGridGraphManager : MonoBehaviour
     private bool _dirty = true;
     private Transform _target;
     private bool _followTarget;
-
-    // 지금 그래프가 기본 상태(추적할 Pack이 없음)인지. 기본 상태는 두 벽을 모두 그리고 Z축을 모서리(x = 끝)에 둔다.
-    private bool _isDefaultState = true;
 
     // 추적할 대상이 없을 때 돌아갈 기본 축 길이(Awake 시점의 Inspector 값).
     private float _defaultXLength;
@@ -134,12 +128,6 @@ public class DeviceGridGraphManager : MonoBehaviour
         if (_followTarget)
         {
             tracking = TryGetTargetBounds(out packBounds);
-            if (_isDefaultState == tracking)
-            {
-                // 기본 상태 <-> Pack 추적이 바뀌면 벽과 Z축 구성이 달라지므로 길이가 같아도 다시 그린다.
-                _isDefaultState = !tracking;
-                _dirty = true;
-            }
 
             float x;
             float y;
@@ -216,12 +204,6 @@ public class DeviceGridGraphManager : MonoBehaviour
         return RendererBounds.TryGetBounds(_target, out bounds);
     }
 
-    /// <summary>Pack을 따라갈 때 Z(높이)축이 놓이는 그래프 로컬 x. 원래 자리(x 끝)에서 -x 방향으로 x축 길이의 _zAxisShiftXRatio만큼 옮긴다. (기본 상태는 따로 원점에 둔다.)</summary>
-    private float GetZAxisX()
-    {
-        return _xLength * (1f - Mathf.Clamp01(_zAxisShiftXRatio));
-    }
-
     // 그래프 박스(로컬 x, 높이 z, 깊이 y 순서의 Vector3(x, z, y)) 중심을 worldCenter에 맞추는 원점.
     private Vector3 GetTargetOrigin(Vector3 worldCenter)
     {
@@ -256,21 +238,12 @@ public class DeviceGridGraphManager : MonoBehaviour
         BuildSurfaces();
         BuildGrid();
 
-        if (_isDefaultState)
-        {
-            // 기본 상태: 카메라(+x, -z 쪽에서 원점을 내려다봄) 기준으로 벽은 뒤쪽 두 면(x = 0 평면, 깊이 끝 평면),
-            // 축은 앞쪽 두 바닥 모서리(X = 깊이 0 모서리, Y = x 끝 모서리)와 왼쪽 수직 모서리(Z = 원점)에 둔다.
-            BuildAxis(Vector3.zero, Vector3.right, _xLength, Vector3.back, _xDivisions, _xTitle);
-            BuildAxis(Vector3.right * _xLength, Vector3.forward, _yLength, Vector3.right, _yDivisions, _yTitle);
-            BuildAxis(Vector3.zero, Vector3.up, _zLength, new Vector3(-1f, 0f, -1f).normalized, _zDivisions, _zTitle);
-        }
-        else
-        {
-            // +X,+Z 방향에서 볼 때 바닥 오른쪽 X / 바닥 왼쪽 Y / 왼쪽 수직 Z 모서리. Z(높이)축은 원래 자리(x = 끝)에서 -x 방향으로 _zAxisShiftXRatio만큼 옮긴다.
-            BuildAxis(Vector3.forward * _yLength, Vector3.right, _xLength, Vector3.forward, _xDivisions, _xTitle);
-            BuildAxis(Vector3.right * _xLength, Vector3.forward, _yLength, Vector3.right, _yDivisions, _yTitle);
-            BuildAxis(new Vector3(GetZAxisX(), 0f, 0f), Vector3.up, _zLength, Vector3.back, _zDivisions, _zTitle);
-        }
+        // 기본 상태와 Pack을 따라갈 때 모두 같은 배치다. 카메라(+x, -z 쪽에서 원점을 내려다봄) 기준으로 벽은 뒤쪽 두 면(x = 0 평면, 깊이 끝 평면),
+        // 축은 앞쪽 두 바닥 모서리(Unity x 방향 = 깊이 0 모서리, Unity z 방향 = x 끝 모서리)와 왼쪽 수직 모서리(Z = 원점)에 둔다.
+        // 제목은 참고 이미지처럼 x는 오른쪽 앞 모서리(Unity z 방향), y는 왼쪽 앞 모서리(Unity x 방향)에 표시한다. 선 길이와 눈금 수는 각 모서리의 실제 방향 값을 그대로 쓴다.
+        BuildAxis(Vector3.zero, Vector3.right, _xLength, Vector3.back, _xDivisions, _yTitle);
+        BuildAxis(Vector3.right * _xLength, Vector3.forward, _yLength, Vector3.right, _yDivisions, _xTitle);
+        BuildAxis(Vector3.zero, Vector3.up, _zLength, new Vector3(-1f, 0f, -1f).normalized, _zDivisions, _zTitle);
 
         for (int i = _lineUsed; i < _linePool.Count; i++)
             _linePool[i].gameObject.SetActive(false);
@@ -291,10 +264,10 @@ public class DeviceGridGraphManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 기본 상태의 격자. 바닥 격자 + 뒤쪽 두 벽(옆벽 x = 0 평면, 뒤벽 깊이 끝 평면)의 세로선을 만든다(_showHorizontalWallGrid를 켜면 가로선도).
+    /// 격자(기본 상태와 Pack을 따라갈 때 같다). 바닥 격자 + 뒤쪽 두 벽(옆벽 x = 0 평면, 뒤벽 깊이 끝 평면)의 세로선을 만든다(_showHorizontalWallGrid를 켜면 가로선도).
     /// 축 선(BuildAxis)이 이미 그리는 선(X축 = Floor Y 0, Y축 = Floor X 끝, Z축 = Wall Y 0)과 두 벽이 만나는 모서리(Wall X 0 = Wall Y 끝)는 한 번만 그린다.
     /// </summary>
-    private void BuildDefaultGrid()
+    private void BuildGrid()
     {
         float width = _lineWidth * 0.65f;
         for (int i = 0; i <= _xDivisions; i++)
@@ -319,59 +292,6 @@ public class DeviceGridGraphManager : MonoBehaviour
             CreateLine("Wall Height Y " + i, new Vector3(0f, z, 0f), new Vector3(0f, z, _yLength), _gridColor, width);
         }
     }
-
-    private void BuildGrid()
-    {
-        if (_isDefaultState)
-        {
-            BuildDefaultGrid();
-            return;
-        }
-
-        // 축 선(BuildAxis)이 이미 그리는 선(x축 = Floor Y 끝, y축 = Floor X 끝, z축 = z축이 놓인 x의 Wall X)과, Wall X 0과 Wall Y 0이 같은 선(원점의 수직 모서리)이 되는 경우는
-        // 격자에서 건너뛴다. 같은 자리에 선이 두 번 그려지는 것을 막기 위해서다.
-        // 벽은 폭이 더 작은 쪽을 그리지 않는다(ShowBackWall / ShowSideWall). 그린 쪽 벽의 격자만 만든다.
-        float zAxisX = GetZAxisX();
-        bool showBack = ShowBackWall;
-        bool showSide = ShowSideWall;
-        float eps = _lineWidth * 0.01f;
-        // 원점의 수직 모서리(0,0,0)→(0,z,0)가 이미 그려지는지: 뒤벽의 Wall X 0이거나, z축이 x = 0에 있을 때.
-        bool originEdgeDrawn = (showBack && Mathf.Abs(zAxisX) > eps) || Mathf.Abs(zAxisX) <= eps;
-        for (int i = 0; i <= _xDivisions; i++)
-        {
-            float x = _xLength * i / _xDivisions;
-            if (i != _xDivisions)
-                CreateLine("Floor X " + i, new Vector3(x, 0f, 0f), new Vector3(x, 0f, _yLength), _gridColor, _lineWidth * 0.65f);
-            if (showBack && Mathf.Abs(x - zAxisX) > eps)
-                CreateLine("Wall X " + i, new Vector3(x, 0f, 0f), new Vector3(x, _zLength, 0f), _gridColor, _lineWidth * 0.65f);
-        }
-        for (int i = 0; i <= _yDivisions; i++)
-        {
-            float y = _yLength * i / _yDivisions;
-            if (i != _yDivisions)
-                CreateLine("Floor Y " + i, new Vector3(0f, 0f, y), new Vector3(_xLength, 0f, y), _gridColor, _lineWidth * 0.65f);
-            if (showSide && !(i == 0 && originEdgeDrawn))
-                CreateLine("Wall Y " + i, new Vector3(0f, 0f, y), new Vector3(0f, _zLength, y), _gridColor, _lineWidth * 0.65f);
-        }
-        if (!_showHorizontalWallGrid) return;
-        for (int i = 1; i <= _zDivisions; i++)
-        {
-            float z = _zLength * i / _zDivisions;
-            if (showBack)
-                CreateLine("Wall Height X " + i, new Vector3(0f, z, 0f), new Vector3(_xLength, z, 0f), _gridColor, _lineWidth * 0.65f);
-            if (showSide)
-                CreateLine("Wall Height Y " + i, new Vector3(0f, z, 0f), new Vector3(0f, z, _yLength), _gridColor, _lineWidth * 0.65f);
-        }
-    }
-
-    /// <summary>
-    /// 뒤벽(깊이 0 평면, 폭 = x축 길이)을 그리는지. 기본 상태에서는 항상 그린다.
-    /// Pack을 따라갈 때는 뒤벽과 옆벽 중 폭이 더 작은 쪽은 그리지 않는다(같으면 뒤벽만 그린다).
-    /// </summary>
-    private bool ShowBackWall { get { return _isDefaultState || _xLength >= _yLength; } }
-
-    /// <summary>옆벽(x = 0 평면, 폭 = y축 길이)을 그리는지. 기본 상태에서는 항상 그리고, Pack을 따라갈 때는 뒤벽보다 폭이 클 때만 그린다.</summary>
-    private bool ShowSideWall { get { return _isDefaultState || _xLength < _yLength; } }
 
     private void BuildAxis(Vector3 origin, Vector3 direction, float length, Vector3 outward, int divisions, string title)
     {
@@ -466,8 +386,8 @@ public class DeviceGridGraphManager : MonoBehaviour
         // 面をグリッドよりわずかに外側へ置き、Z-fightingを防ぐ。
         float offset = _lineWidth * 2f;
         _surfaceMesh.Clear();
-        // 뒤벽 면은 격자 바깥쪽에 둔다: 기본 상태는 깊이 끝 + offset(카메라 반대편), Pack을 따라갈 때는 깊이 0 - offset.
-        float backSurfaceZ = _isDefaultState ? _yLength + offset : -offset;
+        // 뒤벽 면은 격자 바깥쪽(깊이 끝 + offset, 카메라 반대편)에 둔다.
+        float backSurfaceZ = _yLength + offset;
         _surfaceMesh.vertices = new[]
         {
             new Vector3(0f, -offset, 0f), new Vector3(_xLength, -offset, 0f),
@@ -478,12 +398,10 @@ public class DeviceGridGraphManager : MonoBehaviour
             new Vector3(-offset, _zLength, _yLength), new Vector3(-offset, _zLength, 0f)
         };
         // 양면 메시이므로 재질의 Cull 설정과 관계없이 양쪽에서 벽면이 보인다.
-        // 면 0 = 바닥, 면 1 = 뒤벽, 면 2 = 옆벽. 폭이 더 작은 벽은 삼각형을 만들지 않아 그리지 않는다.
+        // 면 0 = 바닥, 면 1 = 뒤벽, 면 2 = 옆벽.
         var triangles = new List<int>(36);
         for (int face = 0; face < 3; face++)
         {
-            if (face == 1 && !ShowBackWall) continue;
-            if (face == 2 && !ShowSideWall) continue;
             int v = face * 4;
             triangles.Add(v); triangles.Add(v + 1); triangles.Add(v + 2);
             triangles.Add(v); triangles.Add(v + 2); triangles.Add(v + 3);
