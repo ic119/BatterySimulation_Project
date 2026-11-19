@@ -38,7 +38,7 @@ namespace Incheol.Modules
                 return null;
             }
 
-            LayoutNode layout = DeviceLayout.Compute(_spec);
+            LayoutNode layout = DeviceLayout.Compute(_spec, MeasureCellTagLength(_prefabs));
             if (layout == null)
             {
                 return null;
@@ -48,6 +48,26 @@ namespace Incheol.Modules
             idCounts.Clear();
             bool standalone = _spec.Kind != DeviceType.pack;
             return BuildNode(layout, null, packFactory.Root.position, standalone);
+        }
+
+        /// <summary>
+        /// Cell 프리팹의 PlusTag가 Body 끝에서 양쪽으로 나오는 길이의 합(월드 단위, z 방향)을 잰다. Tag는 Body 끝 중심에 놓이므로 Tag의 z 크기와 같다.
+        /// 프리팹이나 Tag, 메시를 찾지 못하면 0이다(Tag 길이를 반영하지 않고 Body 크기만으로 배치한다).
+        /// </summary>
+        private static float MeasureCellTagLength(IReadOnlyDictionary<DeviceType, GameObject> _prefabs)
+        {
+            if (_prefabs == null || !_prefabs.TryGetValue(DeviceType.cell, out GameObject cellPrefab) || cellPrefab == null)
+            {
+                return 0.0f;
+            }
+
+            Transform tag = cellPrefab.transform.Find(DeviceBody.PlusTagChildName);
+            if (tag == null || !tag.TryGetComponent(out MeshFilter meshFilter) || meshFilter.sharedMesh == null)
+            {
+                return 0.0f;
+            }
+
+            return meshFilter.sharedMesh.bounds.size.z * Mathf.Abs(tag.lossyScale.z);
         }
 
         private IDeviceNode BuildNode(LayoutNode _layout, IDeviceNode _parent, Vector3 _parentMin, bool _standalone)
@@ -86,7 +106,8 @@ namespace Incheol.Modules
             }
 
             node.Values.Capture(node.Position);
-            node.Values.size = _layout.Size;
+            // Cell의 칸(_layout.Size)은 Tag가 나오는 길이까지 포함하므로, 모델에 기록하는 Cell 크기는 Body 크기로 따로 둔다.
+            node.Values.size = node is CellDataModel cellNode ? cellNode.BodySize : _layout.Size;
             node.Values.bodyCenter = center;
             nodeCreated?.Invoke(node);
 

@@ -28,16 +28,21 @@ namespace Incheol.Modules
     /// </summary>
     public static class DeviceLayout
     {
-        /// <summary>견본 모델 _spec의 배치를 계산한다. 계산할 수 없으면(필수 하위 부품이 없거나 Cell 크기가 없음) 에러 로그를 남기고 null.</summary>
-        public static LayoutNode Compute(IDeviceNode _spec)
+        /// <summary>
+        /// 견본 모델 _spec의 배치를 계산한다. 계산할 수 없으면(필수 하위 부품이 없거나 Cell 크기가 없음) 에러 로그를 남기고 null.
+        /// _cellTagLength는 Cell의 PlusTag / MinusTag가 Body 끝에서 바깥으로 나오는 길이를 합친 값(월드 단위, Cell 길이 방향 z)이다.
+        /// 이 값만큼 Cell이 차지하는 칸을 z로 늘리므로, z 방향으로 쌓인 Cell은 Tag끼리 맞닿고 x 방향은 Body끼리 맞닿는다. 0이면 Body 크기만 쓴다.
+        /// </summary>
+        public static LayoutNode Compute(IDeviceNode _spec, float _cellTagLength = 0.0f)
         {
+            float tagLength = Mathf.Max(0.0f, _cellTagLength);
             switch (_spec)
             {
-                case PackDataModel pack: return ComputePack(pack);
-                case ModuleAssemblyDataModel moduleAssembly: return ComputeModuleAssembly(moduleAssembly);
-                case ModuleDataModel module: return ComputeModule(module);
-                case ParallelAssemblyDataModel parallelAssembly: return ComputeParallelAssembly(parallelAssembly);
-                case CellDataModel cell: return ComputeCell(cell);
+                case PackDataModel pack: return ComputePack(pack, tagLength);
+                case ModuleAssemblyDataModel moduleAssembly: return ComputeModuleAssembly(moduleAssembly, tagLength);
+                case ModuleDataModel module: return ComputeModule(module, tagLength);
+                case ParallelAssemblyDataModel parallelAssembly: return ComputeParallelAssembly(parallelAssembly, tagLength);
+                case CellDataModel cell: return ComputeCell(cell, tagLength);
                 default:
                     DebugLogManager.GenerateErrorMessage<LayoutNode>("배치를 계산할 수 없는 모델입니다.");
                     return null;
@@ -50,7 +55,8 @@ namespace Incheol.Modules
             return _axis == StackingAxisType.Y ? 0 : 2;
         }
 
-        private static LayoutNode ComputeCell(CellDataModel _cell)
+        /// <summary>Cell이 차지하는 칸. 크기는 Body 크기에 Tag가 나오는 길이(z)를 더한 것이다(Tag는 Body 양 끝에 같은 길이씩 나온다).</summary>
+        private static LayoutNode ComputeCell(CellDataModel _cell, float _tagLength)
         {
             Vector3 size = _cell.BodySize;
             if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f)
@@ -59,10 +65,11 @@ namespace Incheol.Modules
                 return null;
             }
 
+            size.z += _tagLength;
             return new LayoutNode { Spec = _cell, Kind = DeviceType.cell, Size = size };
         }
 
-        private static LayoutNode ComputeParallelAssembly(ParallelAssemblyDataModel _pa)
+        private static LayoutNode ComputeParallelAssembly(ParallelAssemblyDataModel _pa, float _tagLength)
         {
             if (_pa.cellsList.Count == 0 || _pa.cellsList[0] == null)
             {
@@ -71,7 +78,7 @@ namespace Incheol.Modules
             }
 
             WarnIfUnsupported(_pa.topology, _pa.values.deviceId);
-            LayoutNode cell = ComputeCell(_pa.cellsList[0]);
+            LayoutNode cell = ComputeCell(_pa.cellsList[0], _tagLength);
             if (cell == null)
             {
                 return null;
@@ -82,7 +89,7 @@ namespace Incheol.Modules
             return node;
         }
 
-        private static LayoutNode ComputeModule(ModuleDataModel _module)
+        private static LayoutNode ComputeModule(ModuleDataModel _module, float _tagLength)
         {
             if (_module.parallelAssembliesList.Count == 0 || _module.parallelAssembliesList[0] == null)
             {
@@ -91,7 +98,7 @@ namespace Incheol.Modules
             }
 
             WarnIfUnsupported(_module.topology, _module.values.deviceId);
-            LayoutNode parallelAssembly = ComputeParallelAssembly(_module.parallelAssembliesList[0]);
+            LayoutNode parallelAssembly = ComputeParallelAssembly(_module.parallelAssembliesList[0], _tagLength);
             if (parallelAssembly == null)
             {
                 return null;
@@ -102,7 +109,7 @@ namespace Incheol.Modules
             return node;
         }
 
-        private static LayoutNode ComputeModuleAssembly(ModuleAssemblyDataModel _ma)
+        private static LayoutNode ComputeModuleAssembly(ModuleAssemblyDataModel _ma, float _tagLength)
         {
             int moduleCount = _ma.modulesList.Count;
             if (moduleCount == 0)
@@ -133,7 +140,7 @@ namespace Incheol.Modules
                 float levelHeight = 0.0f;
                 for (int i = start; i < end; i++)
                 {
-                    LayoutNode child = ComputeModule(_ma.modulesList[i]);
+                    LayoutNode child = ComputeModule(_ma.modulesList[i], _tagLength);
                     if (child == null)
                     {
                         return null;
@@ -159,7 +166,7 @@ namespace Incheol.Modules
             return node;
         }
 
-        private static LayoutNode ComputePack(PackDataModel _pack)
+        private static LayoutNode ComputePack(PackDataModel _pack, float _tagLength)
         {
             if (_pack.moduleAssembliesList.Count == 0)
             {
@@ -171,7 +178,7 @@ namespace Incheol.Modules
             List<LayoutNode> children = new List<LayoutNode>();
             for (int i = 0; i < _pack.moduleAssembliesList.Count; i++)
             {
-                LayoutNode child = ComputeModuleAssembly(_pack.moduleAssembliesList[i]);
+                LayoutNode child = ComputeModuleAssembly(_pack.moduleAssembliesList[i], _tagLength);
                 if (child == null)
                 {
                     return null;

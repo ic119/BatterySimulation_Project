@@ -217,6 +217,7 @@ namespace Incheol.Modules
             if (sourceBody != null && createdBody != null)
             {
                 createdBody.localScale = sourceBody.localScale;
+                DeviceBody.AlignCellTags(created);
             }
 
             // 스케일을 바꾸면 몸체 중심이 달라지므로 놓을 자리로 다시 맞추고, 모델 값(크기, 몸체 중심)을 현재 상태로 갱신한다.

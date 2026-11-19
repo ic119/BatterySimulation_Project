@@ -10,6 +10,12 @@ public static class DeviceBody
     /// <summary>Pack / Module 프리팹에서 몸체 Renderer를 가진 자식의 이름.</summary>
     public const string BodyChildName = "Body";
 
+    /// <summary>Cell 프리팹에서 Body의 -z 끝에 붙는 + 단자 자식의 이름.</summary>
+    public const string PlusTagChildName = "PlusTag";
+
+    /// <summary>Cell 프리팹에서 Body의 +z 끝에 붙는 - 단자 자식의 이름.</summary>
+    public const string MinusTagChildName = "MinusTag";
+
     /// <summary>길이 / 위치 비교에서 같다고 보는 오차. 맞닿은 면을 겹침으로 보지 않거나 경계를 넘었는지 볼 때 쓴다.</summary>
     public const float Tolerance = 0.001f;
 
@@ -73,6 +79,7 @@ public static class DeviceBody
                 current.min.x + _size.x * 0.5f,
                 current.min.y + _size.y * 0.5f,
                 current.max.z - _size.z * 0.5f);
+            AlignCellTags(_target);
             return;
         }
 
@@ -100,6 +107,31 @@ public static class DeviceBody
         }
 
         _target.position += _center - bodyRenderer.bounds.center;
+    }
+
+    /// <summary>
+    /// Cell의 PlusTag / MinusTag를 Body 양 끝(PlusTag는 -z 끝, MinusTag는 +z 끝)의 x, y 중심에 맞춘다.
+    /// Body만 스케일하거나 옮기면 Tag는 프리팹 위치에 남으므로, Body 크기나 위치를 바꾼 뒤 부른다. Tag의 크기는 바꾸지 않는다.
+    /// Body 또는 두 Tag 중 하나라도 없으면(Pack / Module 등) 아무것도 하지 않는다.
+    /// </summary>
+    public static void AlignCellTags(Transform _cell)
+    {
+        if (_cell == null)
+        {
+            return;
+        }
+
+        Transform body = _cell.Find(BodyChildName);
+        Transform plusTag = _cell.Find(PlusTagChildName);
+        Transform minusTag = _cell.Find(MinusTagChildName);
+        if (body == null || plusTag == null || minusTag == null || !body.TryGetComponent(out Renderer bodyRenderer))
+        {
+            return;
+        }
+
+        Bounds bounds = bodyRenderer.bounds;
+        plusTag.position = new Vector3(bounds.center.x, bounds.center.y, bounds.min.z);
+        minusTag.position = new Vector3(bounds.center.x, bounds.center.y, bounds.max.z);
     }
 
     /// <summary>_divisor가 0이면 나눌 수 없으므로 _value를 그대로 돌려준다.</summary>
