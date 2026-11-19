@@ -633,6 +633,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56dc7451ec2faab41b93b4193d15ae48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Incheol::TestController
+  samplePartJson: {fileID: 4900000, guid: 2a1480519d255754b9c82205b536d4a3, type: 3}
 --- !u!1 &1868602019
 GameObject:
   m_ObjectHideFlags: 0
