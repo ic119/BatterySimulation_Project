@@ -240,7 +240,7 @@ namespace Incheol.Presenter
                 }
             }
 
-            // 그래프는 가장 최근에 만든 Pack을 따라간다. Pack이 생기기 전에는 숨긴다.
+            // 그래프는 가장 최근에 만든 Pack을 따라간다. Pack이 생기기 전(데이터가 안 들어왔을 때)에는 기본 상태 그래프를 그린다.
             gridGraph = FindAnyObjectByType<DeviceGridGraphManager>();
             gridGraph?.SetTarget(null);
         }

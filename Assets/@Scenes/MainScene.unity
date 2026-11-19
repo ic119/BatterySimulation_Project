@@ -448,10 +448,11 @@ MonoBehaviour:
   _xLength: 1
   _yLength: 1
   _zLength: 1
+  _zAxisShiftXRatio: 1
   _xDivisions: 5
   _yDivisions: 5
   _zDivisions: 5
-  _normalizedLabels: 0
+  _normalizedLabels: 1
   _xTitle: "x: \uC815\uBC29\uD5A5"
   _yTitle: "y: \uD6A1\uBC29\uD5A5"
   _zTitle: "z: \uC885\uBC29\uD5A5"
