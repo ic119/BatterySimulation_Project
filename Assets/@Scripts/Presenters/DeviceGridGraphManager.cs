@@ -199,9 +199,24 @@ public class DeviceGridGraphManager : MonoBehaviour
         if (DeviceSizeCalculator.TryGetSizeRenderer(_target, DeviceType.pack, out Renderer body) && body != null)
         {
             bounds = body.bounds;
+            EncapsulateCellTags(_target, ref bounds);
             return true;
         }
         return RendererBounds.TryGetBounds(_target, out bounds);
+    }
+
+    // Cell을 단독으로 만들면 Body만 몸체로 잡혀 PlusTag / MinusTag가 박스 밖으로 나온다. Pack / Module 등은 자식 Renderer를 모두 감싸는 경로라 Tag가 이미 포함된다.
+    // Cell만 대상으로 하도록 _target의 직접 자식 PlusTag와 MinusTag가 둘 다 Renderer를 가질 때만 합친다(자식 Cell의 Tag는 보지 않는다).
+    private static void EncapsulateCellTags(Transform target, ref Bounds bounds)
+    {
+        Transform plusTag = target.Find(DeviceBody.PlusTagChildName);
+        Transform minusTag = target.Find(DeviceBody.MinusTagChildName);
+        if (plusTag == null || minusTag == null
+            || !plusTag.TryGetComponent(out Renderer plusRenderer)
+            || !minusTag.TryGetComponent(out Renderer minusRenderer))
+            return;
+        bounds.Encapsulate(plusRenderer.bounds);
+        bounds.Encapsulate(minusRenderer.bounds);
     }
 
     // 그래프 박스(로컬 x, 높이 z, 깊이 y 순서의 Vector3(x, z, y)) 중심을 worldCenter에 맞추는 원점.
