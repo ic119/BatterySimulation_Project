@@ -1,0 +1,53 @@
+{
+  "requestId": 1,
+  "part": {
+    "kind": "pack",
+    "id": "pack-01",
+    "name": "Pack_A",
+    "position": { "x": 0, "y": 0, "z": 0 },
+    "stackingAxis": "Y",
+    "interModuleAssemblyGap": 5,
+    "moduleAssemblies": [
+      {
+        "kind": "moduleAssembly",
+        "id": "ma-01",
+        "name": "MA_A",
+        "position": { "x": 0, "y": 0, "z": 0 },
+        "stackingAxis": "Y",
+        "interModuleGap": 5,
+        "numLevels": 1,
+        "modules": [
+          {
+            "kind": "module",
+            "id": "module-01",
+            "name": "Module_A",
+            "position": { "x": 0, "y": 0, "z": 0 },
+            "stackingAxis": "X",
+            "topology": "SingleStack",
+            "numSeriesAssemblies": 4,
+            "interParallelAssemblyGap": 1,
+            "parallelAssembly": {
+              "kind": "parallelAssembly",
+              "id": "pa-01",
+              "name": "PA_A",
+              "position": { "x": 0, "y": 0, "z": 0 },
+              "stackingAxis": "Y",
+              "topology": "SingleStack",
+              "numParallelCells": 3,
+              "rows": 1,
+              "interCellGap": 1,
+              "cell": {
+                "kind": "cell",
+                "id": "cell-01",
+                "name": "LGES_JP6_CELL",
+                "position": { "x": 0, "y": 0, "z": 0 },
+                "stackingAxis": "Y",
+                "geometry": { "shape": "Prismatic", "length": 173, "thickness": 45, "height": 125 }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

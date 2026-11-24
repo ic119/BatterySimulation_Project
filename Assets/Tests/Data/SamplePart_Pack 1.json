@@ -1,0 +1,35 @@
+﻿{
+  "requestId": 1,
+  "part": {
+    "kind": "parallelAssembly",
+    "id": "pa-01",
+    "name": "PA_A",
+    "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "stackingAxis": "Y",
+    "topology": "SingleStack",
+    "numParallelCells": 3,
+    "rows": 1,
+    "interCellGap": 1,
+    "cell": {
+      "kind": "cell",
+      "id": "cell-01",
+      "name": "LGES_JP6_CELL",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "stackingAxis": "Y",
+      "geometry": {
+        "shape": "Prismatic",
+        "length": 173,
+        "thickness": 45,
+        "height": 125
+      }
+    }
+  }
+}
