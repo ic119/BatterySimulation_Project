@@ -448,7 +448,6 @@ MonoBehaviour:
   _xLength: 1
   _yLength: 1
   _zLength: 1
-  _zAxisShiftXRatio: 1
   _xDivisions: 5
   _yDivisions: 5
   _zDivisions: 5
@@ -465,6 +464,11 @@ MonoBehaviour:
   _surfaceColor: {r: 1, g: 1, b: 1, a: 1}
   _showSurfaces: 1
   _showHorizontalWallGrid: 0
+  _screenConstantSize: 1
+  _lineWidthPixels: 2
+  _labelPixels: 14
+  _scaleUpdateThreshold: 0.01
+  _surfaceOffsetRatio: 0.003
   _viewCamera: {fileID: 571937971}
   _labelFont: {fileID: 11400000, guid: 42e86edef001e49479ba43553fd16e88, type: 2}
   _lineMaterial: {fileID: 2100000, guid: c52e6de91d4908f449ce3f0d0635b6eb, type: 2}

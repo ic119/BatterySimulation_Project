@@ -46,6 +46,18 @@ public class DeviceGridGraphManager : MonoBehaviour
     [Tooltip("이미지처럼 벽면은 세로 격자만 표시한다. 켜면 가로 격자도 추가한다.")]
     [SerializeField] private bool _showHorizontalWallGrid;
 
+    [Header("Screen Constant Size")]
+    [Tooltip("켜면 선 굵기와 글자 크기를 카메라 줌과 상관없이 화면에서 항상 같은 픽셀 크기로 유지한다. 끄면 위 Ratio 값(월드 크기)을 그대로 쓴다.")]
+    [SerializeField] private bool _screenConstantSize = true;
+    [Tooltip("축 선의 화면 굵기(픽셀). 격자 선은 이 값의 0.65배다.")]
+    [SerializeField, Min(0.1f)] private float _lineWidthPixels = 2f;
+    [Tooltip("눈금 숫자와 제목의 화면 글자 높이(픽셀).")]
+    [SerializeField, Min(1f)] private float _labelPixels = 14f;
+    [Tooltip("픽셀당 월드 크기가 이 비율 이상 바뀔 때만 선 굵기를 다시 적용한다(WebGL에서 LineRenderer 메시 재생성 비용을 줄인다).")]
+    [SerializeField, Range(0.001f, 0.2f)] private float _scaleUpdateThreshold = 0.01f;
+    [Tooltip("벽·바닥 면을 격자보다 바깥에 두는 거리(가장 긴 축 비율). 줌과 무관한 고정값이라 z-fighting이 줌에 따라 달라지지 않는다.")]
+    [SerializeField, Min(0.0001f)] private float _surfaceOffsetRatio = 0.003f;
+
     [Header("References")]
     [SerializeField] private Camera _viewCamera;
     [Tooltip("한글 글리프가 포함된 TMP 폰트를 지정한다.")]
@@ -65,6 +77,10 @@ public class DeviceGridGraphManager : MonoBehaviour
     private Material _lastSurfaceSource;
     private readonly List<LineRenderer> _linePool = new List<LineRenderer>();
     private readonly List<TMPro.TextMeshPro> _labelPool = new List<TMPro.TextMeshPro>();
+    // _linePool과 같은 순서. 각 선의 굵기 배율(축 1, 격자 0.65)이다. 줌이 바뀔 때 선 굵기를 다시 계산하는 데 쓴다.
+    private readonly List<float> _lineWidthFactors = new List<float>();
+    private float _worldPerPixel;
+    private float _appliedWorldPerPixel;
     private int _lineUsed;
     private int _labelUsed;
     private float _lineWidth;
@@ -167,6 +183,62 @@ public class DeviceGridGraphManager : MonoBehaviour
         if (cam == null) return;
         for (int i = 0; i < _labelUsed; i++)
             _labelPool[i].transform.rotation = cam.transform.rotation;
+        ApplyScreenScale();
+    }
+
+    /// <summary>
+    /// 카메라 줌(거리)이 바뀌면 선 굵기와 글자 크기를 화면 픽셀 기준으로 다시 맞춘다.
+    /// 선은 픽셀당 월드 크기가 임계값 이상 바뀔 때만 갱신하고(LineRenderer 메시 재생성 비용), 글자는 Transform 스케일만 바꾼다.
+    /// </summary>
+    private void ApplyScreenScale()
+    {
+        if (!_screenConstantSize) return;
+        float worldPerPixel = GetWorldPerPixel();
+        if (worldPerPixel <= 0f) return;
+        if (_appliedWorldPerPixel > 0f && Mathf.Abs(worldPerPixel - _appliedWorldPerPixel) <= _appliedWorldPerPixel * _scaleUpdateThreshold)
+            return;
+
+        _appliedWorldPerPixel = worldPerPixel;
+        _worldPerPixel = worldPerPixel;
+        _lineWidth = worldPerPixel * _lineWidthPixels;
+        for (int i = 0; i < _lineUsed; i++)
+        {
+            float width = _lineWidth * _lineWidthFactors[i];
+            _linePool[i].startWidth = width;
+            _linePool[i].endWidth = width;
+        }
+
+        Vector3 labelScale = Vector3.one * GetLabelScale();
+        for (int i = 0; i < _labelUsed; i++)
+            _labelPool[i].transform.localScale = labelScale;
+    }
+
+    /// <summary>
+    /// 화면 1픽셀이 그래프 중심 깊이에서 차지하는 월드 길이. 카메라가 없거나 화면 크기를 알 수 없으면 0(월드 비율 방식으로 대신한다).
+    /// 원근 카메라는 그래프 중심까지의 카메라 앞 방향 거리, 직교 카메라는 orthographicSize로 계산한다.
+    /// </summary>
+    private float GetWorldPerPixel()
+    {
+        if (_graphRoot == null) return 0f;
+        Camera cam = _viewCamera != null ? _viewCamera : _cachedCamera;
+        if (cam == null)
+        {
+            _cachedCamera = Camera.main;
+            cam = _cachedCamera;
+        }
+        if (cam == null || cam.pixelHeight <= 0) return 0f;
+        if (cam.orthographic)
+            return 2f * cam.orthographicSize / cam.pixelHeight;
+
+        Vector3 center = _graphRoot.position + _graphRoot.rotation * new Vector3(_xLength * 0.5f, _zLength * 0.5f, _yLength * 0.5f);
+        float depth = Mathf.Max(cam.nearClipPlane, Vector3.Dot(center - cam.transform.position, cam.transform.forward));
+        return 2f * depth * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) / cam.pixelHeight;
+    }
+
+    /// <summary>글자 localScale. TMP는 fontSize 1, 스케일 s일 때 글자 높이가 대략 s/10 월드 단위다.</summary>
+    private float GetLabelScale()
+    {
+        return _worldPerPixel > 0f ? _worldPerPixel * _labelPixels * 10f : _labelSize * 10f;
     }
 
     private void OnDestroy()
@@ -245,7 +317,10 @@ public class DeviceGridGraphManager : MonoBehaviour
         EnsureRoot();
         _graphRoot.SetPositionAndRotation(transform.position, transform.rotation);
         float longest = Mathf.Max(_xLength, Mathf.Max(_yLength, _zLength));
-        _lineWidth = longest * _lineWidthRatio;
+        // 화면 고정 크기 모드면 지금 카메라 기준 픽셀 굵기로, 아니면(또는 카메라가 없으면) 가장 긴 축 비율로 굵기를 정한다.
+        _worldPerPixel = _screenConstantSize ? GetWorldPerPixel() : 0f;
+        _appliedWorldPerPixel = _worldPerPixel;
+        _lineWidth = _worldPerPixel > 0f ? _worldPerPixel * _lineWidthPixels : longest * _lineWidthRatio;
         _tickLength = longest * _tickLengthRatio;
         _labelSize = longest * _labelSizeRatio;
         _lineUsed = 0;
@@ -284,7 +359,7 @@ public class DeviceGridGraphManager : MonoBehaviour
     /// </summary>
     private void BuildGrid()
     {
-        float width = _lineWidth * 0.65f;
+        const float width = 0.65f; // 축 선 굵기 대비 격자 선 굵기 배율
         for (int i = 0; i <= _xDivisions; i++)
         {
             float x = _xLength * i / _xDivisions;
@@ -310,20 +385,22 @@ public class DeviceGridGraphManager : MonoBehaviour
 
     private void BuildAxis(Vector3 origin, Vector3 direction, float length, Vector3 outward, int divisions, string title)
     {
-        CreateLine("Axis " + title, origin, origin + direction * length, _axisColor, _lineWidth);
+        CreateLine("Axis " + title, origin, origin + direction * length, _axisColor, 1f);
         for (int i = 0; i <= divisions; i++)
         {
             float fraction = (float)i / divisions;
             Vector3 point = origin + direction * (length * fraction);
-            CreateLine("Tick " + title + " " + i, point, point + outward * _tickLength, _axisColor, _lineWidth);
+            CreateLine("Tick " + title + " " + i, point, point + outward * _tickLength, _axisColor, 1f);
             float value = _normalizedLabels ? fraction : length * fraction;
             CreateLabel(value.ToString("0.###", CultureInfo.InvariantCulture), point + outward * (_tickLength + _labelSize), false);
         }
         CreateLabel(title, origin + direction * (length * 0.5f) + outward * (_tickLength + _labelSize * 6f), true);
     }
 
-    private void CreateLine(string lineName, Vector3 a, Vector3 b, Color color, float width)
+    /// <param name="widthFactor">현재 선 굵기(_lineWidth)에 곱하는 배율. 축 1, 격자 0.65.</param>
+    private void CreateLine(string lineName, Vector3 a, Vector3 b, Color color, float widthFactor)
     {
+        float width = _lineWidth * widthFactor;
         LineRenderer line;
         if (_lineUsed < _linePool.Count)
             line = _linePool[_lineUsed];
@@ -338,7 +415,9 @@ public class DeviceGridGraphManager : MonoBehaviour
             line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             line.receiveShadows = false;
             _linePool.Add(line);
+            _lineWidthFactors.Add(widthFactor);
         }
+        _lineWidthFactors[_lineUsed] = widthFactor;
         _lineUsed++;
         line.gameObject.name = lineName;
         line.gameObject.SetActive(true);
@@ -370,7 +449,7 @@ public class DeviceGridGraphManager : MonoBehaviour
         label.gameObject.SetActive(true);
         label.gameObject.name = "Label_" + text;
         label.transform.localPosition = position;
-        label.transform.localScale = Vector3.one * (_labelSize * 10f);
+        label.transform.localScale = Vector3.one * GetLabelScale();
         label.rectTransform.sizeDelta = new Vector2(title ? 30f : 8f, 3f);
         label.text = text;
         label.color = _labelColor;
@@ -399,7 +478,8 @@ public class DeviceGridGraphManager : MonoBehaviour
             _surfaceFilter.sharedMesh = _surfaceMesh;
         }
         // 面をグリッドよりわずかに外側へ置き、Z-fightingを防ぐ。
-        float offset = _lineWidth * 2f;
+        // 오프셋은 줌과 무관한 고정값(가장 긴 축 비율)이다. 선 굵기에 묶으면 줌 아웃 때 오프셋이 깊이 정밀도보다 작아져 선이 면에 가려진다.
+        float offset = Mathf.Max(_xLength, Mathf.Max(_yLength, _zLength)) * _surfaceOffsetRatio;
         _surfaceMesh.Clear();
         // 뒤벽 면은 격자 바깥쪽(깊이 끝 + offset, 카메라 반대편)에 둔다.
         float backSurfaceZ = _yLength + offset;
