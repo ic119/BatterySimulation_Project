@@ -1,4 +1,4 @@
-﻿using Incheol.Models;
+using Incheol.Models;
 using Incheol.Utils;
 using System;
 using System.Runtime.InteropServices;
@@ -35,6 +35,7 @@ namespace Incheol.Modules
         // React → Unity 수신 이벤트 (페이로드는 원본 JSON 문자열)
         public event Action<string> OnPartSelectedReceived; // React화면에서 좌측 Tree구조에서 장비를 클릭했을 때, 해당 장비에 대한 데이터를 Unity로 전송
         public event Action<string> OnPartUpdatedReceived; // React화면에서 우측하단 Apply 버튼 클릭 시, Pack 전체에 대한 장비 데이터를 Unity로 전송
+        public event Action<string> OnSceneClearedReceived; // React에서 씬 비우기를 요청했을 때(OnSceneCleared). 페이로드는 비어 있을 수 있다.
 
         /// <summary>가장 최근 OnPartSelected / OnPartUpdated로 받은 requestId. 아직 받은 적이 없으면 0.</summary>
         public static int LastPartRequestId { get; private set; }
@@ -90,6 +91,7 @@ namespace Incheol.Modules
         {
             OnPartSelectedReceived = null;
             OnPartUpdatedReceived = null;
+            OnSceneClearedReceived = null;
         }
         #endregion
 
@@ -107,6 +109,22 @@ namespace Incheol.Modules
             CacheLastPartRequestId(_json);
             Receive(nameof(OnPartUpdated), _json, OnPartUpdatedReceived);
         }
+        /// <summary>React → Unity: 씬 비우기 요청 수신 진입점. GeneratedBattery 아래에 만든 장비를 모두 지운다. payload는 비어 있어도 되고, { requestId }가 있으면 LastPartRequestId에 저장한다.</summary>
+        public void OnSceneCleared(string _json)
+        {
+            CacheLastPartRequestId(_json);
+            DebugLogManager.GenerateLogMessage<ReactBridge>("[ReactBridge] OnSceneCleared received.");
+
+            try
+            {
+                OnSceneClearedReceived?.Invoke(_json);
+            }
+            catch (Exception e)
+            {
+                DebugLogManager.GenerateErrorMessage<ReactBridge>($"OnSceneCleared handler error: {e}");
+            }
+        }
+
 
 
 

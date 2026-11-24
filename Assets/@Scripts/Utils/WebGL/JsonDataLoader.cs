@@ -42,14 +42,14 @@ namespace Incheol.Modules
         /// </summary>
         public IDeviceNode SelectedPart { get; private set; }
 
-        /// <summary>가장 최근 OnPartUpdated로 받아 저장한 Pack 모델(Pack부터 Cell까지 전체). 저장에 실패하면 이전 값이 유지된다.</summary>
-        public PackDataModel UpdatedPack { get; private set; }
+        /// <summary>가장 최근 OnPartUpdated로 받아 저장한 부품 모델. 보통 Pack 전체지만, part.kind가 다르면 그 종류의 최상단 모델이다. 저장에 실패하면 이전 값이 유지된다.</summary>
+        public IDeviceNode UpdatedPart { get; private set; }
 
         /// <summary>OnPartSelected 파싱·저장이 끝난 직후 발생한다. 인자는 part.kind 최상단 모델(SelectedPart). 구독자가 씬에 만들고 React에 OnSceneLoaded로 응답한다.</summary>
         public event Action<IDeviceNode> SelectedPartParsed;
 
-        /// <summary>OnPartUpdated 파싱·저장이 끝난 직후 발생한다. 인자는 Pack 전체 모델(UpdatedPack). 구독자가 씬에 만들고 React에 OnSceneUpdated로 응답한다.</summary>
-        public event Action<PackDataModel> UpdatedPackParsed;
+        /// <summary>OnPartUpdated 파싱·저장이 끝난 직후 발생한다. 인자는 part.kind 최상단 모델(UpdatedPart). 구독자가 씬에 만들고 React에 OnSceneUpdated로 응답한다.</summary>
+        public event Action<IDeviceNode> UpdatedPartParsed;
 
         /// <summary>SendUnityReady 1회만 호출용 (MainSceneManager가 뷰 바인딩을 끝낸 뒤 NotifyUnityReady로 React에 알림)</summary>
         private static bool _hasSentUnityReady;
@@ -95,13 +95,13 @@ namespace Incheol.Modules
             // 파싱·저장이 성공하면 구독자(MainSceneManager)가 씬에 만들고, 다 만든 뒤 OnSceneUpdated로 응답한다.
             if (LoadFromPartUpdatedJson(_json))
             {
-                if (UpdatedPackParsed == null)
+                if (UpdatedPartParsed == null)
                 {
-                    DebugLogManager.GenerateWarningMessage<JsonDataLoader>("[JsonDataLoader] UpdatedPackParsed 구독자가 없어 씬에 만들지 못했습니다.");
+                    DebugLogManager.GenerateWarningMessage<JsonDataLoader>("[JsonDataLoader] UpdatedPartParsed 구독자가 없어 씬에 만들지 못했습니다.");
                     return;
                 }
 
-                UpdatedPackParsed.Invoke(UpdatedPack);
+                UpdatedPartParsed.Invoke(UpdatedPart);
             }
         }
 
@@ -137,7 +137,7 @@ namespace Incheol.Modules
             CancelReactParse();
             ReactParsed = null;
             SelectedPartParsed = null;
-            UpdatedPackParsed = null;
+            UpdatedPartParsed = null;
             base.OnDestroy();
         }
         #endregion
@@ -549,6 +549,33 @@ namespace Incheol.Modules
                 DebugLogManager.GenerateErrorMessage<JsonDataLoader>("[JsonDataLoader] Part Updated JSON에 part가 없습니다.");
                 return false;
             }
+            // kind가 pack이 아닌 부품(Module, ParallelAssembly 등)은 OnPartSelected와 같은 방식으로 종류별로 파싱한다.
+            // kind가 없으면 예전처럼 Pack으로 본다. 알 수 없는 kind는 LoadFromPartJson이 에러를 남기고 false를 돌려준다.
+            PartHeaderRoot header = null;
+            try
+            {
+                header = JsonUtility.FromJson<PartHeaderRoot>(_json);
+            }
+            catch (Exception)
+            {
+                // 형식 오류는 아래 Pack 파싱에서 같은 원인으로 보고한다.
+            }
+
+            string kind = header?.part?.kind;
+            if (!string.IsNullOrEmpty(kind) && !string.Equals(kind, nameof(DeviceType.pack), StringComparison.OrdinalIgnoreCase))
+            {
+                // LoadFromPartJson은 SelectedPart에 저장하므로, 결과를 UpdatedPart로 옮기고 SelectedPart는 이전 값으로 되돌린다.
+                IDeviceNode previousSelectedPart = SelectedPart;
+                if (!LoadFromPartJson(_json))
+                {
+                    return false;
+                }
+
+                UpdatedPart = SelectedPart;
+                SelectedPart = previousSelectedPart;
+                return true;
+            }
+
 
             PartRoot<PackPartJson> root;
             try
@@ -612,7 +639,7 @@ namespace Incheol.Modules
                 return false;
             }
 
-            UpdatedPack = pack;
+            UpdatedPart = pack;
             DebugLogManager.GenerateLogMessage<JsonDataLoader>(
                 $"[JsonDataLoader] Part Updated JSON 파싱 완료 (requestId={root.requestId}, id={root.part.id}, name={root.part.name}, moduleAssemblies={moduleAssemblies}, modules={modules}, parallelAssemblies={parallelAssemblies}, cells={cells})");
             return true;

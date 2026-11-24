@@ -1,4 +1,4 @@
-﻿using Incheol.Models.Define;
+using Incheol.Models.Define;
 using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
@@ -27,6 +27,11 @@ namespace Incheol.Presenter
         private readonly DeviceSelection selection = new DeviceSelection();
 
         private SelectionPanels panels;
+        private ReactBridge subscribedBridge;
+
+        [Header("Generate Battery Variable")]
+        [SerializeField] private bool isGenerate = false;
+        [SerializeField] private Transform batteryRoot;
         #endregion
 
         #region R&D Variable
@@ -45,6 +50,16 @@ namespace Incheol.Presenter
                 cameraView = FindAnyObjectByType<OrbitCameraView>();
                 DebugLogManager.GenerateWarningMessage<MainSceneManager>("cameraView가 인스펙터에 지정되지 않아 씬에서 찾았습니다. MainSceneManager에 OrbitCamera를 연결하세요.");
             }
+
+            if (batteryRoot == null)
+            {
+                GameObject found = GameObject.Find("GeneratedBattery");
+                batteryRoot = found != null ? found.transform : null;
+                DebugLogManager.GenerateWarningMessage<MainSceneManager>("batteryRoot가 인스펙터에 지정되지 않아 씬에서 GeneratedBattery를 찾았습니다. MainSceneManager에 batteryRoot를 연결하세요.");
+            }
+
+            // 시작할 때 batteryRoot 아래에 이미 오브젝트가 있으면 생성된 상태로 본다. 이후에는 생성/제거 로직이 직접 바꾼다.
+            isGenerate = batteryRoot != null && batteryRoot.childCount > 0;
 
             AddressableAssetManager.Instance.LoadPrefabAddress<GameObject>(
                 AddressableAssetKey.UI_MainScene.ToString(),
@@ -105,8 +120,14 @@ namespace Incheol.Presenter
             {
                 JsonDataLoader.Instance.ReactParsed -= OnReactParsed;
                 JsonDataLoader.Instance.SelectedPartParsed -= OnSelectedPartParsed;
-                JsonDataLoader.Instance.UpdatedPackParsed -= OnUpdatedPackParsed;
+                JsonDataLoader.Instance.UpdatedPartParsed -= OnUpdatedPartParsed;
             }
+            if (subscribedBridge != null)
+            {
+                subscribedBridge.OnSceneClearedReceived -= OnSceneClearedReceived;
+                subscribedBridge = null;
+            }
+
 
             DeviceAxisGraphManager.SetSelectedOwner(null);
         }
@@ -195,6 +216,12 @@ namespace Incheol.Presenter
             createCountView?.Init(selection);
             mainSceneView?.Init(selection);
 
+            // React로 받은 장비도 batteryRoot 아래에 생성되도록 PackFactory의 부모를 지정한다(첫 생성 전에 지정해야 한다).
+            if (mainSceneView != null && batteryRoot != null)
+            {
+                mainSceneView.PackFactory.GenerateParent = batteryRoot;
+            }
+
             if (editorView != null)
             {
                 editorView.ItemClicked += OnItemClicked;
@@ -232,17 +259,40 @@ namespace Incheol.Presenter
             {
                 jsonLoader.ReactParsed += OnReactParsed;
                 jsonLoader.SelectedPartParsed += OnSelectedPartParsed;
-                jsonLoader.UpdatedPackParsed += OnUpdatedPackParsed;
+                jsonLoader.UpdatedPartParsed += OnUpdatedPartParsed;
 
                 if (jsonLoader.isReactParsed)
                 {
                     OnReactParsed(jsonLoader.jsonData);
                 }
             }
+            // React가 OnSceneCleared를 보내면 생성된 장비를 모두 지운다.
+            subscribedBridge = ReactBridge.Instance;
+            if (subscribedBridge != null)
+            {
+                subscribedBridge.OnSceneClearedReceived += OnSceneClearedReceived;
+            }
+
 
             // 그래프는 가장 최근에 만든 Pack을 따라간다. Pack이 생기기 전(데이터가 안 들어왔을 때)에는 기본 상태 그래프를 그린다.
             gridGraph = FindAnyObjectByType<DeviceGridGraphManager>();
             gridGraph?.SetTarget(null);
+        }
+
+        /// <summary>
+        /// React가 OnSceneCleared로 씬 비우기를 요청하면 isGenerate가 true인지 먼저 확인한다.
+        /// true일 때만 batteryRoot의 자식(PackRoot와 그 하위)을 모두 제거하고 isGenerate를 false로 바꾼다. false이면 지울 것이 없으므로 아무것도 하지 않는다.
+        /// </summary>
+        private void OnSceneClearedReceived(string _json)
+        {
+            if (!isGenerate)
+            {
+                DebugLogManager.GenerateLogMessage<MainSceneManager>("OnSceneCleared: isGenerate가 false라 제거할 장비가 없습니다.");
+                return;
+            }
+
+            ClearBatteryRoot();
+            DebugLogManager.GenerateLogMessage<MainSceneManager>("OnSceneCleared: batteryRoot의 자식을 모두 제거했습니다.");
         }
 
         /// <summary>React가 보낸 장비 데이터(JsonDataLoader가 파싱을 마친 것)로 장면을 다시 만든다. OnSceneLoaded 응답은 JsonDataLoader가 OnPartSelected 파싱 직후에 보낸다.</summary>
@@ -256,7 +306,10 @@ namespace Incheol.Presenter
             mainSceneView.LoadFromSaveJson(_data);
         }
 
-        /// <summary>OnPartSelected로 받은 부품(part.kind 최상단)을 Cell까지 씬에 만들고, 다 만들면 React에 OnSceneLoaded로 응답한다. 실패하면 로그만 남기고 응답하지 않는다.</summary>
+        /// <summary>
+        /// OnPartSelected로 받은 부품(part.kind 최상단)을 Cell까지 씬에 만든다. isGenerate가 true이면 batteryRoot의 자식을 먼저 제거한 뒤 만든다.
+        /// 다 만들면 isGenerate를 true로 바꾸고 React에 OnSceneLoaded로 응답한다. 실패하면 isGenerate는 false이고 로그만 남기며 응답하지 않는다.
+        /// </summary>
         private void OnSelectedPartParsed(IDeviceNode _spec)
         {
             if (mainSceneView == null)
@@ -265,8 +318,10 @@ namespace Incheol.Presenter
                 return;
             }
 
+            ClearBatteryRootIfGenerated();
             mainSceneView.BuildFromPart(_spec, built =>
             {
+                isGenerate = built;
                 if (built)
                 {
                     ReactBridge.SendSceneLoaded();
@@ -274,17 +329,22 @@ namespace Incheol.Presenter
             });
         }
 
-        /// <summary>OnPartUpdated로 받은 Pack 전체를 씬에 만들고, 다 만들면 React에 OnSceneUpdated로 응답한다. 실패하면 로그만 남기고 응답하지 않는다.</summary>
-        private void OnUpdatedPackParsed(PackDataModel _pack)
+        /// <summary>
+        /// OnPartUpdated로 받은 부품(보통 Pack 전체, part.kind가 다르면 그 종류의 최상단)을 Cell까지 씬에 만든다. isGenerate가 true이면 batteryRoot의 자식을 먼저 제거한 뒤 만든다.
+        /// 다 만들면 isGenerate를 true로 바꾸고 React에 OnSceneUpdated로 응답한다. 실패하면 isGenerate는 false이고 로그만 남기며 응답하지 않는다.
+        /// </summary>
+        private void OnUpdatedPartParsed(IDeviceNode _part)
         {
             if (mainSceneView == null)
             {
-                DebugLogManager.GenerateErrorMessage<MainSceneManager>("MainSceneView가 없어 Pack을 만들지 못했습니다.");
+                DebugLogManager.GenerateErrorMessage<MainSceneManager>("MainSceneView가 없어 부품을 만들지 못했습니다.");
                 return;
             }
 
-            mainSceneView.BuildFromPart(_pack, built =>
+            ClearBatteryRootIfGenerated();
+            mainSceneView.BuildFromPart(_part, built =>
             {
+                isGenerate = built;
                 if (built)
                 {
                     ReactBridge.SendSceneUpdated();
@@ -292,7 +352,43 @@ namespace Incheol.Presenter
             });
         }
 
-        /// <summary>새로 생성된 _created가 Pack이면 좌표 그래프가 그 Pack 중심을 기준으로 그려지게 한다.</summary>
+        /// <summary>isGenerate가 true일 때만 batteryRoot의 자식을 제거한다. 새로 만들기 전에 이전 결과를 치우는 용도다.</summary>
+        private void ClearBatteryRootIfGenerated()
+        {
+            if (!isGenerate)
+            {
+                return;
+            }
+
+            ClearBatteryRoot();
+        }
+
+        /// <summary>
+        /// batteryRoot의 자식(PackRoot와 그 하위)을 모두 제거하고 isGenerate를 false로 바꾼다.
+        /// 먼저 mainSceneView.ResetAll로 선택, 두 탭의 트리, 팩토리 등록을 정리해 카메라와 패널이 파괴될 오브젝트를 가리키지 않게 한 뒤, 남은 자식도 지운다.
+        /// Destroy는 프레임 끝에 반영되므로 이 호출 뒤에 새로 만든 오브젝트는 지워지지 않는다.
+        /// </summary>
+        private void ClearBatteryRoot()
+        {
+            mainSceneView?.ResetAll();
+            gridGraph?.SetTarget(null);
+
+            if (batteryRoot != null)
+            {
+                for (int i = batteryRoot.childCount - 1; i >= 0; i--)
+                {
+                    Destroy(batteryRoot.GetChild(i).gameObject);
+                }
+            }
+
+            isGenerate = false;
+        }
+
+        /// <summary>
+        /// 새로 생성된 _created가 최상단이면 좌표 그래프가 그 중심을 기준으로 그려지게 한다.
+        /// 최상단은 Pack, 또는 OnPartSelected / OnPartUpdated로 일부 부품(ModuleAssembly ~ Cell)만 받아 부모 없이 단독으로 만든 부품이다.
+        /// 그 아래 하위 부품은 부모가 있으므로 대상이 바뀌지 않는다.
+        /// </summary>
         private void FollowCreatedPack(Transform _created)
         {
             if (gridGraph == null || _created == null || mainSceneView == null)
@@ -301,7 +397,7 @@ namespace Incheol.Presenter
             }
 
             IDeviceNode node = mainSceneView.PackFactory.Find(_created);
-            if (node != null && node.Kind == DeviceType.pack)
+            if (node != null && (node.Kind == DeviceType.pack || node.Parent == null))
             {
                 gridGraph.SetTarget(_created);
             }

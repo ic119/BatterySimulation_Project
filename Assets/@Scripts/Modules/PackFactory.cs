@@ -1,4 +1,4 @@
-﻿using DeviceType = Incheol.Models.Define.DeviceType;
+using DeviceType = Incheol.Models.Define.DeviceType;
 using Incheol.Modules;
 using Incheol.Utils;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ public class PackFactory
     private const float FallbackSpacing = 1.0f;
 
     // PackRoot의 부모가 될 MainScene 오브젝트 이름.
-    private const string GeneratePosName = "GeneratePos";
+    private const string GeneratePosName = "GeneratedBattery";
 
     // 만든 항목의 목록과 조회는 registry가, 지우기는 remover가 맡는다. 이 클래스는 만들고 놓는 일에 집중한다.
     private readonly PackRegistry registry = new PackRegistry();
