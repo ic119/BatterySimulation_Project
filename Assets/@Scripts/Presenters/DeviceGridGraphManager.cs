@@ -53,7 +53,7 @@ public class DeviceGridGraphManager : MonoBehaviour
     [SerializeField, Min(0.1f)] private float _lineWidthPixels = 2f;
     [Tooltip("눈금 숫자와 제목의 화면 글자 높이(픽셀).")]
     [SerializeField, Min(1f)] private float _labelPixels = 14f;
-    [Tooltip("픽셀당 월드 크기가 이 비율 이상 바뀔 때만 선 굵기를 다시 적용한다(WebGL에서 LineRenderer 메시 재생성 비용을 줄인다).")]
+    [Tooltip("픽셀당 월드 크기가 이 비율 이상 바뀔 때만 글자 크기를 다시 적용한다. 선 굵기는 셰이더가 매 프레임 픽셀 기준으로 계산하므로 이 값과 무관하다.")]
     [SerializeField, Range(0.001f, 0.2f)] private float _scaleUpdateThreshold = 0.01f;
     [Tooltip("벽·바닥 면을 격자보다 바깥에 두는 거리(가장 긴 축 비율). 줌과 무관한 고정값이라 z-fighting이 줌에 따라 달라지지 않는다.")]
     [SerializeField, Min(0.0001f)] private float _surfaceOffsetRatio = 0.003f;
@@ -62,7 +62,7 @@ public class DeviceGridGraphManager : MonoBehaviour
     [SerializeField] private Camera _viewCamera;
     [Tooltip("한글 글리프가 포함된 TMP 폰트를 지정한다.")]
     [SerializeField] private TMPro.TMP_FontAsset _labelFont;
-    [Tooltip("색상을 지원하는 Unlit 재질. WebGL 빌드에는 직접 지정하는 것을 권장한다.")]
+    [Tooltip("Incheol/GridGraphLine 셰이더를 쓰는 재질. 비어 있거나 다른 셰이더면 셰이더를 직접 찾아 쓰므로, WebGL 빌드에는 직접 지정해 셰이더가 빌드에 포함되게 한다.")]
     [SerializeField] private Material _lineMaterial;
     [Tooltip("불투명 Unlit 재질. 인스턴스를 만들어 Surface Color를 적용한다.")]
     [SerializeField] private Material _surfaceMaterial;
@@ -73,16 +73,29 @@ public class DeviceGridGraphManager : MonoBehaviour
     private MeshRenderer _surfaceRenderer;
     private Mesh _surfaceMesh;
     private Material _fallbackLineMaterial;
+    private Material _fallbackSurfaceMaterial;
     private Material _surfaceInstance;
     private Material _lastSurfaceSource;
-    private readonly List<LineRenderer> _linePool = new List<LineRenderer>();
     private readonly List<TMPro.TextMeshPro> _labelPool = new List<TMPro.TextMeshPro>();
-    // _linePool과 같은 순서. 각 선의 굵기 배율(축 1, 격자 0.65)이다. 줌이 바뀔 때 선 굵기를 다시 계산하는 데 쓴다.
-    private readonly List<float> _lineWidthFactors = new List<float>();
+
+    // 모든 선(축, 눈금, 격자)을 하나의 메시로 합쳐 그린다. 선 하나는 정점 4개 / 삼각형 2개이며, 굵기는 셰이더가 화면 픽셀 기준으로 펼친다.
+    private const string LineShaderName = "Incheol/GridGraphLine";
+    private static readonly int WidthScaleId = Shader.PropertyToID("_WidthScale");
+    private MeshFilter _lineFilter;
+    private MeshRenderer _lineRenderer;
+    private Mesh _lineMesh;
+    private MaterialPropertyBlock _lineBlock;
+    private readonly List<Vector3> _lineVertices = new List<Vector3>();
+    private readonly List<Vector4> _lineOthers = new List<Vector4>();
+    private readonly List<Vector2> _lineWidthInfos = new List<Vector2>();
+    private readonly List<Color> _lineColors = new List<Color>();
+    private readonly List<int> _lineTriangles = new List<int>();
+    private float _appliedLineWidthScale = -1f;
+
     private float _worldPerPixel;
     private float _appliedWorldPerPixel;
-    private int _lineUsed;
     private int _labelUsed;
+    // 정점에 기록하는 기본 선 굵기. 화면 고정 모드면 픽셀, 아니면 월드 단위다(셰이더의 _WidthScale이 픽셀로 바꾼다).
     private float _lineWidth;
     private float _tickLength;
     private float _labelSize;
@@ -187,11 +200,13 @@ public class DeviceGridGraphManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 카메라 줌(거리)이 바뀌면 선 굵기와 글자 크기를 화면 픽셀 기준으로 다시 맞춘다.
-    /// 선은 픽셀당 월드 크기가 임계값 이상 바뀔 때만 갱신하고(LineRenderer 메시 재생성 비용), 글자는 Transform 스케일만 바꾼다.
+    /// 카메라 줌(거리)이 바뀌면 글자 크기를 화면 픽셀 기준으로 다시 맞춘다. 글자는 Transform 스케일만 바꾸고,
+    /// 픽셀당 월드 크기가 임계값 이상 바뀔 때만 갱신한다.
+    /// 선 굵기는 셰이더가 매 프레임 화면 픽셀 기준으로 계산하므로 여기서 다루지 않는다(ApplyLineWidthScale 참고).
     /// </summary>
     private void ApplyScreenScale()
     {
+        ApplyLineWidthScale();
         if (!_screenConstantSize) return;
         float worldPerPixel = GetWorldPerPixel();
         if (worldPerPixel <= 0f) return;
@@ -200,17 +215,33 @@ public class DeviceGridGraphManager : MonoBehaviour
 
         _appliedWorldPerPixel = worldPerPixel;
         _worldPerPixel = worldPerPixel;
-        _lineWidth = worldPerPixel * _lineWidthPixels;
-        for (int i = 0; i < _lineUsed; i++)
-        {
-            float width = _lineWidth * _lineWidthFactors[i];
-            _linePool[i].startWidth = width;
-            _linePool[i].endWidth = width;
-        }
 
         Vector3 labelScale = Vector3.one * GetLabelScale();
         for (int i = 0; i < _labelUsed; i++)
             _labelPool[i].transform.localScale = labelScale;
+    }
+
+    /// <summary>
+    /// 정점의 굵기 값을 셰이더가 픽셀로 바꾸는 배율(_WidthScale)을 갱신한다.
+    /// 화면 고정 모드는 정점 값이 이미 픽셀이라 배율 1이고, 월드 굵기 모드는 1 / (픽셀당 월드 크기)다. 메시는 다시 만들지 않는다.
+    /// </summary>
+    private void ApplyLineWidthScale()
+    {
+        if (_lineRenderer == null) return;
+        float scale = 1f;
+        if (!_screenConstantSize)
+        {
+            float worldPerPixel = GetWorldPerPixel();
+            if (worldPerPixel > 0f)
+                scale = 1f / worldPerPixel;
+        }
+        if (Mathf.Approximately(scale, _appliedLineWidthScale)) return;
+
+        _appliedLineWidthScale = scale;
+        if (_lineBlock == null) _lineBlock = new MaterialPropertyBlock();
+        _lineRenderer.GetPropertyBlock(_lineBlock);
+        _lineBlock.SetFloat(WidthScaleId, scale);
+        _lineRenderer.SetPropertyBlock(_lineBlock);
     }
 
     /// <summary>
@@ -245,8 +276,10 @@ public class DeviceGridGraphManager : MonoBehaviour
     {
         ReleaseObject(_graphRoot != null ? _graphRoot.gameObject : null);
         ReleaseObject(_surfaceMesh);
+        ReleaseObject(_lineMesh);
         ReleaseObject(_surfaceInstance);
         ReleaseObject(_fallbackLineMaterial);
+        ReleaseObject(_fallbackSurfaceMaterial);
     }
     #endregion
 
@@ -320,11 +353,11 @@ public class DeviceGridGraphManager : MonoBehaviour
         // 화면 고정 크기 모드면 지금 카메라 기준 픽셀 굵기로, 아니면(또는 카메라가 없으면) 가장 긴 축 비율로 굵기를 정한다.
         _worldPerPixel = _screenConstantSize ? GetWorldPerPixel() : 0f;
         _appliedWorldPerPixel = _worldPerPixel;
-        _lineWidth = _worldPerPixel > 0f ? _worldPerPixel * _lineWidthPixels : longest * _lineWidthRatio;
+        _lineWidth = _screenConstantSize ? _lineWidthPixels : longest * _lineWidthRatio;
         _tickLength = longest * _tickLengthRatio;
         _labelSize = longest * _labelSizeRatio;
-        _lineUsed = 0;
         _labelUsed = 0;
+        ClearLines();
         BuildSurfaces();
         BuildGrid();
 
@@ -335,8 +368,7 @@ public class DeviceGridGraphManager : MonoBehaviour
         BuildAxis(Vector3.right * _xLength, Vector3.forward, _yLength, Vector3.right, _yDivisions, _xTitle);
         BuildAxis(Vector3.zero, Vector3.up, _zLength, new Vector3(-1f, 0f, -1f).normalized, _zDivisions, _zTitle);
 
-        for (int i = _lineUsed; i < _linePool.Count; i++)
-            _linePool[i].gameObject.SetActive(false);
+        UploadLines();
         for (int i = _labelUsed; i < _labelPool.Count; i++)
             _labelPool[i].gameObject.SetActive(false);
         _graphRoot.gameObject.SetActive(isActiveAndEnabled);
@@ -364,68 +396,99 @@ public class DeviceGridGraphManager : MonoBehaviour
         {
             float x = _xLength * i / _xDivisions;
             if (i != _xDivisions)
-                CreateLine("Floor X " + i, new Vector3(x, 0f, 0f), new Vector3(x, 0f, _yLength), _gridColor, width);
+                CreateLine(new Vector3(x, 0f, 0f), new Vector3(x, 0f, _yLength), _gridColor, width);
             if (i != 0)
-                CreateLine("Wall X " + i, new Vector3(x, 0f, _yLength), new Vector3(x, _zLength, _yLength), _gridColor, width);
+                CreateLine(new Vector3(x, 0f, _yLength), new Vector3(x, _zLength, _yLength), _gridColor, width);
         }
         for (int i = 1; i <= _yDivisions; i++)
         {
             float y = _yLength * i / _yDivisions;
-            CreateLine("Floor Y " + i, new Vector3(0f, 0f, y), new Vector3(_xLength, 0f, y), _gridColor, width);
-            CreateLine("Wall Y " + i, new Vector3(0f, 0f, y), new Vector3(0f, _zLength, y), _gridColor, width);
+            CreateLine(new Vector3(0f, 0f, y), new Vector3(_xLength, 0f, y), _gridColor, width);
+            CreateLine(new Vector3(0f, 0f, y), new Vector3(0f, _zLength, y), _gridColor, width);
         }
         if (!_showHorizontalWallGrid) return;
         for (int i = 1; i <= _zDivisions; i++)
         {
             float z = _zLength * i / _zDivisions;
-            CreateLine("Wall Height X " + i, new Vector3(0f, z, _yLength), new Vector3(_xLength, z, _yLength), _gridColor, width);
-            CreateLine("Wall Height Y " + i, new Vector3(0f, z, 0f), new Vector3(0f, z, _yLength), _gridColor, width);
+            CreateLine(new Vector3(0f, z, _yLength), new Vector3(_xLength, z, _yLength), _gridColor, width);
+            CreateLine(new Vector3(0f, z, 0f), new Vector3(0f, z, _yLength), _gridColor, width);
         }
     }
 
     private void BuildAxis(Vector3 origin, Vector3 direction, float length, Vector3 outward, int divisions, string title)
     {
-        CreateLine("Axis " + title, origin, origin + direction * length, _axisColor, 1f);
+        CreateLine(origin, origin + direction * length, _axisColor, 1f);
         for (int i = 0; i <= divisions; i++)
         {
             float fraction = (float)i / divisions;
             Vector3 point = origin + direction * (length * fraction);
-            CreateLine("Tick " + title + " " + i, point, point + outward * _tickLength, _axisColor, 1f);
+            CreateLine(point, point + outward * _tickLength, _axisColor, 1f);
             float value = _normalizedLabels ? fraction : length * fraction;
             CreateLabel(value.ToString("0.###", CultureInfo.InvariantCulture), point + outward * (_tickLength + _labelSize), false);
         }
         CreateLabel(title, origin + direction * (length * 0.5f) + outward * (_tickLength + _labelSize * 6f), true);
     }
 
+    private void ClearLines()
+    {
+        _lineVertices.Clear();
+        _lineOthers.Clear();
+        _lineWidthInfos.Clear();
+        _lineColors.Clear();
+        _lineTriangles.Clear();
+    }
+
     /// <param name="widthFactor">현재 선 굵기(_lineWidth)에 곱하는 배율. 축 1, 격자 0.65.</param>
-    private void CreateLine(string lineName, Vector3 a, Vector3 b, Color color, float widthFactor)
+    private void CreateLine(Vector3 a, Vector3 b, Color color, float widthFactor)
     {
         float width = _lineWidth * widthFactor;
-        LineRenderer line;
-        if (_lineUsed < _linePool.Count)
-            line = _linePool[_lineUsed];
-        else
+        // 메시 정점 색은 Linear 색 공간에서 자동 변환되지 않으므로 직접 바꾼다(LineRenderer와 같은 색으로 보이게).
+        Color vertexColor = QualitySettings.activeColorSpace == ColorSpace.Linear ? color.linear : color;
+        int v = _lineVertices.Count;
+        // 정점 순서: 시작점 +쪽, 시작점 -쪽, 끝점 +쪽, 끝점 -쪽. 끝점 쪽은 방향이 뒤집히므로 dirSign -1로 셰이더에서 보정한다.
+        AddLineVertex(a, b, 1f, 1f, width, vertexColor);
+        AddLineVertex(a, b, -1f, 1f, width, vertexColor);
+        AddLineVertex(b, a, 1f, -1f, width, vertexColor);
+        AddLineVertex(b, a, -1f, -1f, width, vertexColor);
+        _lineTriangles.Add(v); _lineTriangles.Add(v + 2); _lineTriangles.Add(v + 1);
+        _lineTriangles.Add(v + 1); _lineTriangles.Add(v + 2); _lineTriangles.Add(v + 3);
+    }
+
+    private void AddLineVertex(Vector3 self, Vector3 other, float side, float dirSign, float width, Color color)
+    {
+        _lineVertices.Add(self);
+        _lineOthers.Add(new Vector4(other.x, other.y, other.z, side));
+        _lineWidthInfos.Add(new Vector2(width, dirSign));
+        _lineColors.Add(color);
+    }
+
+    /// <summary>모아 둔 선 정점으로 단일 선 메시를 갱신한다.</summary>
+    private void UploadLines()
+    {
+        if (_lineRenderer == null)
         {
-            var go = new GameObject(lineName);
+            var go = new GameObject("Lines");
             go.layer = gameObject.layer;
             go.transform.SetParent(_graphRoot, false);
-            line = go.AddComponent<LineRenderer>();
-            line.useWorldSpace = false;
-            line.positionCount = 2;
-            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            line.receiveShadows = false;
-            _linePool.Add(line);
-            _lineWidthFactors.Add(widthFactor);
+            _lineFilter = go.AddComponent<MeshFilter>();
+            _lineRenderer = go.AddComponent<MeshRenderer>();
+            _lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _lineRenderer.receiveShadows = false;
+            _lineRenderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+            _lineRenderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            _lineMesh = new Mesh { name = "GridGraph Lines" };
+            _lineFilter.sharedMesh = _lineMesh;
         }
-        _lineWidthFactors[_lineUsed] = widthFactor;
-        _lineUsed++;
-        line.gameObject.name = lineName;
-        line.gameObject.SetActive(true);
-        line.SetPosition(0, a);
-        line.SetPosition(1, b);
-        line.startWidth = line.endWidth = width;
-        line.startColor = line.endColor = color;
-        line.sharedMaterial = GetLineMaterial();
+        _lineMesh.Clear();
+        _lineMesh.SetVertices(_lineVertices);
+        _lineMesh.SetUVs(0, _lineOthers);
+        _lineMesh.SetUVs(1, _lineWidthInfos);
+        _lineMesh.SetColors(_lineColors);
+        _lineMesh.SetTriangles(_lineTriangles, 0, true);
+        _lineRenderer.sharedMaterial = GetLineMaterial();
+        _lineRenderer.gameObject.SetActive(true);
+        _appliedLineWidthScale = -1f;
+        ApplyLineWidthScale();
     }
 
     private void CreateLabel(string text, Vector3 position, bool title)
@@ -513,7 +576,7 @@ public class DeviceGridGraphManager : MonoBehaviour
                 _surfaceInstance = new Material(_surfaceMaterial);
             else
             {
-                _surfaceInstance = new Material(GetLineMaterial()) { name = "GridGraph Surface" };
+                _surfaceInstance = new Material(GetSurfaceFallbackMaterial()) { name = "GridGraph Surface" };
                 // 기본 Sprite 재질은 투명 큐이므로 선보다 먼저 그려 벽이 격자를 덮지 않게 한다.
                 _surfaceInstance.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry;
             }
@@ -525,17 +588,30 @@ public class DeviceGridGraphManager : MonoBehaviour
         _surfaceRenderer.gameObject.SetActive(true);
     }
 
+    /// <summary>Incheol/GridGraphLine 셰이더 재질. 지정한 재질이 없거나 다른 셰이더(_WidthScale 없음)면 셰이더를 찾아 대신 만든다.</summary>
     private Material GetLineMaterial()
     {
-        if (_lineMaterial != null) return _lineMaterial;
+        if (_lineMaterial != null && _lineMaterial.HasProperty(WidthScaleId)) return _lineMaterial;
         if (_fallbackLineMaterial == null)
+        {
+            Shader shader = Shader.Find(LineShaderName);
+            if (shader == null)
+                throw new System.InvalidOperationException("그래프 Line Material(" + LineShaderName + " 셰이더)을 지정해야 합니다.");
+            _fallbackLineMaterial = new Material(shader) { name = "GridGraph Line Fallback" };
+        }
+        return _fallbackLineMaterial;
+    }
+
+    private Material GetSurfaceFallbackMaterial()
+    {
+        if (_fallbackSurfaceMaterial == null)
         {
             Shader shader = Shader.Find("Sprites/Default");
             if (shader == null)
-                throw new System.InvalidOperationException("그래프 Line Material을 지정해야 합니다.");
-            _fallbackLineMaterial = new Material(shader) { name = "GridGraph Fallback" };
+                throw new System.InvalidOperationException("그래프 Surface Material을 지정해야 합니다.");
+            _fallbackSurfaceMaterial = new Material(shader) { name = "GridGraph Surface Fallback" };
         }
-        return _fallbackLineMaterial;
+        return _fallbackSurfaceMaterial;
     }
 
     private static bool IsValidLength(float value)

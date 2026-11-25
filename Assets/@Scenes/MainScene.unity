@@ -459,7 +459,7 @@ MonoBehaviour:
   _tickLengthRatio: 0.1
   _labelSizeRatio: 0.05
   _axisColor: {r: 0, g: 0, b: 0, a: 1}
-  _gridColor: {r: 1, g: 1, b: 1, a: 1}
+  _gridColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
   _labelColor: {r: 0.25, g: 0.25, b: 0.25, a: 1}
   _surfaceColor: {r: 1, g: 1, b: 1, a: 1}
   _showSurfaces: 1
@@ -471,8 +471,8 @@ MonoBehaviour:
   _surfaceOffsetRatio: 0.003
   _viewCamera: {fileID: 571937971}
   _labelFont: {fileID: 11400000, guid: 42e86edef001e49479ba43553fd16e88, type: 2}
-  _lineMaterial: {fileID: 2100000, guid: c52e6de91d4908f449ce3f0d0635b6eb, type: 2}
-  _surfaceMaterial: {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  _lineMaterial: {fileID: 2100000, guid: e78cca38b0a85354f9e9a408824c8380, type: 2}
+  _surfaceMaterial: {fileID: 2100000, guid: 79d8fd1ef941a7944a3c082d0040b9bd, type: 2}
 --- !u!4 &923629070
 Transform:
   m_ObjectHideFlags: 0
